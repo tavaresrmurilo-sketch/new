@@ -1,0 +1,9 @@
+Data;Descrição;Cliente;Categoria;Receita;Custo;Quantidade
+01/08/2026;Consultoria financeira;Padaria Estrela;Serviços;R$ 4.500,00;R$ 1.200,00;1
+05/08/2026;Treinamento de equipe;Mercado Central;Serviços;3.200,00;900,00;1
+12/08/2026;Diagnóstico empresarial;Padaria Estrela;Consultoria;6.800,00;2.100,00;1
+20/08/2026;Consultoria financeira;Clínica Saúde+;Serviços;4.500,00;1.250,00;1
+03/09/2026;Consultoria financeira;Mercado Central;Serviços;4.700,00;1.300,00;1
+10/09/2026;Implantação de BI;Clínica Saúde+;Projetos;12.000,00;5.400,00;1
+18/09/2026;Treinamento de equipe;Padaria Estrela;Serviços;3.200,00;950,00;1
+xx/09/2026;Linha inválida;Teste;Serviços;abc;0;1

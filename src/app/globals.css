@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 216 62% 22%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 16% 94%;
+    --secondary-foreground: 222 47% 14%;
+    --muted: 220 16% 95%;
+    --muted-foreground: 220 9% 42%;
+    --accent: 214 60% 95%;
+    --accent-foreground: 216 62% 22%;
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 14% 89%;
+    --input: 220 14% 86%;
+    --ring: 213 67% 50%;
+    --radius: 0.625rem;
+    --brand: 216 62% 22%;
+    --brand-foreground: 0 0% 100%;
+    --brand-gold: 40 78% 52%;
+    --sidebar: 217 55% 13%;
+    --sidebar-foreground: 214 30% 92%;
+    --sidebar-muted: 216 20% 62%;
+    --sidebar-active: 216 45% 22%;
+    --success: 142 64% 32%;
+    --warning: 36 92% 40%;
+    --critical: 0 72% 46%;
+    --info: 213 67% 45%;
+    /* séries de gráficos — paleta categórica validada (ordem fixa) */
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --series-4: #eda100;
+    --chart-grid: #e6e8ec;
+    --chart-axis: #6b7280;
+  }
+  .dark {
+    --background: 222 30% 7%;
+    --foreground: 214 25% 94%;
+    --card: 222 26% 10%;
+    --card-foreground: 214 25% 94%;
+    --popover: 222 26% 11%;
+    --popover-foreground: 214 25% 94%;
+    --primary: 213 70% 62%;
+    --primary-foreground: 222 47% 8%;
+    --secondary: 222 18% 16%;
+    --secondary-foreground: 214 25% 92%;
+    --muted: 222 18% 14%;
+    --muted-foreground: 216 12% 64%;
+    --accent: 216 30% 18%;
+    --accent-foreground: 214 25% 94%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 16% 19%;
+    --input: 222 16% 23%;
+    --ring: 213 70% 62%;
+    --brand: 213 70% 62%;
+    --brand-foreground: 222 47% 8%;
+    --sidebar: 222 32% 6%;
+    --sidebar-foreground: 214 25% 90%;
+    --sidebar-muted: 216 12% 58%;
+    --sidebar-active: 216 30% 15%;
+    --success: 142 55% 45%;
+    --warning: 38 90% 55%;
+    --critical: 0 70% 60%;
+    --info: 213 70% 62%;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --chart-grid: #262b36;
+    --chart-axis: #9aa3b2;
+  }
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "tnum" 1, "cv11" 1;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+}
+
+.prose-cortex strong {
+  @apply font-semibold text-foreground;
+}
+.prose-cortex ul {
+  @apply my-1 list-disc space-y-1 pl-5;
+}
+.prose-cortex h3 {
+  @apply mb-1 mt-3 text-sm font-semibold text-foreground;
+}
+.prose-cortex p {
+  @apply my-1.5;
+}
