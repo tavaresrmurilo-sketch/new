@@ -1,0 +1,4 @@
+Documento;Descrição;Fornecedor;Categoria;Emissão;Vencimento;Valor;Valor pago;Data pagamento
+NF-1001;Compra de insumos;Fornecedor Alfa;Compras;01/09/2026;30/09/2026;12.500,00;;
+NF-1002;Licença de software;Software Exemplo;Sistemas;05/09/2026;05/10/2026;1.890,00;;
+NF-0990;Serviço de manutenção;Manutenção Beta;Manutenção;10/08/2026;10/09/2026;3.400,00;3.400,00;10/09/2026

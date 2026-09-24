@@ -41,14 +41,16 @@ export async function analyzeDre(ctx: AnalyticsCtx, period: Period): Promise<Ana
   const t = dre.data.totals;
   const p = dre.data.previousTotals;
 
+  // aumentos/reduções medidos sobre o valor absoluto de cada conta (ex.: custo que sobe = aumento)
   const items: VarianceItem[] = [];
   for (const line of dre.data.lines) {
     for (const c of line.children) {
       if (c.previous === null) continue;
-      items.push({ label: `${line.label.replace(/^\(.*?\)\s*/, "")} · ${c.label}`, current: c.value, previous: c.previous, change: round(c.value - c.previous), changePct: pctChange(c.value, c.previous) });
+      const cur = Math.abs(c.value);
+      const prev = Math.abs(c.previous);
+      items.push({ label: `${line.label.replace(/^\(.*?\)\s*/, "")} · ${c.label}`, current: cur, previous: prev, change: round(cur - prev), changePct: pctChange(cur, prev) });
     }
   }
-  // variação "favorável" = aumento de valor com sinal positivo (receitas sobem, despesas negativas caem)
   const material = Math.max(Math.abs(t.netRevenue) * 0.005, 1);
   const increases = items.filter((i) => i.change > material).sort((a, b) => b.change - a.change).slice(0, 5);
   const decreases = items.filter((i) => i.change < -material).sort((a, b) => a.change - b.change).slice(0, 5);
@@ -128,7 +130,7 @@ export async function analyzeDre(ctx: AnalyticsCtx, period: Period): Promise<Ana
       (p ? ` Em comparação com ${comparison.label}, a receita variou ${fmt.signedPct(revVar)} e a margem líquida ${fmt.pp(marginChange.netPp)}.` : " Não há dados no período anterior para comparação.");
 
   return {
-    data: { dre: dre.data, analysis: { summary, increases, decreases, outliers: outliers.slice(0, 5), marginChange, hypotheses, trends, attention } },
+    data: { dre: dre.data, analysis: { summary: summary.replace(/p\.p\.\./g, "p.p."), increases, decreases, outliers: outliers.slice(0, 5), marginChange, hypotheses, trends, attention } },
     meta: {
       ...dre.meta,
       calculation: [

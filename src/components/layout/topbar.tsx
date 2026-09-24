@@ -114,7 +114,7 @@ export function Topbar({ groups, userName, userEmail, roleLabel, tenantName, isD
         </Button>
         <GlobalSearch groups={groups} />
         <div className="ml-auto flex items-center gap-2">
-          {isDemo ? <Badge variant="demo">DADOS DEMONSTRATIVOS</Badge> : null}
+          {isDemo ? <Badge variant="demo" className="hidden md:inline-flex">DADOS DEMONSTRATIVOS</Badge> : null}
           {supportMode ? <Badge variant="warning">Acesso de suporte JR</Badge> : null}
           {showPeriod ? <PeriodFilter className="hidden sm:block" /> : null}
           <Button variant="ghost" size="icon" aria-label="Alternar tema" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>

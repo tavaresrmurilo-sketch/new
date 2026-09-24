@@ -1,16 +1,20 @@
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const brlCompact = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
+/** Formato compacto determinístico (idêntico no servidor e no navegador, evitando divergência de ICU). */
+function compactMoney(v: number): string {
+  const abs = Math.abs(v);
+  const sign = v < 0 ? "-" : "";
+  const one = (n: number) => n.toFixed(1).replace(/\.0$/, "").replace(".", ",");
+  if (abs >= 1e9) return `${sign}R$ ${one(abs / 1e9)} bi`;
+  if (abs >= 1e6) return `${sign}R$ ${one(abs / 1e6)} mi`;
+  if (abs >= 1e3) return `${sign}R$ ${one(abs / 1e3)} mil`;
+  return `${sign}R$ ${Math.round(abs)}`;
+}
 const num = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
 const int = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
 
 export const fmt = {
   money: (v: number | null | undefined) => (v === null || v === undefined ? "—" : brl.format(v)),
-  moneyCompact: (v: number | null | undefined) => (v === null || v === undefined ? "—" : brlCompact.format(v)),
+  moneyCompact: (v: number | null | undefined) => (v === null || v === undefined ? "—" : compactMoney(v)),
   number: (v: number | null | undefined) => (v === null || v === undefined ? "—" : num.format(v)),
   int: (v: number | null | undefined) => (v === null || v === undefined ? "—" : int.format(v)),
   pct: (v: number | null | undefined, digits = 1) =>

@@ -11,6 +11,8 @@ export interface DreLine {
   key: string;
   label: string;
   kind: "group" | "subtotal" | "result";
+  /** linha de custo/despesa (valor negativo no DRE): variação exibida sobre o valor absoluto */
+  isCost: boolean;
   value: number;
   pctOfNetRevenue: number | null;
   previous: number | null;
@@ -49,6 +51,7 @@ interface RawDre {
 }
 
 const RESTRICTED_LABEL = "Pessoal (detalhe restrito)";
+const COST_LINES = new Set(["deductions", "costs", "operating_expenses", "depreciation", "income_taxes"]);
 
 async function computeRaw(ctx: AnalyticsCtx, period: Period): Promise<RawDre> {
   const classifier = await loadClassifier(ctx.tenantId);
@@ -187,7 +190,7 @@ export async function buildDre(ctx: AnalyticsCtx, period: Period, comparison?: P
           label,
           value,
           previous,
-          pctVar: previous === null ? null : pctChange(value, previous),
+          pctVar: previous === null ? null : sign === -1 && s === -1 ? pctChange(Math.abs(value), Math.abs(previous)) : pctChange(value, previous),
           note: cur.unclassified.includes(label) ? "Categoria sem conta no plano de contas (classificada como despesa operacional)" : undefined,
         };
       })
@@ -202,17 +205,21 @@ export async function buildDre(ctx: AnalyticsCtx, period: Period, comparison?: P
     value: number,
     previous: number | null,
     kids: DreLine["children"] = [],
-  ): DreLine => ({
-    key,
-    label,
-    kind,
-    value,
-    pctOfNetRevenue: t.netRevenue ? round((value / t.netRevenue) * 100, 2) : null,
-    previous,
-    absVar: previous === null ? null : round(value - previous),
-    pctVar: previous === null ? null : pctChange(value, previous),
-    children: kids,
-  });
+  ): DreLine => {
+    const isCost = COST_LINES.has(key);
+    return {
+      key,
+      label,
+      kind,
+      isCost,
+      value,
+      pctOfNetRevenue: t.netRevenue ? round((value / t.netRevenue) * 100, 2) : null,
+      previous,
+      absVar: previous === null ? null : round(value - previous),
+      pctVar: previous === null ? null : isCost ? pctChange(Math.abs(value), Math.abs(previous)) : pctChange(value, previous),
+      children: kids,
+    };
+  };
 
   const lines: DreLine[] = [
     line("gross_revenue", "Receita bruta", "group", t.grossRevenue, p?.grossRevenue ?? null, children(["GROSS_REVENUE"], 1)),

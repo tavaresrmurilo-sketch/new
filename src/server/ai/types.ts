@@ -6,7 +6,7 @@ export type Block =
   | { type: "kpis"; items: { label: string; value: number | string | null; format: ValueFormat; delta?: number | null; deltaFormat?: "pct" | "pp"; hint?: string }[] }
   | { type: "table"; title?: string; columns: { key: string; label: string; format?: ValueFormat; align?: "left" | "right" }[]; rows: Record<string, string | number | null>[] }
   | { type: "chart"; title?: string; chart: "bar" | "line" | "area" | "composed"; xKey: string; xFormat?: "month" | "date" | "text"; series: { key: string; label: string; kind?: "bar" | "line" }[]; data: Record<string, string | number | null>[]; valueFormat?: ValueFormat }
-  | { type: "dre"; lines: { key: string; label: string; kind: string; value: number; pctOfNetRevenue: number | null; previous: number | null; pctVar: number | null }[] }
+  | { type: "dre"; lines: { key: string; label: string; kind: string; isCost?: boolean; value: number; pctOfNetRevenue: number | null; previous: number | null; pctVar: number | null }[] }
   | { type: "list"; title?: string; items: { title: string; description?: string; severity?: "INFO" | "OPPORTUNITY" | "ATTENTION" | "CRITICAL" }[] }
   | { type: "notice"; tone: "info" | "warning"; text: string };
 

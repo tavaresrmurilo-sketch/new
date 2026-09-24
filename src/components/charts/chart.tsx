@@ -71,7 +71,7 @@ export function Chart({ chart, xKey, xFormat, series, data, valueFormat = "money
       ) : (
         <>
           <XAxis dataKey={xKey} {...axisProps} tickFormatter={(v) => formatX(v, xFormat)} minTickGap={12} />
-          <YAxis {...axisProps} width={72} tickFormatter={(v: number) => formatValue(v, valueFormat, true)} />
+          <YAxis {...axisProps} width={84} tickFormatter={(v: number) => formatValue(v, valueFormat, true)} />
         </>
       )}
       <Tooltip cursor={{ fill: "hsl(var(--muted))", opacity: 0.5 }} content={<ChartTooltip xFormat={xFormat} valueFormat={valueFormat} />} />

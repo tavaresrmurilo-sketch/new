@@ -12,7 +12,8 @@ import type { AnalyticsCtx } from "./types";
 export async function scenarioBaseline(ctx: AnalyticsCtx): Promise<Baseline> {
   const currentStart = startOfMonth(ctx.today);
   const lastClosed = endOfMonth(addMonths(currentStart, -1));
-  const series = (await monthlyResults(ctx, startOfMonth(addMonths(currentStart, -6)), lastClosed)).filter((m) => m.hasData);
+  const long = (await monthlyResults(ctx, startOfMonth(addMonths(currentStart, -15)), lastClosed)).filter((m) => m.hasData);
+  const series = long.slice(-6);
   const recent = series.slice(-3);
   const cash = await cashPosition(ctx);
 
@@ -31,7 +32,12 @@ export async function scenarioBaseline(ctx: AnalyticsCtx): Promise<Baseline> {
   const avgOpex = avg((m) => m.operatingExpenses);
   const avgOther = avg((m) => m.ebitda - m.netIncome);
   let growth = 0;
-  if (series.length >= 4) {
+  if (long.length >= 15) {
+    // crescimento ano contra ano dos últimos 3 meses, convertido em taxa mensal (neutraliza sazonalidade)
+    const last3 = long.slice(-3).reduce((a, m) => a + m.netRevenue, 0);
+    const prior3 = long.slice(-15, -12).reduce((a, m) => a + m.netRevenue, 0);
+    if (last3 > 0 && prior3 > 0) growth = (Math.pow(last3 / prior3, 1 / 12) - 1) * 100;
+  } else if (series.length >= 4) {
     const first = series[0].netRevenue;
     const last = series[series.length - 1].netRevenue;
     if (first > 0 && last > 0) growth = (Math.pow(last / first, 1 / (series.length - 1)) - 1) * 100;

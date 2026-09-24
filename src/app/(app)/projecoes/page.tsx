@@ -53,8 +53,8 @@ export default async function ForecastPage({ searchParams }: { searchParams: Pro
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiCard label={`${label} realizada no ano`} value={fc.data.totalRealizedYtd} hint="até o mês anterior" />
-            <KpiCard label={`${label} projetada no horizonte`} value={fc.data.totalProjected} hint="inclui mês corrente" />
+            <KpiCard label="Realizado no ano" value={fc.data.totalRealizedYtd} hint={`${label} · até o mês anterior`} />
+            <KpiCard label="Projetado no horizonte" value={fc.data.totalProjected} hint={`${label} · inclui mês corrente`} />
             <KpiCard label="Tendência mensal" value={fc.data.slope} hint="série dessazonalizada" />
             <KpiCard label="Histórico utilizado" value={fc.data.historyMonths} format="int" hint={fc.data.seasonal ? "com sazonalidade" : "sem sazonalidade"} />
           </div>

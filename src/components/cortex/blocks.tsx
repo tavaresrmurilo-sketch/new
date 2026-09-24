@@ -19,6 +19,7 @@ export interface DreRow {
   key: string;
   label: string;
   kind: string;
+  isCost?: boolean;
   value: number;
   pctOfNetRevenue: number | null;
   previous: number | null;
@@ -42,7 +43,7 @@ export function DataTable({ columns, rows, maxRows = 50 }: { columns: { key: str
         {rows.slice(0, maxRows).map((r, i) => (
           <TR key={i}>
             {columns.map((c) => (
-              <TD key={c.key} className={cn(c.align === "right" && "text-right", c.format && c.format !== "text" && "whitespace-nowrap")}>
+              <TD key={c.key} className={cn(c.align === "right" && "text-right", ((c.format && c.format !== "text") || (typeof r[c.key] === "string" && String(r[c.key]).length <= 16)) && "whitespace-nowrap")}>
                 {c.format ? formatValue(r[c.key] as number, c.format) : (r[c.key] ?? "—")}
               </TD>
             ))}
@@ -80,7 +81,7 @@ export function DreTable({ lines, showComparison = true }: { lines: DreRow[]; sh
               {showComparison ? (
                 <>
                   <TD className="text-right whitespace-nowrap text-muted-foreground">{formatValue(l.previous, "money")}</TD>
-                  <TD className="text-right">{l.previous === null ? "—" : <Delta value={l.pctVar} invert={l.value < 0 && l.kind === "group"} />}</TD>
+                  <TD className="text-right">{l.previous === null ? "—" : <Delta value={l.pctVar} invert={Boolean(l.isCost)} />}</TD>
                 </>
               ) : null}
             </TR>

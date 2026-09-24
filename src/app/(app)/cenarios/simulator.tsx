@@ -108,7 +108,7 @@ export function ScenarioSimulator({ baseline, presets, startMonth, saved }: { ba
                     {f.label}
                   </label>
                   <span className="tabular text-muted-foreground">
-                    {a[f.key]} {f.unit}
+                    {a[f.key].toLocaleString("pt-BR", { maximumFractionDigits: 2 })} {f.unit}
                   </span>
                 </div>
                 <input id={f.key} type="range" min={f.min} max={f.max} step={f.step} value={a[f.key]} onChange={(e) => set(f.key, Number(e.target.value))} className="mt-1 w-full accent-[hsl(var(--primary))]" />

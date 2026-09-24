@@ -31,11 +31,13 @@ export function KpiCard({
   invert?: boolean;
   className?: string;
 }) {
+  const full = formatValue(value as number, format);
+  const display = format === "money" && typeof value === "number" && Math.abs(value) >= 10_000_000 ? formatValue(value, "money", true) : full;
   return (
-    <Card className={cn("p-4", className)}>
+    <Card className={cn("p-3 sm:p-4", className)}>
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1.5 truncate text-xl font-semibold tracking-tight tabular" title={formatValue(value as number, format)}>
-        {formatValue(value as number, format)}
+      <p className="mt-1.5 truncate text-base font-semibold tracking-tight tabular sm:text-xl" title={full}>
+        {display}
       </p>
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
         {delta !== undefined ? <Delta value={delta} format={deltaFormat} invert={invert} suffix={deltaSuffix} /> : null}
