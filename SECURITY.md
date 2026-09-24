@@ -51,7 +51,7 @@ Toda entrada de API é validada com **Zod**; registros de conectores e planilhas
 - **Controle de acesso** por papel e permissão.
 - **Minimização**: a IA recebe apenas fatos agregados necessários; nenhum provedor externo sem consentimento do cliente.
 - **Treinamento externo**: sempre desabilitado.
-- **Retenção** configurável (`dataRetentionDays`).
+- **Retenção** configurável (`dataRetentionDays`): a rotina agendada remove conversas, arquivos brutos importados e histórico de relatórios mais antigos que o prazo; dados financeiros só são excluídos por ação explícita do cliente.
 - **Exportação** (portabilidade) em JSON e **exclusão** dos dados empresariais, ambas auditadas.
 - Dados demonstrativos isolados no tenant JR Demo e sinalizados em todas as telas e relatórios.
 

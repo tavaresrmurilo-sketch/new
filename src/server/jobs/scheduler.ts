@@ -23,7 +23,27 @@ export async function runScheduledJobs() {
     }
   }
   const expired = await prisma.session.deleteMany({ where: { expiresAt: { lt: new Date() } } });
-  const result = { syncs, insightTenants, expiredSessions: expired.count, ms: Date.now() - started };
+  const retention = await applyRetention();
+  const result = { syncs, insightTenants, expiredSessions: expired.count, retention, ms: Date.now() - started };
   logger.info("jobs.completed", result);
   return result;
+}
+
+/**
+ * Política de retenção (LGPD — minimização): remove, por tenant, conversas, arquivos brutos de importação
+ * e histórico de relatórios mais antigos que Tenant.dataRetentionDays. Dados financeiros normalizados do
+ * Cortex não são apagados automaticamente — a exclusão deles é uma ação explícita do cliente.
+ */
+export async function applyRetention() {
+  const tenants = await prisma.tenant.findMany({ select: { id: true, dataRetentionDays: true } });
+  let conversations = 0;
+  let files = 0;
+  let reports = 0;
+  for (const t of tenants) {
+    const cutoff = new Date(Date.now() - t.dataRetentionDays * 86_400_000);
+    conversations += (await prisma.conversation.deleteMany({ where: { tenantId: t.id, updatedAt: { lt: cutoff } } })).count;
+    files += (await prisma.importedFile.deleteMany({ where: { tenantId: t.id, createdAt: { lt: cutoff } } })).count;
+    reports += (await prisma.report.deleteMany({ where: { tenantId: t.id, createdAt: { lt: cutoff } } })).count;
+  }
+  return { conversations, files, reports };
 }

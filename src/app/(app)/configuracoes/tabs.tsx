@@ -366,7 +366,7 @@ function PrivacyPanel({ initial, companyName }: { initial: { dataRetentionDays: 
           <CardDescription>Minimização, retenção e uso de IA</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
-          <Field label="Política de retenção (dias)" hint="Dados operacionais mais antigos que o período podem ser removidos pela rotina de retenção.">
+          <Field label="Política de retenção (dias)" hint="A rotina diária remove conversas, arquivos importados e histórico de relatórios mais antigos que este prazo. Dados financeiros só são excluídos por ação explícita.">
             <Input type="number" min={90} max={3650} value={p.dataRetentionDays} onChange={(e) => setP({ ...p, dataRetentionDays: Number(e.target.value) })} />
           </Field>
           <label className="flex items-start gap-2">
