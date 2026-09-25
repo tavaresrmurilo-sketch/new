@@ -19,7 +19,21 @@ const TARGETS: { value: string; label: string }[] = [
   { value: "PRODUCTS", label: "Produtos / Serviços" },
   { value: "ACCOUNTS_PAYABLE", label: "Contas a pagar" },
   { value: "ACCOUNTS_RECEIVABLE", label: "Contas a receber" },
+  { value: "INVOICES", label: "Faturas" },
+  { value: "ORDERS", label: "Pedidos" },
 ];
+
+type DetectedType = "Número" | "Data" | "Texto" | "Vazio";
+
+/** Detecta o tipo predominante de uma coluna a partir da amostra (exibição; a validação real ocorre no servidor). */
+function detectType(values: unknown[]): DetectedType {
+  const vals = values.map((v) => String(v ?? "").trim()).filter(Boolean);
+  if (!vals.length) return "Vazio";
+  const share = (re: RegExp) => vals.filter((v) => re.test(v)).length / vals.length;
+  if (share(/^(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{4}-\d{2}-\d{2}([ T].*)?)$/) >= 0.8) return "Data";
+  if (share(/^-?\(?\s*(R\$)?\s*-?[\d.,]+\)?%?$/) >= 0.8) return "Número";
+  return "Texto";
+}
 
 interface FieldDef {
   key: string;
@@ -42,7 +56,7 @@ interface Job {
   errors: { row: number; message: string }[];
 }
 
-export function ImportWizard({ onDone }: { onDone?: (job: Job) => void }) {
+export function ImportWizard({ onDone, accept }: { onDone?: (job: Job) => void; accept?: "csv" | "excel" }) {
   const [step, setStep] = useState<"upload" | "map" | "done">("upload");
   const [file, setFile] = useState<File | null>(null);
   const [target, setTarget] = useState("");
@@ -96,6 +110,7 @@ export function ImportWizard({ onDone }: { onDone?: (job: Job) => void }) {
   }
 
   const missingRequired = fields.filter((f) => f.required && !mapping[f.key]);
+  const types: Record<string, DetectedType> = job ? Object.fromEntries(job.headers.map((h) => [h, detectType(job.sampleRows.map((r) => r[h]))])) : {};
 
   return (
     <div className="space-y-4">
@@ -135,7 +150,7 @@ export function ImportWizard({ onDone }: { onDone?: (job: Job) => void }) {
               <UploadCloud className="h-8 w-8 text-muted-foreground" />
               <p className="mt-2 text-sm font-medium">{file ? file.name : "Arraste o arquivo aqui ou clique para selecionar"}</p>
               <p className="text-xs text-muted-foreground">{file ? `${(file.size / 1024).toFixed(0)} KB` : "Formatos aceitos: .csv, .xlsx"}</p>
-              <input type="file" accept=".csv,.xlsx,.txt" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+              <input type="file" accept={accept === "csv" ? ".csv,.txt" : accept === "excel" ? ".xlsx" : ".csv,.xlsx,.txt"} className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             </label>
             <Field label="Tipo de dado">
               <Select value={target} onChange={(e) => setTarget(e.target.value)}>
@@ -184,6 +199,7 @@ export function ImportWizard({ onDone }: { onDone?: (job: Job) => void }) {
                   <TR className="hover:bg-transparent">
                     <TH>Campo do Cortex</TH>
                     <TH>Coluna do arquivo</TH>
+                    <TH>Tipo detectado</TH>
                     <TH>Confiança</TH>
                     <TH>Exemplo</TH>
                   </TR>
@@ -205,6 +221,7 @@ export function ImportWizard({ onDone }: { onDone?: (job: Job) => void }) {
                           ))}
                         </Select>
                       </TD>
+                      <TD className="text-xs">{mapping[f.key] ? <span className={cn(f.kind !== "string" && types[mapping[f.key] as string] !== "Vazio" && ((f.kind === "number" && types[mapping[f.key] as string] !== "Número") || (f.kind === "date" && types[mapping[f.key] as string] !== "Data")) && "font-medium text-warning")}>{types[mapping[f.key] as string]}</span> : null}</TD>
                       <TD>{mapping[f.key] && job.suggestedMapping.confidence[f.key] && job.suggestedMapping.mapping[f.key] === mapping[f.key] ? <Badge variant={job.suggestedMapping.confidence[f.key] >= 70 ? "success" : "warning"}>{job.suggestedMapping.confidence[f.key] >= 70 ? "Alta" : "Média"}</Badge> : mapping[f.key] ? <Badge variant="secondary">Manual</Badge> : null}</TD>
                       <TD className="max-w-[220px] truncate text-xs text-muted-foreground">{mapping[f.key] ? String(job.sampleRows[0]?.[mapping[f.key] as string] ?? "") : ""}</TD>
                     </TR>
@@ -212,14 +229,17 @@ export function ImportWizard({ onDone }: { onDone?: (job: Job) => void }) {
                 </TBody>
               </Table>
             </div>
-            <details className="text-sm">
-              <summary className="cursor-pointer text-xs font-medium text-muted-foreground">Pré-visualizar primeiras linhas</summary>
+            <details className="text-sm" open>
+              <summary className="cursor-pointer text-xs font-medium text-muted-foreground">Pré-visualização das primeiras linhas ({job.headers.length} colunas identificadas)</summary>
               <div className="mt-2 overflow-x-auto rounded border">
                 <Table>
                   <THead>
                     <TR>
                       {job.headers.map((h) => (
-                        <TH key={h}>{h}</TH>
+                        <TH key={h}>
+                          {h}
+                          <span className="block text-[10px] font-normal text-muted-foreground">{types[h]}</span>
+                        </TH>
                       ))}
                     </TR>
                   </THead>
@@ -262,7 +282,7 @@ export function ImportWizard({ onDone }: { onDone?: (job: Job) => void }) {
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {[
-                ["Processados", job.processedRows],
+                ["Válidos (importados)", job.processedRows],
                 ["Novos", job.createdRows],
                 ["Atualizados", job.updatedRows],
                 ["Rejeitados", job.rejectedRows],

@@ -1,4 +1,4 @@
-import type { ConnectorType, SyncMode } from "@prisma/client";
+import type { ConnectorType, ImportTarget, SyncMode } from "@prisma/client";
 import type { z } from "zod";
 import type { CanonicalBatch } from "@/server/cortex/records";
 
@@ -15,7 +15,25 @@ export interface ConnectorContext {
   integrationId: string;
   config: Record<string, unknown>;
   credentials: Record<string, string>;
+  /** tabelas/endpoints autorizados pelo cliente (fontes SQL e API REST) */
+  tables: ConnectorTable[];
   log: (message: string, level?: "info" | "warn" | "error") => void;
+}
+
+export interface ConnectorTable {
+  id: string;
+  schemaName: string;
+  tableName: string;
+  entity: ImportTarget | null;
+  mapping: Record<string, string | null>;
+  columns: { name: string; type: string; kind: string }[];
+  incrementalColumn: string | null;
+  lastCursor: string | null;
+}
+
+export interface RowRejection {
+  message: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface FetchResult {
@@ -23,6 +41,10 @@ export interface FetchResult {
   /** cursor para sincronização incremental (ex.: maior updatedAt recebido) */
   nextCursor?: string | null;
   hasMore?: boolean;
+  /** linhas rejeitadas antes da ingestão (validação/transformação) */
+  rejected?: RowRejection[];
+  /** executado somente após a ingestão bem-sucedida do lote (ex.: avançar cursor da tabela) */
+  afterIngest?: () => Promise<void>;
 }
 
 /**

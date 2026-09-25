@@ -4,7 +4,7 @@ import { errorMessage } from "@/lib/logger";
 import { normalizeText, round } from "@/lib/utils";
 import {
   BATCH_SCHEMAS, INGEST_ORDER, type CanonicalBatch, type CostCenterRecord, type CustomerRecord, type EntityKey,
-  type ExpenseRecord, type FinancialAccountRecord, type PayableRecord, type PaymentRecord, type ProductRecord,
+  type ExpenseRecord, type FinancialAccountRecord, type InvoiceRecord, type OrderRecord, type PayableRecord, type PaymentRecord, type ProductRecord,
   type ReceivableRecord, type RevenueRecord, type SaleRecord, type SellerRecord, type SupplierRecord,
 } from "./records";
 
@@ -103,6 +103,8 @@ export class Ingestor {
       case "payables": return this.payable(data as PayableRecord);
       case "receivables": return this.receivable(data as ReceivableRecord);
       case "payments": return this.payment(data as PaymentRecord);
+      case "invoices": return this.invoice(data as InvoiceRecord);
+      case "orders": return this.order(data as OrderRecord);
     }
   }
 
@@ -303,6 +305,35 @@ export class Ingestor {
       status: titleStatus(r.amount, r.receivedAmount),
     };
     await prisma.accountReceivable.upsert({ where: this.key(this.ids(r.externalId)), create: { ...this.ids(r.externalId), ...data }, update: data });
+    return !existed;
+  }
+
+  private async invoice(r: InvoiceRecord) {
+    const existed = await this.exists((where) => prisma.invoice.findUnique({ where, select: { id: true } }), r.externalId);
+    const data = {
+      number: r.number ?? null,
+      customerId: await this.ref("customer", r.customerExternalId, r.customerName),
+      issueDate: r.issueDate,
+      dueDate: r.dueDate ?? null,
+      amount: r.amount,
+      paidAmount: r.paidAmount,
+      status: titleStatus(r.amount, r.paidAmount),
+    };
+    await prisma.invoice.upsert({ where: this.key(this.ids(r.externalId)), create: { ...this.ids(r.externalId), ...data }, update: data });
+    return !existed;
+  }
+
+  private async order(r: OrderRecord) {
+    const existed = await this.exists((where) => prisma.order.findUnique({ where, select: { id: true } }), r.externalId);
+    const data = {
+      number: r.number ?? null,
+      date: r.date,
+      customerId: await this.ref("customer", r.customerExternalId, r.customerName),
+      sellerName: r.sellerName ?? null,
+      status: r.status ?? null,
+      amount: r.amount,
+    };
+    await prisma.order.upsert({ where: this.key(this.ids(r.externalId)), create: { ...this.ids(r.externalId), ...data }, update: data });
     return !existed;
   }
 

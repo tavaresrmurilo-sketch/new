@@ -9,13 +9,14 @@ import { TARGET_LABELS } from "@/server/cortex/mapping";
 
 export const metadata = { title: "Importar planilha" };
 
-export default async function ImportPage() {
+export default async function ImportPage({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
+  const { tipo } = await searchParams;
   const ctx = await requirePage("import:run");
   const jobs = await prisma.importJob.findMany({ where: { tenantId: ctx.tenantId }, orderBy: { createdAt: "desc" }, take: 15, include: { file: { select: { fileName: true } } } });
   return (
     <>
-      <PageHeader title="Importação de planilhas" description="Envie CSV ou XLSX, confirme o mapeamento sugerido e o Cortex organiza os dados." />
-      <ImportWizard />
+      <PageHeader title={tipo === "csv" ? "Importar CSV" : tipo === "excel" ? "Importar Excel" : "Importação de planilhas"} description="Envie o arquivo, confira colunas e tipos detectados, ajuste o mapeamento e veja quantas linhas são válidas ou rejeitadas." />
+      <ImportWizard accept={tipo === "csv" ? "csv" : tipo === "excel" ? "excel" : undefined} />
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>Importações recentes</CardTitle>

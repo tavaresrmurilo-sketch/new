@@ -51,7 +51,7 @@ export const NAV: NavGroup[] = [
     label: "Dados",
     items: [
       { href: "/cortex", label: "Cortex", icon: "BrainCircuit", permission: "cortex:view" },
-      { href: "/integracoes", label: "Integrações", icon: "Plug", permission: "integrations:view" },
+      { href: "/integracoes", label: "Conectar Dados", icon: "Plug", permission: "integrations:view" },
       { href: "/auditoria", label: "Auditoria", icon: "ShieldCheck", permission: "audit:view" },
       { href: "/configuracoes", label: "Configurações", icon: "Settings", permission: "settings:manage" },
     ],

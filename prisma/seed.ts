@@ -185,7 +185,7 @@ async function seedDemo(roles: Record<string, string>) {
   }
 
   const integration = await prisma.integration.create({
-    data: { tenantId: tid, name: "DADOS DEMONSTRATIVOS — ERP Demo", type: "ERP", provider: "mock-erp", status: "ACTIVE", isMock: true, syncIntervalMinutes: 1440, lastSyncAt: new Date(), nextSyncAt: new Date(Date.now() + 86_400_000) },
+    data: { tenantId: tid, name: "DADOS DEMONSTRATIVOS — ERP Demo", type: "ERP", provider: "mock-erp", status: "CONNECTED", isMock: true, syncIntervalMinutes: 1440, lastSyncAt: new Date(), nextSyncAt: new Date(Date.now() + 86_400_000) },
   });
   const ds = await prisma.dataSource.create({
     data: { tenantId: tid, name: "DADOS DEMONSTRATIVOS — ERP Demo", kind: "DEMO", integrationId: integration.id, description: "Dados fictícios gerados para demonstração. Não representam nenhuma empresa real." },
@@ -456,7 +456,7 @@ async function seedDemo(roles: Record<string, string>) {
       logs: [{ ts: new Date().toISOString(), level: "info", message: "Carga inicial de DADOS DEMONSTRATIVOS (seed)." }],
     },
   });
-  await prisma.integration.create({ data: { tenantId: tid, name: "Planilhas (CSV/XLSX)", type: "SPREADSHEET", provider: "xlsx", status: "ACTIVE" } });
+  await prisma.integration.create({ data: { tenantId: tid, name: "Planilhas (CSV/XLSX)", type: "SPREADSHEET", provider: "xlsx", status: "CONNECTED" } });
   await prisma.auditLog.create({ data: { tenantId: tid, userEmail: "seed", action: "tenant.seeded", resource: "tenant", resourceId: tid, result: "SUCCESS", metadata: { demo: true } } });
   return tenant;
 }

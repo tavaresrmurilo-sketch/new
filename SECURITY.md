@@ -41,6 +41,9 @@ Cabeçalhos: HSTS, CSP, `X-Content-Type-Options`, `Referrer-Policy`, `Permission
 ## Credentials Vault
 Senhas/tokens de sistemas externos **nunca** ficam em texto puro: AES-256-GCM com `ENCRYPTION_KEY` (32 bytes base64), IV aleatório e AAD vinculada a tenant/integração/chave. Campo `keyVersion` preparado para rotação de chave. Credenciais só são decifradas no motor de sincronização e nunca retornam ao navegador.
 
+## Fontes externas (Conectar Dados)
+Bancos e APIs dos clientes são acessados **somente para leitura** (sessão READ ONLY + SQL gerado apenas como SELECT parametrizado, identificadores validados contra a metadata). Configurações de conexão ficam cifradas no Vault e nunca voltam ao navegador; hosts internos são bloqueados (SSRF). Detalhes em [INTEGRATIONS.md](INTEGRATIONS.md#conectar-dados--bancos-e-apis-dos-clientes).
+
 ## Validação
 Toda entrada de API é validada com **Zod**; registros de conectores e planilhas passam pelos schemas canônicos antes da gravação. Erros retornam 422 com a lista de problemas.
 

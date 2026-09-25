@@ -73,10 +73,11 @@ enum ConnectorType {
 }
 
 enum IntegrationStatus {
-  ACTIVE
-  PAUSED
+  PENDING
+  CONNECTED
+  SYNCING
   ERROR
-  PENDING_CREDENTIALS
+  DISABLED
   NOT_IMPLEMENTED
 }
 
@@ -216,6 +217,8 @@ enum ImportTarget {
   PRODUCTS
   ACCOUNTS_PAYABLE
   ACCOUNTS_RECEIVABLE
+  INVOICES
+  ORDERS
 }
 
 enum ImportStatus {
@@ -230,68 +233,72 @@ enum ImportStatus {
 // ───────────────────────── Plataforma / Identidade ─────────────────────────
 
 model Tenant {
-  id                    String       @id @default(cuid())
-  name                  String
-  kind                  TenantKind   @default(BUSINESS)
-  slug                  String       @unique
-  cnpj                  String?
-  logoUrl               String?
-  segment               String?
-  currency              String       @default("BRL")
-  timezone              String       @default("America/Sao_Paulo")
-  fiscalYearStartMonth  Int          @default(1)
-  revenueGoalMonthly    Decimal?     @db.Decimal(18, 2)
-  marginGoalPct         Decimal?     @db.Decimal(7, 2)
-  minCashBalance        Decimal?     @db.Decimal(18, 2)
-  plan                  Plan         @default(STARTER)
-  status                TenantStatus @default(TRIAL)
-  isDemo                Boolean      @default(false)
-  onboardingCompleted   Boolean      @default(false)
+  id                      String       @id @default(cuid())
+  name                    String
+  kind                    TenantKind   @default(BUSINESS)
+  slug                    String       @unique
+  cnpj                    String?
+  logoUrl                 String?
+  segment                 String?
+  currency                String       @default("BRL")
+  timezone                String       @default("America/Sao_Paulo")
+  fiscalYearStartMonth    Int          @default(1)
+  revenueGoalMonthly      Decimal?     @db.Decimal(18, 2)
+  marginGoalPct           Decimal?     @db.Decimal(7, 2)
+  minCashBalance          Decimal?     @db.Decimal(18, 2)
+  plan                    Plan         @default(STARTER)
+  status                  TenantStatus @default(TRIAL)
+  isDemo                  Boolean      @default(false)
+  onboardingCompleted     Boolean      @default(false)
   // LGPD / privacidade
-  dataRetentionDays     Int          @default(1825)
-  allowExternalAiTraining Boolean    @default(false)
-  aiProviderConsent     Boolean      @default(false)
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
+  dataRetentionDays       Int          @default(1825)
+  allowExternalAiTraining Boolean      @default(false)
+  aiProviderConsent       Boolean      @default(false)
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
 
-  users                 User[]
-  roles                 Role[]
-  subscription          Subscription?
-  integrations          Integration[]
-  credentials           IntegrationCredential[]
-  syncJobs              SyncJob[]
-  dataSources           DataSource[]
-  customers             Customer[]
-  suppliers             Supplier[]
-  products              Product[]
-  sellers               Seller[]
-  sales                 Sale[]
-  saleItems             SaleItem[]
-  revenues              Revenue[]
-  expenses              Expense[]
-  payables              AccountPayable[]
-  receivables           AccountReceivable[]
-  payments              Payment[]
-  financialAccounts     FinancialAccount[]
-  costCenters           CostCenter[]
-  chartAccounts         ChartAccount[]
-  inventoryMovements    InventoryMovement[]
-  kpis                  KPI[]
-  goals                 Goal[]
-  insights              Insight[]
-  forecasts             Forecast[]
-  scenarios             Scenario[]
-  reports               Report[]
-  conversations         Conversation[]
-  messages              Message[]
-  feedback              MessageFeedback[]
-  knowledgeItems        KnowledgeItem[]
-  auditLogs             AuditLog[]
-  importJobs            ImportJob[]
-  importedFiles         ImportedFile[]
-  aiUsage               AIUsage[]
-  supportGrants         SupportAccessGrant[]
-  sessions              Session[]
+  users              User[]
+  roles              Role[]
+  subscription       Subscription?
+  integrations       Integration[]
+  credentials        IntegrationCredential[]
+  syncJobs           SyncJob[]
+  integrationTables  IntegrationTable[]
+  syncErrors         SyncError[]
+  invoices           Invoice[]
+  orders             Order[]
+  dataSources        DataSource[]
+  customers          Customer[]
+  suppliers          Supplier[]
+  products           Product[]
+  sellers            Seller[]
+  sales              Sale[]
+  saleItems          SaleItem[]
+  revenues           Revenue[]
+  expenses           Expense[]
+  payables           AccountPayable[]
+  receivables        AccountReceivable[]
+  payments           Payment[]
+  financialAccounts  FinancialAccount[]
+  costCenters        CostCenter[]
+  chartAccounts      ChartAccount[]
+  inventoryMovements InventoryMovement[]
+  kpis               KPI[]
+  goals              Goal[]
+  insights           Insight[]
+  forecasts          Forecast[]
+  scenarios          Scenario[]
+  reports            Report[]
+  conversations      Conversation[]
+  messages           Message[]
+  feedback           MessageFeedback[]
+  knowledgeItems     KnowledgeItem[]
+  auditLogs          AuditLog[]
+  importJobs         ImportJob[]
+  importedFiles      ImportedFile[]
+  aiUsage            AIUsage[]
+  supportGrants      SupportAccessGrant[]
+  sessions           Session[]
 }
 
 model Subscription {
@@ -309,23 +316,23 @@ model Subscription {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  tenantId      String?
-  tenant        Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  email         String    @unique
-  name          String
-  firstName     String?
-  lastName      String?
-  userRole      UserRole  @default(COMPANY)
-  passwordHash  String
-  roleId        String
-  role          Role      @relation(fields: [roleId], references: [id])
-  active        Boolean   @default(true)
-  lastLoginAt   DateTime?
-  failedLogins  Int       @default(0)
-  lockedUntil   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  tenantId     String?
+  tenant       Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email        String    @unique
+  name         String
+  firstName    String?
+  lastName     String?
+  userRole     UserRole  @default(COMPANY)
+  passwordHash String
+  roleId       String
+  role         Role      @relation(fields: [roleId], references: [id])
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   sessions      Session[]
   conversations Conversation[]
@@ -410,19 +417,23 @@ model Integration {
   name                String
   type                ConnectorType
   provider            String
-  status              IntegrationStatus @default(PENDING_CREDENTIALS)
+  status              IntegrationStatus @default(PENDING)
   isMock              Boolean           @default(false)
   config              Json              @default("{}")
   syncIntervalMinutes Int?
   lastSyncAt          DateTime?
   nextSyncAt          DateTime?
   syncCursor          String?
+  /// último erro amigável (sem credenciais) exibido ao cliente
+  lastError           String?
+  recordsSynced       Int               @default(0)
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
-  credentials         IntegrationCredential[]
-  syncJobs            SyncJob[]
-  dataSource          DataSource?
+  credentials IntegrationCredential[]
+  syncJobs    SyncJob[]
+  tables      IntegrationTable[]
+  dataSource  DataSource?
 
   @@index([tenantId])
   @@index([nextSyncAt])
@@ -430,18 +441,18 @@ model Integration {
 
 // Credentials Vault: valores cifrados com AES-256-GCM. Nunca em texto puro.
 model IntegrationCredential {
-  id             String      @id @default(cuid())
-  tenantId       String
-  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  integrationId  String
-  integration    Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  key            String
-  ciphertext     String
-  iv             String
-  authTag        String
-  keyVersion     Int         @default(1)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id            String      @id @default(cuid())
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  integrationId String
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  key           String
+  ciphertext    String
+  iv            String
+  authTag       String
+  keyVersion    Int         @default(1)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   @@unique([integrationId, key])
   @@index([tenantId])
@@ -465,11 +476,56 @@ model SyncJob {
   recordsRejected  Int         @default(0)
   cursorFrom       String?
   cursorTo         String?
+  durationMs       Int?
+  errorMessage     String?
   errors           Json        @default("[]")
   logs             Json        @default("[]")
   createdAt        DateTime    @default(now())
 
+  syncErrors SyncError[]
+
   @@index([tenantId, integrationId, createdAt])
+}
+
+/// Tabela/endpoint de uma fonte externa autorizada pelo cliente, com mapeamento para o modelo do Cortex.
+model IntegrationTable {
+  id                String        @id @default(cuid())
+  tenantId          String
+  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  integrationId     String
+  integration       Integration   @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  schemaName        String        @default("")
+  tableName         String
+  enabled           Boolean       @default(true)
+  /// entidade normalizada de destino (ImportTarget) ou null quando apenas descoberta
+  entity            ImportTarget?
+  /// campo canônico -> coluna de origem
+  mapping           Json          @default("{}")
+  /// metadados descobertos: [{ name, type }]
+  columns           Json          @default("[]")
+  incrementalColumn String?
+  lastCursor        String?
+  lastSyncedAt      DateTime?
+  rowsSynced        Int           @default(0)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@unique([integrationId, schemaName, tableName])
+  @@index([tenantId])
+}
+
+model SyncError {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  syncJobId String
+  syncJob   SyncJob  @relation(fields: [syncJobId], references: [id], onDelete: Cascade)
+  message   String
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([syncJobId])
+  @@index([tenantId, createdAt])
 }
 
 model DataSource {
@@ -497,6 +553,8 @@ model DataSource {
   financialAccounts  FinancialAccount[]
   costCenters        CostCenter[]
   inventoryMovements InventoryMovement[]
+  invoices           Invoice[]
+  orders             Order[]
   importJobs         ImportJob[]
 
   @@unique([tenantId, name])
@@ -523,9 +581,11 @@ model Customer {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  sales        Sale[]
-  receivables  AccountReceivable[]
-  revenues     Revenue[]
+  sales       Sale[]
+  receivables AccountReceivable[]
+  revenues    Revenue[]
+  invoices    Invoice[]
+  orders      Order[]
 
   @@unique([tenantId, dataSourceId, externalId])
   @@index([tenantId, name])
@@ -544,8 +604,8 @@ model Supplier {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  expenses     Expense[]
-  payables     AccountPayable[]
+  expenses Expense[]
+  payables AccountPayable[]
 
   @@unique([tenantId, dataSourceId, externalId])
   @@index([tenantId, name])
@@ -588,7 +648,7 @@ model Seller {
   team         String?
   createdAt    DateTime   @default(now())
 
-  sales        Sale[]
+  sales Sale[]
 
   @@unique([tenantId, dataSourceId, externalId])
 }
@@ -618,13 +678,58 @@ model Sale {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
-  items          SaleItem[]
-  receivables    AccountReceivable[]
+  items       SaleItem[]
+  receivables AccountReceivable[]
 
   @@unique([tenantId, dataSourceId, externalId])
   @@index([tenantId, date])
   @@index([tenantId, customerId, date])
   @@index([tenantId, sellerId, date])
+}
+
+/// Fatura/nota emitida (normalizada a partir de ERPs, bancos ou planilhas).
+model Invoice {
+  id           String      @id @default(cuid())
+  tenantId     String
+  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dataSourceId String
+  dataSource   DataSource  @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
+  externalId   String
+  number       String?
+  customerId   String?
+  customer     Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  issueDate    DateTime    @db.Date
+  dueDate      DateTime?   @db.Date
+  amount       Decimal     @db.Decimal(18, 2)
+  paidAmount   Decimal     @default(0) @db.Decimal(18, 2)
+  status       TitleStatus @default(OPEN)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([tenantId, dataSourceId, externalId])
+  @@index([tenantId, issueDate])
+}
+
+/// Pedido (independente de faturamento).
+model Order {
+  id           String     @id @default(cuid())
+  tenantId     String
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dataSourceId String
+  dataSource   DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
+  externalId   String
+  number       String?
+  date         DateTime   @db.Date
+  customerId   String?
+  customer     Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  sellerName   String?
+  status       String?
+  amount       Decimal    @db.Decimal(18, 2)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([tenantId, dataSourceId, externalId])
+  @@index([tenantId, date])
 }
 
 model SaleItem {
@@ -716,7 +821,7 @@ model AccountPayable {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  payments     Payment[]
+  payments Payment[]
 
   @@unique([tenantId, dataSourceId, externalId])
   @@index([tenantId, status, dueDate])
@@ -743,7 +848,7 @@ model AccountReceivable {
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
-  payments       Payment[]
+  payments Payment[]
 
   @@unique([tenantId, dataSourceId, externalId])
   @@index([tenantId, status, dueDate])
@@ -789,7 +894,7 @@ model FinancialAccount {
   active         Boolean    @default(true)
   createdAt      DateTime   @default(now())
 
-  payments       Payment[]
+  payments Payment[]
 
   @@unique([tenantId, dataSourceId, externalId])
 }
@@ -806,25 +911,25 @@ model CostCenter {
   department   String?
   createdAt    DateTime   @default(now())
 
-  expenses     Expense[]
-  revenues     Revenue[]
-  payables     AccountPayable[]
+  expenses Expense[]
+  revenues Revenue[]
+  payables AccountPayable[]
 
   @@unique([tenantId, dataSourceId, externalId])
 }
 
 // Plano de contas configurável por cliente: mapeia categorias para grupos do DRE.
 model ChartAccount {
-  id               String   @id @default(cuid())
-  tenantId         String
-  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  code             String
-  name             String
-  dreGroup         DreGroup
-  categoryAliases  String[]
-  isSensitive      Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  code            String
+  name            String
+  dreGroup        DreGroup
+  categoryAliases String[]
+  isSensitive     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@unique([tenantId, code])
 }
@@ -946,34 +1051,34 @@ model Report {
 // ───────────────────────── IA / Conhecimento ─────────────────────────
 
 model Conversation {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   tenantId  String
-  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  messages  Message[]
+  messages Message[]
 
   @@index([tenantId, userId, updatedAt])
 }
 
 model Message {
-  id             String            @id @default(cuid())
+  id             String       @id @default(cuid())
   tenantId       String
-  tenant         Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   conversationId String
-  conversation   Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   role           MessageRole
   content        String
   blocks         Json?
   trace          Json?
   provider       String?
-  createdAt      DateTime          @default(now())
+  createdAt      DateTime     @default(now())
 
-  feedback       MessageFeedback[]
+  feedback MessageFeedback[]
 
   @@index([conversationId, createdAt])
 }
@@ -1049,17 +1154,17 @@ model AuditLog {
 }
 
 model ImportedFile {
-  id          String      @id @default(cuid())
-  tenantId    String
-  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  fileName    String
-  mimeType    String
-  size        Int
-  sha256      String
-  content     Bytes
-  createdAt   DateTime    @default(now())
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fileName  String
+  mimeType  String
+  size      Int
+  sha256    String
+  content   Bytes
+  createdAt DateTime @default(now())
 
-  importJobs  ImportJob[]
+  importJobs ImportJob[]
 
   @@index([tenantId, sha256])
 }

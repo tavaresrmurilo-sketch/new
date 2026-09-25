@@ -23,7 +23,7 @@ O JR Cortex AI é um SaaS multiempresa que funciona como um **analista de dados 
 | **Relatórios** | DRE, caixa, vendas, clientes, produtos, a pagar, a receber, gerencial, **Relatório Executivo** (PDF, Excel, CSV) |
 | **Prepare minha reunião** | Resumo, KPIs, 5 acontecimentos, problemas, oportunidades, perguntas recomendadas, gráficos |
 | **Cortex / Knowledge** | Visão do núcleo de dados e memória organizacional controlada e auditável |
-| **Integrações** | Conectores modulares, Credentials Vault, sincronização manual/agendada/incremental/reprocessamento, logs |
+| **Conectar Dados** | PostgreSQL, MySQL, SQL Server e API REST (somente leitura), CSV/Excel; assistente em 7 etapas, Credentials Vault, sincronização manual/agendada/incremental, histórico e erros |
 | **Importação** | CSV/XLSX com detecção de colunas, mapeamento sugerido e confirmação antes de importar |
 | **Auditoria, Configurações, LGPD** | Audit log, empresa, usuários/RBAC, plano de contas, retenção, exportação/exclusão, acesso de suporte |
 | **Admin** (`/admin`) | Totais de usuários/pessoas/empresas, cadastros recentes, busca, filtro e bloqueio de usuários, métricas da plataforma — sem acesso a dados financeiros sem autorização |

@@ -21,8 +21,11 @@ O provider **só converte** dados do sistema de origem para o modelo canônico d
 
 | Conector | Tipo | Status nesta versão |
 |---|---|---|
-| Excel (XLSX) / CSV | SPREADSHEET / CSV | **Funcional** — assistente de importação com mapeamento sugerido |
-| API REST (genérica) | API | **Funcional** — endpoints JSON via HTTPS com `fieldMap` configurável e token no Vault |
+| PostgreSQL | DATABASE | **Funcional** — somente leitura (driver `pg`), assistente "Conectar Dados" |
+| MySQL / MariaDB | DATABASE | **Funcional** — somente leitura (driver `mysql2`) |
+| SQL Server / Azure SQL | DATABASE | **Funcional** — somente leitura (driver `mssql`, `readOnlyIntent`) |
+| API REST (genérica) | API | **Funcional** — somente GET, autenticação NONE/API Key/Bearer/Basic, headers personalizados |
+| Excel (XLSX) / CSV | SPREADSHEET / CSV | **Funcional** — assistente de importação com tipos detectados, prévia e mapeamento |
 | Google Sheets | GOOGLE_SHEETS | **Funcional** para planilhas compartilhadas por link (exportação CSV). Planilhas privadas exigem OAuth — *planejado* |
 | ERP Simulado (MOCK) | ERP | **MOCK isolado** para desenvolvimento — gera dados sintéticos marcados `[MOCK]` |
 | ERP (Omie, Bling, TOTVS, SAP B1, Sankhya...) | ERP | *Planejado* — depende de API/credenciais externas |
@@ -30,7 +33,6 @@ O provider **só converte** dados do sistema de origem para o modelo canônico d
 | Financeiro (Conta Azul, Nibo, Open Finance) | FINANCE | *Planejado* |
 | Contábil (Domínio, Alterdata, Questor) | ACCOUNTING | *Planejado* |
 | Logística (TMS/WMS) | LOGISTICS | *Planejado* |
-| PostgreSQL / MySQL | DATABASE | *Planejado* — leitura de views com usuário somente leitura (driver a adicionar) |
 
 Conectores *planejados* **não fingem funcionar**: são registrados com status `NOT_IMPLEMENTED`, `testConnection` retorna falha explicativa e `fetch` lança `ConnectorNotAvailableError` — nenhuma sincronização é marcada como bem-sucedida.
 
@@ -56,25 +58,52 @@ Chave natural `(tenantId, dataSourceId, externalId)` em todas as entidades. Quan
 
 Tipos suportados: Vendas (agrupa linhas pelo nº do pedido quando mapeado), Despesas, Receitas, Clientes, Produtos, Contas a pagar, Contas a receber. Exemplos em [`samples/`](samples/).
 
-## API REST genérica — exemplo de configuração
+## Conectar Dados — bancos e APIs dos clientes
 
-```json
-{
-  "baseUrl": "https://api.seusistema.com.br",
-  "authHeader": "Authorization",
-  "authScheme": "Bearer",
-  "endpoints": [
-    {
-      "entity": "sales",
-      "path": "/v1/vendas",
-      "dataPath": "data",
-      "fieldMap": { "externalId": "id", "date": "emissao", "grossAmount": "valor_total", "customerName": "cliente.nome", "customerExternalId": "cliente.id" }
-    }
-  ]
-}
-```
+O banco **Neon** (`DATABASE_URL`) continua sendo o banco interno do JR Cortex. Os bancos/APIs dos clientes são **fontes externas**, acessadas somente para leitura; os dados lidos são normalizados e gravados no Neon.
 
-Somente HTTPS; hosts privados/internos são bloqueados (mitigação de SSRF).
+### Assistente (`/integracoes/nova`) — 7 etapas
+1. **Escolha a fonte** — PostgreSQL, MySQL, SQL Server, API REST (CSV/Excel levam ao importador).
+2. **Configure a conexão** — campos (host, porta, database, usuário, senha, SSL / Encrypt / Trust Server Certificate) ou connection string; API: Base URL, autenticação, headers e endpoints.
+3. **Testar conexão** — `POST /api/integrations/connections/test`. Mensagens amigáveis ("Conexão realizada com sucesso." / "Não foi possível conectar ao banco." + causas prováveis). API: status HTTP, tempo de resposta e endpoint.
+4. **Selecionar dados** — schemas/tabelas/views descobertos via `information_schema` (ou endpoints).
+5. **Mapear campos** — `POST /api/integrations/connections/columns` lê as colunas; entidade (Clientes, Vendas, Produtos, Faturas, Receitas, Despesas, Pedidos, Contas a pagar/receber), mapeamento sugerido e coluna incremental (`updated_at`, `modified_at`, `created_at`, `id`).
+6. **Definir sincronização** — Manual, a cada hora, a cada 6 horas ou diariamente.
+7. **Concluir** — `POST /api/integrations` testa **de novo no servidor**, valida tabelas/colunas contra os metadados reais e só então salva.
+
+### Segurança
+- **Somente leitura**: PostgreSQL `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`; MySQL `SET SESSION TRANSACTION READ ONLY`; SQL Server `readOnlyIntent` + apenas SELECT gerado pelo sistema. Toda SQL passa por `assertReadOnlySql` (recusa INSERT/UPDATE/DELETE/DROP/ALTER/TRUNCATE etc.). Recomende ao cliente um usuário apenas com SELECT (a UI mostra o script).
+- **Sem SQL arbitrário**: o usuário escolhe tabelas e colunas; identificadores são validados contra a metadata descoberta e escapados por dialeto; valores (cursor, limite, offset) vão sempre como parâmetros.
+- **Credenciais**: toda a configuração de conexão é cifrada (AES-256-GCM, chave `connection` no Vault). A connection string é descartada após normalização. O frontend só recebe dados não sensíveis (host, porta, database, usuário) e `Senha: ••••••••••••`. Ao editar, campos secretos vazios mantêm o valor salvo.
+- **SSRF**: hosts internos (localhost, 10/8, 172.16/12, 192.168/16, 169.254/16, IPv6 privados, `.internal`, `.local`) são bloqueados. `ALLOW_PRIVATE_DB_HOSTS=true` só em desenvolvimento.
+- **Multitenancy**: toda rota filtra por `tenantId` da sessão; outra empresa recebe 404 ao ver, testar, sincronizar ou editar. O AAD da cifra inclui tenant e integração.
+- **JR Admin** (`/admin/integracoes`): apenas metadados (empresa, integração, tipo, status, última sincronização, registros, erros). No modo suporte, detalhes de conexão e conteúdo de erros ficam ocultos.
+- **Cortex AI** consulta apenas as tabelas normalizadas do Neon — nunca integrações ou credenciais.
+- **Logs e auditoria** sem segredos (`scrub`): `integration.created`, `integration.updated`, `integration.tested`, `integration.sync.started`, `integration.sync.completed`, `integration.sync.failed`, `integration.disabled`.
+
+### Serverless / resiliência
+Cada ação abre **uma** conexão, executa e fecha (`withSqlSession`). Timeouts: conexão 10 s, consulta 30 s; leitura em lotes de 1.000; até `SYNC_MAX_ROWS_PER_TABLE` (50.000) linhas por tabela por execução. Banco offline → integração `ERROR` ("Integração indisponível"), erro registrado em `SyncError`, botão "Tentar novamente"; o restante do Cortex continua funcionando.
+
+### Sincronização incremental
+Cursor por tabela (`IntegrationTable.lastCursor`, com tipo preservado). A consulta usa `coluna >= último valor` (não perde registros com o mesmo timestamp) e a ingestão idempotente evita duplicidade. O cursor só avança depois da ingestão bem-sucedida do lote. Alterar o mapeamento reinicia o cursor da tabela.
+
+### Rotas
+| Rota | Uso |
+|---|---|
+| `POST /api/integrations/connections/test` | testar conexão não salva |
+| `POST /api/integrations/connections/columns` | ler colunas e sugerir mapeamento |
+| `POST /api/integrations` | criar integração (com `source`) |
+| `PATCH /api/integrations/:id` | nome, agendamento, `status` CONNECTED/DISABLED, `connection` |
+| `DELETE /api/integrations/:id` | excluir (credenciais apagadas; dados permanecem) |
+| `POST /api/integrations/:id/test` | testar conexão salva |
+| `POST /api/integrations/:id/sync` | sincronizar agora |
+| `GET /api/integrations/:id/discover` | listar tabelas disponíveis |
+| `POST /api/integrations/:id/tables` | ler colunas / adicionar tabelas |
+| `PATCH /api/integrations/:id/tables/:tableId` | editar entidade, mapeamento, incremental, ativa |
+| `GET/POST /api/jobs/run` | cron (Bearer `CRON_SECRET`) |
+
+### Bancos em rede privada
+Opções seguras exibidas na UI: liberar o IP de saída no firewall (somente a porta do banco, com SSL), VPN/túnel gerenciado, API intermediária somente leitura (conectar via API REST) ou réplica de leitura na nuvem. Nunca desabilitar autenticação.
 
 ## Credentials Vault
 
@@ -90,4 +119,4 @@ Somente HTTPS; hosts privados/internos são bloqueados (mitigação de SSRF).
 
 ## Agendamento
 
-Configure um cron chamando `npm run jobs:run` (ou `POST /api/jobs/run` com `Authorization: Bearer $CRON_SECRET`) a cada 15 minutos. Integrações com `syncIntervalMinutes` e `nextSyncAt` vencido são sincronizadas em modo incremental.
+Na Vercel, `vercel.json` já agenda `GET /api/jobs/run` a cada hora (defina `CRON_SECRET` nas variáveis do projeto — a Vercel envia `Authorization: Bearer $CRON_SECRET`). Em outros ambientes, use `npm run jobs:run` ou `POST /api/jobs/run` com o mesmo header. Integrações com `syncIntervalMinutes` e `nextSyncAt` vencido são sincronizadas em modo incremental.

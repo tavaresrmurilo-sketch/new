@@ -11,6 +11,7 @@ import { prisma } from "@/lib/db";
 import { HOME_SUGGESTIONS } from "@/lib/suggestions";
 import { accountLabels } from "@/lib/account-labels";
 import { analyticsCtx } from "@/server/analytics/base";
+import { operationalOverview } from "@/server/analytics/operational";
 import { executiveOverview } from "@/server/analytics/overview";
 import { requirePage } from "@/server/auth/guard";
 
@@ -26,6 +27,7 @@ export default async function DashboardPage() {
       ? prisma.insight.findMany({ where: { tenantId: ctx.tenantId, status: { not: "DISMISSED" }, severity: { in: ["CRITICAL", "ATTENTION", "OPPORTUNITY"] } }, orderBy: [{ severity: "desc" }, { createdAt: "desc" }], take: 4 })
       : Promise.resolve([]),
   ]);
+  const op = ov.hasData && ctx.permissions.has("sales:view") ? await operationalOverview(actx, ov.periods.mtd, ov.periods.previousMtd) : null;
   const labels = accountLabels(ctx.tenantKind);
   const can = (p: Parameters<typeof ctx.permissions.has>[0]) => ctx.permissions.has(p);
   const c = ov.cards;
@@ -154,8 +156,8 @@ export default async function DashboardPage() {
         ) : null}
         <Card>
           <CardHeader>
-            <CardTitle>Vendas por cliente</CardTitle>
-            <CardDescription>Maiores clientes no mês</CardDescription>
+            <CardTitle>Clientes mais relevantes</CardTitle>
+            <CardDescription>Maiores clientes por faturamento no mês</CardDescription>
           </CardHeader>
           <CardContent>
             <Chart chart="bar" horizontal xKey="name" xFormat="text" series={[{ key: "value", label: "Faturamento" }]} data={ov.charts.byCustomer} height={280} />
@@ -171,6 +173,53 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {op?.hasSales ? (
+        <>
+          <h2 className="mb-3 mt-6 text-sm font-semibold">Indicadores comerciais</h2>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <KpiCard label="Receita (mês)" value={op.cards.revenue} delta={op.cards.growth} />
+            <KpiCard label="Vendas (mês)" value={op.cards.salesCount} format="int" />
+            <KpiCard label="Clientes" value={op.cards.customers} format="int" hint={`${fmt.int(op.cards.activeCustomers)} compraram no mês`} />
+            <KpiCard label="Ticket médio (mês)" value={op.cards.averageTicket} />
+            {op.hasOrders ? <KpiCard label="Pedidos (mês)" value={op.cards.orders} format="int" hint={fmt.moneyCompact(op.cards.ordersAmount)} /> : null}
+            {op.cards.growth !== null ? <KpiCard label="Crescimento" value={op.cards.growth} format="pct" hint="Receita vs. mesmo período do mês anterior" /> : null}
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Receita ao longo do tempo</CardTitle>
+                <CardDescription>Faturamento bruto das vendas por mês · últimos 12 meses</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Chart chart="bar" xKey="month" xFormat="month" series={[{ key: "receita", label: "Receita" }]} data={op.charts.revenueOverTime} />
+              </CardContent>
+            </Card>
+            {op.charts.byProduct.length ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Vendas por produto</CardTitle>
+                  <CardDescription>Top 10 · últimos 12 meses</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Chart chart="bar" horizontal xKey="name" xFormat="text" series={[{ key: "value", label: "Vendas" }]} data={op.charts.byProduct} height={280} />
+                </CardContent>
+              </Card>
+            ) : null}
+            {op.charts.bySeller.length ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Vendas por vendedor</CardTitle>
+                  <CardDescription>Top 10 · últimos 12 meses</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Chart chart="bar" horizontal xKey="name" xFormat="text" series={[{ key: "value", label: "Vendas" }]} data={op.charts.bySeller} height={280} />
+                </CardContent>
+              </Card>
+            ) : null}
+          </div>
+        </>
+      ) : null}
 
       {insights.length ? (
         <Card className="mt-4">

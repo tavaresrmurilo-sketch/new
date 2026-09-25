@@ -15,7 +15,8 @@ export const TARGET_FIELDS: Record<ImportTarget, FieldDef[]> = {
   SALES: [
     F("externalId", "Nº do pedido / ID", "string", false, ["pedido", "numero pedido", "n pedido", "nº pedido", "id", "codigo", "numero", "nota", "nf", "nota fiscal", "documento", "id venda", "venda"]),
     F("date", "Data", "date", true, ["data", "data venda", "data da venda", "emissao", "data emissao", "dt", "competencia", "date"]),
-    F("customer", "Cliente", "string", false, ["cliente", "nome cliente", "razao social", "comprador", "customer"]),
+    F("customerId", "ID do cliente", "string", false, ["customer id", "id cliente", "cliente id", "codigo cliente", "customer_id", "client id"]),
+    F("customer", "Cliente", "string", false, ["cliente", "nome cliente", "razao social", "comprador", "customer", "customer name"]),
     F("seller", "Vendedor", "string", false, ["vendedor", "representante", "consultor", "seller", "responsavel"]),
     F("product", "Produto / Descrição", "string", false, ["produto", "descricao", "item", "servico", "mercadoria", "product", "descricao produto"]),
     F("category", "Categoria", "string", false, ["categoria", "grupo", "linha", "familia", "category", "segmento"]),
@@ -90,6 +91,26 @@ export const TARGET_FIELDS: Record<ImportTarget, FieldDef[]> = {
     F("receivedAmount", "Valor recebido", "number", false, ["valor recebido", "recebido", "baixado"]),
     F("receivedAt", "Data de recebimento", "date", false, ["data recebimento", "recebimento", "data baixa", "recebido em"]),
   ],
+  INVOICES: [
+    F("externalId", "ID da fatura", "string", false, ["id", "codigo", "invoice id", "fatura", "nf", "nota fiscal", "numero nota"]),
+    F("number", "Número", "string", false, ["numero", "number", "invoice number", "nf", "nota"]),
+    F("customerId", "ID do cliente", "string", false, ["customer id", "id cliente", "cliente id", "codigo cliente", "customer_id", "client id"]),
+    F("customer", "Cliente", "string", false, ["cliente", "customer", "customer name", "nome cliente", "razao social"]),
+    F("issueDate", "Data de emissão", "date", true, ["emissao", "data emissao", "issue date", "issued at", "data", "date", "created at"]),
+    F("dueDate", "Vencimento", "date", false, ["vencimento", "due date", "due at", "data vencimento"]),
+    F("amount", "Valor", "number", true, ["valor", "total", "amount", "valor total", "total amount"]),
+    F("paidAmount", "Valor pago", "number", false, ["valor pago", "paid", "paid amount", "pago"]),
+  ],
+  ORDERS: [
+    F("externalId", "ID do pedido", "string", false, ["id", "codigo", "order id", "pedido", "id pedido"]),
+    F("number", "Número do pedido", "string", false, ["numero", "number", "order number", "numero pedido"]),
+    F("date", "Data", "date", true, ["data", "date", "order date", "data pedido", "created at", "criado em"]),
+    F("customerId", "ID do cliente", "string", false, ["customer id", "id cliente", "cliente id", "codigo cliente", "customer_id", "client id"]),
+    F("customer", "Cliente", "string", false, ["cliente", "customer", "customer name", "nome cliente"]),
+    F("seller", "Vendedor", "string", false, ["vendedor", "seller", "sales rep", "representante"]),
+    F("status", "Status", "string", false, ["status", "situacao", "state"]),
+    F("amount", "Valor", "number", true, ["valor", "total", "amount", "valor total", "total amount"]),
+  ],
 };
 
 export const TARGET_LABELS: Record<ImportTarget, string> = {
@@ -100,6 +121,8 @@ export const TARGET_LABELS: Record<ImportTarget, string> = {
   PRODUCTS: "Produtos / Serviços",
   ACCOUNTS_PAYABLE: "Contas a pagar",
   ACCOUNTS_RECEIVABLE: "Contas a receber",
+  INVOICES: "Faturas",
+  ORDERS: "Pedidos",
 };
 
 export type ColumnMapping = Record<string, string | null>; // fieldKey -> header
@@ -240,4 +263,60 @@ export function validateMapping(target: ImportTarget, mapping: ColumnMapping, he
     if (h && !headers.includes(h)) errors.push(`A coluna "${h}" não existe no arquivo.`);
   }
   return errors;
+}
+
+export type ColumnKind = "date" | "number" | "text" | "boolean" | "other";
+
+/** Detecta o tipo predominante de uma coluna a partir de valores de amostra. */
+export function detectColumnType(values: unknown[]): ColumnKind {
+  const sample = values.filter((v) => v !== null && v !== undefined && v !== "").slice(0, 50);
+  if (!sample.length) return "other";
+  const share = (fn: (v: unknown) => boolean) => sample.filter(fn).length / sample.length;
+  if (share((v) => v instanceof Date || (typeof v !== "number" && parseDate(v) !== null)) >= 0.8) return "date";
+  if (share((v) => parseNumber(v) !== null) >= 0.8) return "number";
+  if (share((v) => typeof v === "boolean" || /^(true|false|sim|não|nao)$/i.test(String(v))) >= 0.8) return "boolean";
+  return "text";
+}
+
+/** Sugere mapeamento a partir de metadados de colunas (bancos/APIs), usando nome e tipo. */
+export function suggestMappingFromColumns(target: ImportTarget, columns: { name: string; kind: ColumnKind }[]): ColumnMapping {
+  const fields = TARGET_FIELDS[target];
+  const candidates: { field: string; header: string; score: number }[] = [];
+  for (const field of fields) {
+    for (const col of columns) {
+      const hs = headerScore(col.name.replace(/[_-]+/g, " "), field);
+      if (!hs) continue;
+      const compatible = field.kind === "string" || col.kind === field.kind || (field.kind === "date" && col.kind === "text") || col.kind === "other";
+      if (!compatible) continue;
+      candidates.push({ field: field.key, header: col.name, score: hs + (col.kind === field.kind ? 10 : 0) });
+    }
+  }
+  candidates.sort((a, b) => b.score - a.score);
+  const mapping: ColumnMapping = Object.fromEntries(fields.map((f) => [f.key, null]));
+  const used = new Set<string>();
+  for (const c of candidates) {
+    if (mapping[c.field] || used.has(c.header)) continue;
+    mapping[c.field] = c.header;
+    used.add(c.header);
+  }
+  return mapping;
+}
+
+const ENTITY_HINTS: [RegExp, ImportTarget][] = [
+  [/(customer|client|cliente)/, "CUSTOMERS"],
+  [/(invoice|fatura|nota|nfe|billing)/, "INVOICES"],
+  [/(order|pedido)/, "ORDERS"],
+  [/(sale|venda|faturamento)/, "SALES"],
+  [/(product|produto|item|sku|servico|service)/, "PRODUCTS"],
+  [/(expense|despesa|gasto|custo)/, "EXPENSES"],
+  [/(revenue|receita)/, "REVENUES"],
+  [/(payable|pagar|fornecedor)/, "ACCOUNTS_PAYABLE"],
+  [/(receivable|receber|titulo)/, "ACCOUNTS_RECEIVABLE"],
+];
+
+/** Sugere a entidade do Cortex pelo nome da tabela/endpoint (ou null se não houver indício). */
+export function suggestEntity(name: string): ImportTarget | null {
+  const n = normalizeText(name.replace(/[_./-]+/g, " "));
+  for (const [re, t] of ENTITY_HINTS) if (re.test(n)) return t;
+  return null;
 }

@@ -27,9 +27,16 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Remove o indicador "N" do Next.js exibido no canto da tela em desenvolvimento.
   devIndicators: false,
-  serverExternalPackages: ["pdfkit", "exceljs", "@prisma/client", "bcryptjs"],
+  // drivers de bancos externos (somente leitura) rodam apenas no servidor Node.js
+  serverExternalPackages: ["pdfkit", "exceljs", "@prisma/client", "bcryptjs", "pg", "mysql2", "mssql"],
   experimental: {
     serverActions: { bodySizeLimit: "12mb" },
+  },
+  async redirects() {
+    return [
+      { source: "/integrations", destination: "/integracoes", permanent: false },
+      { source: "/settings/integrations", destination: "/integracoes", permanent: false },
+    ];
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

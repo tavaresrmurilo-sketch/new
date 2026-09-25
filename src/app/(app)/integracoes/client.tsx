@@ -1,6 +1,7 @@
 "use client";
 
-import { MoreHorizontal, Plus } from "lucide-react";
+import { Loader2, MoreHorizontal, Plus, Power, PowerOff, RefreshCw, Settings2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -21,13 +22,13 @@ interface CatalogItem {
 }
 
 const CONFIG_TEMPLATES: Record<string, string> = {
-  "rest-api": JSON.stringify({ baseUrl: "https://api.seusistema.com.br", endpoints: [{ entity: "sales", path: "/v1/vendas", dataPath: "data", fieldMap: { externalId: "id", date: "data", grossAmount: "valor_total", customerName: "cliente.nome" } }] }, null, 2),
   "google-sheets": JSON.stringify({ spreadsheetId: "ID_DA_PLANILHA", gid: "0", target: "SALES" }, null, 2),
 };
 
 export function NewIntegrationDialog({ catalog }: { catalog: CatalogItem[] }) {
   const router = useRouter();
-  const connectable = catalog.filter((c) => !["csv", "xlsx", "manual"].includes(c.id));
+  // bancos e APIs REST usam o assistente de 7 etapas (/integracoes/nova)
+  const connectable = catalog.filter((c) => !["csv", "xlsx", "manual", "rest-api", "postgresql", "mysql", "sqlserver"].includes(c.id));
   const [open, setOpen] = useState(false);
   const [providerId, setProviderId] = useState(connectable[0]?.id ?? "");
   const provider = useMemo(() => catalog.find((c) => c.id === providerId), [catalog, providerId]);
@@ -63,14 +64,14 @@ export function NewIntegrationDialog({ catalog }: { catalog: CatalogItem[] }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus /> Nova integração
+        <Button size="sm" variant="outline">
+          <Plus /> Outros conectores
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Nova integração</DialogTitle>
-          <DialogDescription>Credenciais são cifradas antes de serem gravadas e nunca são exibidas novamente.</DialogDescription>
+          <DialogTitle>Outros conectores</DialogTitle>
+          <DialogDescription>Google Sheets, ERP Demo (dados de demonstração) e conectores planejados. Credenciais são cifradas e nunca exibidas novamente.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
           <Field label="Conector">
@@ -85,13 +86,13 @@ export function NewIntegrationDialog({ catalog }: { catalog: CatalogItem[] }) {
               {connectable.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
-                  {c.availability === "planned" ? " — requer API externa" : c.availability === "mock" ? " — MOCK" : ""}
+                  {c.availability === "planned" ? " — requer API externa" : c.availability === "mock" ? " — DEMO" : ""}
                 </option>
               ))}
             </Select>
           </Field>
           {provider?.availability === "planned" ? <Notice tone="warning">Este conector tem arquitetura pronta, mas depende de API/credenciais externas ainda não disponíveis. Ele será registrado sem sincronizar dados.</Notice> : null}
-          {provider?.availability === "mock" ? <Notice tone="warning">Conector MOCK: gera dados sintéticos para desenvolvimento. Não use em produção.</Notice> : null}
+          {provider?.availability === "mock" ? <Notice tone="warning">Conector DEMO: gera dados sintéticos de demonstração, identificados como DEMO. Não representa dados reais da empresa.</Notice> : null}
           <Field label="Nome">
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={provider?.label} maxLength={80} />
           </Field>
@@ -110,8 +111,7 @@ export function NewIntegrationDialog({ catalog }: { catalog: CatalogItem[] }) {
               <option value="">Somente manual</option>
               <option value="60">A cada hora</option>
               <option value="360">A cada 6 horas</option>
-              <option value="1440">Diária</option>
-              <option value="10080">Semanal</option>
+              <option value="1440">Diariamente</option>
             </Select>
           </Field>
         </div>
@@ -128,65 +128,90 @@ export function NewIntegrationDialog({ catalog }: { catalog: CatalogItem[] }) {
   );
 }
 
-export function IntegrationRowActions({ id, status }: { id: string; status: string }) {
+export function IntegrationActions({ id, status, compact = false }: { id: string; status: string; compact?: boolean }) {
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const run = async (fn: () => Promise<void>) => {
-    setBusy(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const run = async (key: string, fn: () => Promise<void>) => {
+    setBusy(key);
     try {
       await fn();
-      router.refresh();
+    } catch {
+      /* toast já exibido */
     } finally {
-      setBusy(false);
+      setBusy(null);
+      router.refresh();
     }
   };
+  const disabled = status === "DISABLED";
+  const planned = status === "NOT_IMPLEMENTED";
   const sync = (mode: "INCREMENTAL" | "REPROCESS") =>
-    run(async () => {
-      const r = await api<{ job: { status: string; recordsProcessed: number; recordsRejected: number } }>(`/api/integrations/${id}/sync`, { method: "POST", json: { mode } });
-      const msg = `Sincronização ${r.job.status}: ${r.job.recordsProcessed} processados, ${r.job.recordsRejected} rejeitados.`;
-      if (r.job.status === "FAILED") toast.error(msg);
-      else toast.success(msg);
+    run("sync", async () => {
+      const r = await api<{ job: { status: string; recordsProcessed: number; recordsRejected: number; errorMessage: string | null } }>(`/api/integrations/${id}/sync`, { method: "POST", json: { mode } });
+      const msg = `${r.job.recordsProcessed} registros processados, ${r.job.recordsRejected} rejeitados.`;
+      if (r.job.status === "FAILED") toast.error(r.job.errorMessage ?? "Falha na sincronização.", { description: msg });
+      else if (r.job.status === "PARTIAL") toast.warning(`Sincronização parcial: ${msg}`);
+      else toast.success(`Sincronização concluída: ${msg}`);
+    });
+  const toggle = () =>
+    run("toggle", async () => {
+      if (!disabled && !window.confirm("Desativar esta integração? As sincronizações automáticas serão interrompidas. Os dados já sincronizados permanecem.")) return;
+      await api(`/api/integrations/${id}`, { method: "PATCH", json: { status: disabled ? "CONNECTED" : "DISABLED" } });
+      toast.success(disabled ? "Integração reativada." : "Integração desativada.");
     });
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" disabled={busy} aria-label="Ações">
-          <MoreHorizontal />
+    <div className="flex flex-wrap items-center gap-2">
+      {!compact ? (
+        <Button asChild size="sm" variant="outline">
+          <Link href={`/integracoes/${id}`}>
+            <Settings2 /> Configurar
+          </Link>
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => sync("INCREMENTAL")}>Sincronizar agora (incremental)</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => sync("REPROCESS")}>Reprocessar tudo</DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() =>
-            run(async () => {
-              const r = await api<{ ok: boolean; message: string }>(`/api/integrations/${id}/test`, { method: "POST" });
-              if (r.ok) toast.success(r.message);
-              else toast.error(r.message);
-            })
-          }
-        >
-          Testar conexão
-        </DropdownMenuItem>
-        {status !== "NOT_IMPLEMENTED" ? (
-          <DropdownMenuItem onSelect={() => run(async () => void (await api(`/api/integrations/${id}`, { method: "PATCH", json: { status: status === "PAUSED" ? "ACTIVE" : "PAUSED" } })))}>
-            {status === "PAUSED" ? "Reativar" : "Pausar"}
+      ) : null}
+      {!planned ? (
+        <Button size="sm" onClick={() => sync("INCREMENTAL")} disabled={Boolean(busy) || disabled || status === "SYNCING"}>
+          {busy === "sync" ? <Loader2 className="animate-spin" /> : <RefreshCw />} {status === "ERROR" ? "Tentar novamente" : "Sincronizar agora"}
+        </Button>
+      ) : null}
+      {!planned ? (
+        <Button size="sm" variant="outline" onClick={toggle} disabled={Boolean(busy)}>
+          {disabled ? <Power /> : <PowerOff />} {disabled ? "Reativar" : "Desativar"}
+        </Button>
+      ) : null}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" disabled={Boolean(busy)} aria-label="Mais ações">
+            <MoreHorizontal />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onSelect={() =>
+              run("test", async () => {
+                const r = await api<{ ok: boolean; message: string; reason?: string }>(`/api/integrations/${id}/test`, { method: "POST" });
+                if (r.ok) toast.success(r.message);
+                else toast.error(r.message, { description: r.reason });
+              })
+            }
+          >
+            Testar conexão
           </DropdownMenuItem>
-        ) : null}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="text-critical"
-          onSelect={() =>
-            run(async () => {
-              if (!window.confirm("Excluir esta integração? Os dados já sincronizados permanecem no Cortex.")) return;
-              await api(`/api/integrations/${id}`, { method: "DELETE" });
-              toast.success("Integração excluída.");
-            })
-          }
-        >
-          Excluir
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          {!planned && !disabled ? <DropdownMenuItem onSelect={() => sync("REPROCESS")}>Reprocessar tudo</DropdownMenuItem> : null}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="text-critical"
+            onSelect={() =>
+              run("delete", async () => {
+                if (!window.confirm("Excluir esta integração? As credenciais serão apagadas; os dados já sincronizados permanecem no Cortex.")) return;
+                await api(`/api/integrations/${id}`, { method: "DELETE" });
+                toast.success("Integração excluída.");
+                router.push("/integracoes");
+              })
+            }
+          >
+            Excluir
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }

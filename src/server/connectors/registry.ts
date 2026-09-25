@@ -1,24 +1,28 @@
 import { googleSheetsProvider } from "./providers/google-sheets";
 import { mockErpProvider } from "./providers/mock-erp";
-import {
-  accountingProvider, crmProvider, erpProvider, financeProvider, logisticsProvider, mysqlProvider, postgresProvider,
-} from "./providers/planned";
+import { accountingProvider, crmProvider, erpProvider, financeProvider, logisticsProvider } from "./providers/planned";
 import { restApiProvider } from "./providers/rest-api";
 import { csvProvider, manualProvider, spreadsheetProvider } from "./providers/spreadsheet";
+import { sqlProvider } from "./providers/sql";
 import type { ConnectorProvider } from "./types";
 
+export const postgresProvider = sqlProvider("postgresql", "PostgreSQL", "Conecte um banco PostgreSQL (somente leitura).");
+export const mysqlProvider = sqlProvider("mysql", "MySQL", "Conecte um banco MySQL ou MariaDB (somente leitura).");
+export const sqlServerProvider = sqlProvider("sqlserver", "SQL Server", "Conecte Microsoft SQL Server (somente leitura).");
+
 export const PROVIDERS: ConnectorProvider[] = [
-  erpProvider,
-  crmProvider,
   postgresProvider,
   mysqlProvider,
+  sqlServerProvider,
+  restApiProvider,
+  csvProvider,
+  spreadsheetProvider,
+  googleSheetsProvider,
+  erpProvider,
+  crmProvider,
   financeProvider,
   accountingProvider,
   logisticsProvider,
-  googleSheetsProvider,
-  spreadsheetProvider,
-  csvProvider,
-  restApiProvider,
   manualProvider,
   mockErpProvider,
 ];

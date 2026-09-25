@@ -162,6 +162,30 @@ export type ExpenseRecord = z.infer<typeof expenseRecord>;
 export type RevenueRecord = z.infer<typeof revenueRecord>;
 export type PayableRecord = z.infer<typeof payableRecord>;
 export type ReceivableRecord = z.infer<typeof receivableRecord>;
+export const invoiceRecord = z.object({
+  externalId: str(120),
+  number: optStr(60),
+  customerExternalId: optStr(120),
+  customerName: optStr(),
+  issueDate: date,
+  dueDate: date.optional().nullable(),
+  amount: money,
+  paidAmount: money.default(0),
+});
+
+export const orderRecord = z.object({
+  externalId: str(120),
+  number: optStr(60),
+  date,
+  customerExternalId: optStr(120),
+  customerName: optStr(),
+  sellerName: optStr(),
+  status: optStr(60),
+  amount: money,
+});
+
+export type InvoiceRecord = z.infer<typeof invoiceRecord>;
+export type OrderRecord = z.infer<typeof orderRecord>;
 export type FinancialAccountRecord = z.infer<typeof financialAccountRecord>;
 export type PaymentRecord = z.infer<typeof paymentRecord>;
 export type CostCenterRecord = z.infer<typeof costCenterRecord>;
@@ -180,6 +204,8 @@ export interface CanonicalBatch {
   payables?: unknown[];
   receivables?: unknown[];
   payments?: unknown[];
+  invoices?: unknown[];
+  orders?: unknown[];
 }
 
 export const BATCH_SCHEMAS = {
@@ -195,12 +221,14 @@ export const BATCH_SCHEMAS = {
   payables: payableRecord,
   receivables: receivableRecord,
   payments: paymentRecord,
+  invoices: invoiceRecord,
+  orders: orderRecord,
 } as const;
 
 export type EntityKey = keyof typeof BATCH_SCHEMAS;
 export const INGEST_ORDER: EntityKey[] = [
   "costCenters", "customers", "suppliers", "products", "sellers", "financialAccounts",
-  "sales", "revenues", "expenses", "payables", "receivables", "payments",
+  "sales", "revenues", "expenses", "payables", "receivables", "payments", "invoices", "orders",
 ];
 
 export const ENTITY_LABELS: Record<EntityKey, string> = {
@@ -216,4 +244,6 @@ export const ENTITY_LABELS: Record<EntityKey, string> = {
   payables: "Contas a pagar",
   receivables: "Contas a receber",
   payments: "Pagamentos/Recebimentos",
+  invoices: "Faturas",
+  orders: "Pedidos",
 };

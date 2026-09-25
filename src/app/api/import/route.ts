@@ -9,7 +9,7 @@ import { AppError } from "@/server/errors";
 import { LIMITS } from "@/server/security/rate-limit";
 
 export const runtime = "nodejs";
-const targetSchema = z.enum(["SALES", "EXPENSES", "REVENUES", "CUSTOMERS", "PRODUCTS", "ACCOUNTS_PAYABLE", "ACCOUNTS_RECEIVABLE"]).optional();
+const targetSchema = z.enum(["SALES", "EXPENSES", "REVENUES", "CUSTOMERS", "PRODUCTS", "ACCOUNTS_PAYABLE", "ACCOUNTS_RECEIVABLE", "INVOICES", "ORDERS"]).optional();
 
 /** Etapa 1 da importação: upload + detecção de colunas + mapeamento sugerido. */
 export const POST = apiRoute(async (req) => {

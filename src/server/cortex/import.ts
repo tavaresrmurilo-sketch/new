@@ -157,7 +157,11 @@ function rowHash(target: string, row: Record<string, unknown>, mapping: ColumnMa
   return `row:${sha256(`${target}|${values}`).slice(0, 32)}`;
 }
 
-export function transformRows(target: ImportTarget, rows: Record<string, unknown>[], mapping: ColumnMapping) {
+/**
+ * Converte linhas (planilha, banco ou API) para registros canônicos conforme o mapeamento.
+ * `machineNumbers`: valores vindos de bancos/APIs usam ponto decimal (sem heurística pt-BR).
+ */
+export function transformRows(target: ImportTarget, rows: Record<string, unknown>[], mapping: ColumnMapping, opts: { machineNumbers?: boolean } = {}) {
   const batch: CanonicalBatch = {};
   const errors: RowError[] = [];
   const get = (row: Record<string, unknown>, key: string) => (mapping[key] ? row[mapping[key] as string] : null);
@@ -167,7 +171,17 @@ export function transformRows(target: ImportTarget, rows: Record<string, unknown
     const s = v instanceof Date ? v.toISOString().slice(0, 10) : String(v).trim();
     return s || null;
   };
-  const num = (row: Record<string, unknown>, key: string) => parseNumber(get(row, key));
+  const num = (row: Record<string, unknown>, key: string) => {
+    const v = get(row, key);
+    if (opts.machineNumbers) {
+      if (v === null || v === undefined || v === "") return null;
+      if (typeof v === "number") return Number.isFinite(v) ? v : null;
+      if (typeof v === "bigint") return Number(v);
+      const n = Number(String(v).trim());
+      return Number.isFinite(n) ? n : parseNumber(v);
+    }
+    return parseNumber(v);
+  };
   const dt = (row: Record<string, unknown>, key: string) => parseDate(get(row, key));
 
   // ocorrências repetidas de uma linha idêntica recebem sufixo, preservando idempotência entre reimportações
@@ -225,6 +239,7 @@ export function transformRows(target: ImportTarget, rows: Record<string, unknown
           externalId: id,
           number: explicitId,
           date,
+          customerExternalId: str(row, "customerId"),
           customerName: str(row, "customer"),
           sellerName: str(row, "seller"),
           status: /cancel/.test(statusRaw) ? "CANCELLED" : "COMPLETED",
@@ -312,6 +327,30 @@ export function transformRows(target: ImportTarget, rows: Record<string, unknown
           customerName: str(row, "customer"),
           issueDate: dt(row, "issueDate") ?? due, dueDate: due, amount: Math.abs(amount),
           receivedAmount: Math.abs(num(row, "receivedAmount") ?? 0), receivedAt: dt(row, "receivedAt"),
+        }];
+      });
+      break;
+    case "INVOICES":
+      batch.invoices = rows.flatMap((row, i) => {
+        const issue = dt(row, "issueDate");
+        const amount = num(row, "amount");
+        if (!need(issue, i, "Data de emissão") || !need(amount, i, "Valor")) return [];
+        return [{
+          externalId: str(row, "externalId") ?? str(row, "number") ?? idFor(row),
+          number: str(row, "number"), customerExternalId: str(row, "customerId"), customerName: str(row, "customer"),
+          issueDate: issue, dueDate: dt(row, "dueDate"), amount, paidAmount: num(row, "paidAmount") ?? 0,
+        }];
+      });
+      break;
+    case "ORDERS":
+      batch.orders = rows.flatMap((row, i) => {
+        const date = dt(row, "date");
+        const amount = num(row, "amount");
+        if (!need(date, i, "Data") || !need(amount, i, "Valor")) return [];
+        return [{
+          externalId: str(row, "externalId") ?? str(row, "number") ?? idFor(row),
+          number: str(row, "number"), date, customerExternalId: str(row, "customerId"), customerName: str(row, "customer"),
+          sellerName: str(row, "seller"), status: str(row, "status"), amount,
         }];
       });
       break;

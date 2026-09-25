@@ -4,13 +4,15 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { audit } from "@/server/audit";
 import { apiRoute, requireApi } from "@/server/auth/guard";
+import { createExternalIntegration, createIntegrationSchema } from "@/server/connectors/external";
 import { getProvider } from "@/server/connectors/registry";
 import { storeCredentials } from "@/server/connectors/vault";
 import { ensureDataSource } from "@/server/cortex/ingest";
 import { AppError } from "@/server/errors";
 import { sanitizeText } from "@/server/security/sanitize";
 
-const schema = z.object({
+/** Conectores legados/planejados (ERP demo, Google Sheets, ERP/CRM planejados). */
+const legacySchema = z.object({
   provider: z.string().min(1).max(40),
   name: z.string().trim().min(2).max(80),
   credentials: z.record(z.string(), z.string().max(4000)).default({}),
@@ -20,15 +22,24 @@ const schema = z.object({
 
 export const POST = apiRoute(async (req) => {
   const ctx = await requireApi("integrations:manage");
-  const body = schema.parse(await req.json());
+  const raw = (await req.json()) as Record<string, unknown>;
+
+  // Fontes externas reais (PostgreSQL, MySQL, SQL Server, API REST): assistente de 7 etapas.
+  if (raw && typeof raw === "object" && "source" in raw) {
+    const integration = await createExternalIntegration(ctx, createIntegrationSchema.parse(raw));
+    return NextResponse.json({ id: integration.id, status: integration.status });
+  }
+
+  const body = legacySchema.parse(raw);
   const provider = getProvider(body.provider);
   if (!provider) throw new AppError("Conector desconhecido.", 422);
+  if (provider.type === "DATABASE" || provider.id === "rest-api") throw new AppError("Use o assistente \"Nova integração\" para conectar bancos de dados e APIs.", 422);
   if (provider.configSchema) {
     const parsed = provider.configSchema.safeParse(body.config);
     if (!parsed.success) throw new AppError(`Configuração inválida: ${parsed.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`, 422);
   }
   const missing = provider.credentialFields.filter((f) => f.required && !body.credentials[f.key]);
-  const status = provider.availability === "planned" ? "NOT_IMPLEMENTED" : missing.length ? "PENDING_CREDENTIALS" : "ACTIVE";
+  const status = provider.availability === "planned" ? "NOT_IMPLEMENTED" : missing.length ? "PENDING" : "CONNECTED";
   const integration = await prisma.integration.create({
     data: {
       tenantId: ctx.tenantId,
@@ -39,7 +50,7 @@ export const POST = apiRoute(async (req) => {
       isMock: provider.availability === "mock",
       config: body.config as Prisma.InputJsonValue,
       syncIntervalMinutes: body.syncIntervalMinutes ?? null,
-      nextSyncAt: body.syncIntervalMinutes && status === "ACTIVE" ? new Date(Date.now() + body.syncIntervalMinutes * 60_000) : null,
+      nextSyncAt: body.syncIntervalMinutes && status === "CONNECTED" ? new Date(Date.now() + body.syncIntervalMinutes * 60_000) : null,
     },
   });
   await storeCredentials(ctx.tenantId, integration.id, body.credentials);

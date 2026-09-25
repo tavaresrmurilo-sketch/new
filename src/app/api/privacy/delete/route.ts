@@ -23,6 +23,8 @@ export const POST = apiRoute(async (req) => {
     prisma.revenue.deleteMany({ where: t }),
     prisma.expense.deleteMany({ where: t }),
     prisma.inventoryMovement.deleteMany({ where: t }),
+    prisma.invoice.deleteMany({ where: t }),
+    prisma.order.deleteMany({ where: t }),
     prisma.customer.deleteMany({ where: t }),
     prisma.supplier.deleteMany({ where: t }),
     prisma.product.deleteMany({ where: t }),
@@ -37,6 +39,9 @@ export const POST = apiRoute(async (req) => {
     prisma.report.deleteMany({ where: t }),
     prisma.conversation.deleteMany({ where: t }),
     prisma.dataSource.deleteMany({ where: { ...t, integrationId: null } }),
+    // cursores reiniciados: a próxima sincronização relê as fontes externas desde o início
+    prisma.integrationTable.updateMany({ where: t, data: { lastCursor: null, rowsSynced: 0, lastSyncedAt: null } }),
+    prisma.integration.updateMany({ where: t, data: { syncCursor: null, recordsSynced: 0 } }),
     prisma.tenant.update({ where: { id: ctx.tenantId }, data: { onboardingCompleted: false } }),
   ]);
   await audit(ctx, { action: "privacy.business_data_deleted", resource: "tenant", resourceId: ctx.tenantId });
