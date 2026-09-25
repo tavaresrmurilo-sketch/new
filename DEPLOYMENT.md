@@ -9,6 +9,7 @@
 | Variável | Observação |
 |---|---|
 | `DATABASE_URL` | incluir `sslmode=require` quando aplicável |
+| `DIRECT_URL` | opcional (Neon): conexão direta, sem `-pooler`, usada apenas pelas migrations no deploy |
 | `AUTH_SECRET` | ≥ 32 caracteres aleatórios; trocar invalida todas as sessões |
 | `ENCRYPTION_KEY` | 32 bytes base64; **guarde com segurança** — sem ela as credenciais do Vault não podem ser decifradas |
 | `NEXT_PUBLIC_APP_URL` | URL pública (https) |
@@ -83,3 +84,14 @@ Use `SEED_SKIP_DEMO=1` se não quiser o tenant JR Demo no ambiente.
 - [ ] Banco com TLS, usuário com privilégios mínimos e backups
 - [ ] Provedor de IA configurado apenas se contratado (e consentimento dos clientes)
 - [ ] Monitoramento de erros e alertas de jobs de sincronização
+
+
+## Migrations automáticas na Vercel
+
+A Vercel executa o script `vercel-build` (em vez de `build`):
+
+```
+prisma generate && prisma migrate deploy && next build
+```
+
+Assim, toda migration nova é aplicada no Neon antes do build, sem apagar dados (`migrate deploy` só aplica migrations pendentes). Se a `DATABASE_URL` usar o pooler do Neon (host com `-pooler`), defina também `DIRECT_URL` com a conexão direta — as migrations usam essa URL. Se uma migration falhar, o deploy é interrompido e a versão anterior continua no ar.
