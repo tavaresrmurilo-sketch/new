@@ -4,10 +4,15 @@ import { Topbar } from "@/components/layout/topbar";
 import { NAV } from "@/components/layout/nav";
 import { requirePage } from "@/server/auth/guard";
 import { ROLE_LABELS } from "@/server/auth/permissions";
+import { accountLabels } from "@/lib/account-labels";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requirePage();
-  const groups = NAV.map((g) => ({ ...g, items: g.items.filter((i) => ctx.permissions.has(i.permission)) })).filter((g) => g.items.length);
+  const labels = accountLabels(ctx.tenantKind);
+  const groups = NAV.map((g) => ({
+    ...g,
+    items: g.items.filter((i) => ctx.permissions.has(i.permission)).map((i) => (i.href === "/dashboard" ? { ...i, label: labels.homeTitle } : i)),
+  })).filter((g) => g.items.length);
   return (
     <div className="min-h-screen">
       <Sidebar groups={groups} tenantName={ctx.tenantName} />
@@ -16,7 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           groups={groups}
           userName={ctx.userName}
           userEmail={ctx.userEmail}
-          roleLabel={ctx.supportMode ? "Suporte JR (somente leitura)" : ROLE_LABELS[ctx.role]}
+          roleLabel={ctx.supportMode ? "Suporte JR (somente leitura)" : labels.personal ? "Conta pessoal" : ROLE_LABELS[ctx.role]}
           tenantName={ctx.tenantName}
           isDemo={ctx.isDemo}
           supportMode={ctx.supportMode}

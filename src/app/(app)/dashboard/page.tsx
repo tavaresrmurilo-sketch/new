@@ -9,11 +9,12 @@ import { EmptyState, PageHeader, SeverityBadge } from "@/components/ui/misc";
 import { fmt } from "@/lib/format";
 import { prisma } from "@/lib/db";
 import { HOME_SUGGESTIONS } from "@/lib/suggestions";
+import { accountLabels } from "@/lib/account-labels";
 import { analyticsCtx } from "@/server/analytics/base";
 import { executiveOverview } from "@/server/analytics/overview";
 import { requirePage } from "@/server/auth/guard";
 
-export const metadata = { title: "Visão Executiva" };
+export const metadata = { title: "Painel" };
 
 
 export default async function DashboardPage() {
@@ -25,13 +26,14 @@ export default async function DashboardPage() {
       ? prisma.insight.findMany({ where: { tenantId: ctx.tenantId, status: { not: "DISMISSED" }, severity: { in: ["CRITICAL", "ATTENTION", "OPPORTUNITY"] } }, orderBy: [{ severity: "desc" }, { createdAt: "desc" }], take: 4 })
       : Promise.resolve([]),
   ]);
+  const labels = accountLabels(ctx.tenantKind);
   const can = (p: Parameters<typeof ctx.permissions.has>[0]) => ctx.permissions.has(p);
   const c = ov.cards;
 
   if (!ov.hasData) {
     return (
       <>
-        <PageHeader title="Visão Executiva" description="Resultados, caixa e desempenho comercial da empresa." />
+        <PageHeader title={labels.homeTitle} description={labels.homeDescription} />
         <EmptyState icon={Database} title="Seu Cortex ainda não possui dados" description="Importe uma planilha ou conecte um sistema para gerar dashboards, DRE e análises automaticamente." action={<Button asChild><Link href="/onboarding">Adicionar fonte de dados</Link></Button>} />
       </>
     );
@@ -57,7 +59,7 @@ export default async function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Visão Executiva"
+        title={labels.homeTitle}
         description={`Hoje, ${ov.periods.mtd.label} e ${ov.periods.ytd.label}. Variações comparam com o mesmo intervalo do período anterior.`}
         actions={
           <>

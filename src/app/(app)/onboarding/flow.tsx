@@ -10,7 +10,7 @@ import { Field, Input } from "@/components/ui/input";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
-const STEPS = ["Criar empresa", "Adicionar fonte de dados", "Importar ou conectar", "Mapear dados", "Processar", "Dashboard pronto"];
+const STEPS_BASE = ["Criar empresa", "Adicionar fonte de dados", "Importar ou conectar", "Mapear dados", "Processar", "Dashboard pronto"];
 
 interface Company {
   name: string;
@@ -23,7 +23,8 @@ interface Company {
   revenueGoalMonthly: number | null;
 }
 
-export function OnboardingFlow({ company, canImport, canSettings }: { company: Company; canImport: boolean; canSettings: boolean }) {
+export function OnboardingFlow({ company, canImport, canSettings, personal }: { company: Company; canImport: boolean; canSettings: boolean; personal: boolean }) {
+  const STEPS = personal ? ["Seu perfil", ...STEPS_BASE.slice(1)] : STEPS_BASE;
   const [step, setStep] = useState(1);
   const [c, setC] = useState(company);
   const [result, setResult] = useState<{ processedRows: number } | null>(null);
@@ -38,7 +39,7 @@ export function OnboardingFlow({ company, canImport, canSettings }: { company: C
     <div className="mx-auto max-w-4xl">
       <div className="mb-6">
         <h1 className="text-xl font-semibold tracking-tight">Bem-vindo ao JR Cortex AI</h1>
-        <p className="text-sm text-muted-foreground">Em poucos passos seus dados viram dashboards, DRE e respostas confiáveis.</p>
+        <p className="text-sm text-muted-foreground">Em poucos passos seus dados viram painéis, relatórios e respostas confiáveis.</p>
       </div>
       <ol className="mb-6 grid grid-cols-3 gap-2 md:grid-cols-6">
         {STEPS.map((s, i) => {
@@ -58,14 +59,18 @@ export function OnboardingFlow({ company, canImport, canSettings }: { company: C
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" /> Etapa 1 — Empresa
+              <Building2 className="h-4 w-4" /> Etapa 1 — {personal ? "Seu perfil" : "Empresa"}
             </CardTitle>
             <CardDescription>Confirme os dados básicos. Caixa mínimo e meta alimentam os alertas do Cortex.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-2">
-            <Field label="Nome"><Input value={c.name} onChange={(e) => setC({ ...c, name: e.target.value })} disabled={!canSettings} /></Field>
-            <Field label="CNPJ"><Input value={c.cnpj} onChange={(e) => setC({ ...c, cnpj: e.target.value })} disabled={!canSettings} /></Field>
-            <Field label="Segmento"><Input value={c.segment} onChange={(e) => setC({ ...c, segment: e.target.value })} disabled={!canSettings} /></Field>
+            <Field label={personal ? "Seu nome" : "Nome da empresa"}><Input value={c.name} onChange={(e) => setC({ ...c, name: e.target.value })} disabled={!canSettings} /></Field>
+            {!personal ? (
+              <>
+                <Field label="CNPJ (opcional)"><Input value={c.cnpj} onChange={(e) => setC({ ...c, cnpj: e.target.value })} disabled={!canSettings} /></Field>
+                <Field label="Segmento"><Input value={c.segment} onChange={(e) => setC({ ...c, segment: e.target.value })} disabled={!canSettings} /></Field>
+              </>
+            ) : null}
             <Field label="Caixa mínimo desejado (R$)"><Input inputMode="decimal" defaultValue={c.minCashBalance ?? ""} onChange={(e) => setC({ ...c, minCashBalance: num(e.target.value) })} disabled={!canSettings} /></Field>
             <Field label="Meta de faturamento mensal (R$)"><Input inputMode="decimal" defaultValue={c.revenueGoalMonthly ?? ""} onChange={(e) => setC({ ...c, revenueGoalMonthly: num(e.target.value) })} disabled={!canSettings} /></Field>
             <div className="flex items-end">

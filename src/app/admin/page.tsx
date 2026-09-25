@@ -1,4 +1,3 @@
-import { Logo } from "@/components/layout/logo";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Notice } from "@/components/ui/misc";
@@ -8,7 +7,9 @@ import { fmt } from "@/lib/format";
 import { PLANS } from "@/lib/plans";
 import { audit } from "@/server/audit";
 import { requirePlatformAdminPage } from "@/server/auth/guard";
-import { AdminTenantActions, LogoutButton } from "./actions";
+import Link from "next/link";
+import { AdminTenantActions } from "./actions";
+import { AccountTypeBadge } from "./badges";
 
 export const metadata = { title: "JR Admin" };
 
@@ -20,7 +21,9 @@ export default async function AdminPage() {
   const ctx = await requirePlatformAdminPage();
   await audit({ tenantId: null, userId: ctx.userId, userEmail: ctx.userEmail }, { action: "admin.viewed", resource: "platform" });
   const since = new Date(Date.now() - 30 * 86_400_000);
-  const [tenants, syncs, failedImports, aiUsage, users, failures] = await Promise.all([
+  const [userStats, recentUsers, tenants, syncs, failedImports, aiUsage, users, failures] = await Promise.all([
+    prisma.user.groupBy({ by: ["userRole"], _count: true }),
+    prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 8, select: { id: true, name: true, email: true, userRole: true, active: true, createdAt: true } }),
     prisma.tenant.findMany({
       orderBy: { createdAt: "desc" },
       include: {
@@ -34,24 +37,69 @@ export default async function AdminPage() {
     prisma.user.count({ where: { tenantId: { not: null }, active: true } }),
     prisma.auditLog.count({ where: { result: "FAILURE", createdAt: { gte: since } } }),
   ]);
+  const countRole = (r: string) => userStats.find((u) => u.userRole === r)?._count ?? 0;
+  const totalUsers = userStats.reduce((a, u) => a + u._count, 0);
   const aiMap = new Map(aiUsage.map((a) => [a.tenantId, a]));
   const byStatus = (s: string) => tenants.filter((t) => t.status === s).length;
   const planCount = (p: string) => tenants.filter((t) => t.plan === p).length;
   const failedSyncs = syncs.filter((s) => s.status === "FAILED").length;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="flex h-14 items-center justify-between border-b bg-sidebar px-6">
-        <div className="flex items-center gap-3">
-          <Logo inverted />
-          <Badge variant="demo">JR Admin</Badge>
+    <div className="space-y-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Visão geral da plataforma JR Cortex AI.</p>
         </div>
-        <div className="flex items-center gap-3 text-xs text-sidebar-foreground">
-          {ctx.userEmail}
-          <LogoutButton />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[
+            ["Total de usuários", totalUsers],
+            ["Pessoas", countRole("PERSON")],
+            ["Empresas", countRole("COMPANY")],
+            ["Administradores", countRole("ADMIN")],
+          ].map(([l, v]) => (
+            <Card key={String(l)} className="p-4">
+              <p className="text-xs text-muted-foreground">{l}</p>
+              <p className="mt-1 text-2xl font-semibold tabular">{fmt.int(Number(v))}</p>
+            </Card>
+          ))}
         </div>
-      </header>
-      <main className="mx-auto max-w-[1440px] space-y-4 p-6">
+        <Card>
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle>Usuários cadastrados recentemente</CardTitle>
+              <CardDescription>Últimos cadastros na plataforma</CardDescription>
+            </div>
+            <Link href="/admin/usuarios" className="text-sm font-medium text-primary hover:underline">
+              Ver todos
+            </Link>
+          </CardHeader>
+          <CardContent className="px-0">
+            <Table>
+              <THead>
+                <TR className="hover:bg-transparent">
+                  <TH>Nome</TH>
+                  <TH>E-mail</TH>
+                  <TH>Tipo</TH>
+                  <TH>Cadastro</TH>
+                  <TH>Status</TH>
+                </TR>
+              </THead>
+              <TBody>
+                {recentUsers.map((u) => (
+                  <TR key={u.id}>
+                    <TD className="font-medium">{u.name}</TD>
+                    <TD>{u.email}</TD>
+                    <TD>
+                      <AccountTypeBadge role={u.userRole} />
+                    </TD>
+                    <TD>{fmt.dateTime(u.createdAt)}</TD>
+                    <TD>{u.active ? <Badge variant="success">Ativo</Badge> : <Badge variant="critical">Bloqueado</Badge>}</TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
+          </CardContent>
+        </Card>
         <Notice>Este painel exibe apenas metadados operacionais. Dados financeiros de clientes só podem ser acessados com autorização explícita e temporária concedida pelo próprio cliente (Configurações → Suporte JR), em modo somente leitura e auditado.</Notice>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
           {[
@@ -72,7 +120,7 @@ export default async function AdminPage() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Clientes</CardTitle>
+            <CardTitle>Espaços de trabalho (clientes)</CardTitle>
             <CardDescription>Planos: {Object.keys(PLANS).map((p) => `${PLANS[p as keyof typeof PLANS].label} ${planCount(p)}`).join(" · ")}</CardDescription>
           </CardHeader>
           <CardContent className="px-0">
@@ -152,7 +200,6 @@ export default async function AdminPage() {
             </Table>
           </CardContent>
         </Card>
-      </main>
     </div>
   );
 }

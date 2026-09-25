@@ -25,6 +25,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Remove o indicador "N" do Next.js exibido no canto da tela em desenvolvimento.
+  devIndicators: false,
   serverExternalPackages: ["pdfkit", "exceljs", "@prisma/client", "bcryptjs"],
   experimental: {
     serverActions: { bodySizeLimit: "12mb" },

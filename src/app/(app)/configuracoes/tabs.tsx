@@ -16,6 +16,7 @@ import { api } from "@/lib/api-client";
 import { fmt } from "@/lib/format";
 import { MONTHS_PT } from "@/lib/periods";
 import { PLANS } from "@/lib/plans";
+import { accountLabels } from "@/lib/account-labels";
 
 const ROLE_LABELS: Record<string, string> = { ADMIN_CLIENTE: "Administrador", DIRETOR: "Diretor", FINANCEIRO: "Financeiro", COMERCIAL: "Comercial", ANALISTA: "Analista", VIEWER: "Visualizador" };
 const DRE_GROUPS: Record<string, string> = {
@@ -54,6 +55,7 @@ interface ChartRow {
 
 export function SettingsTabs(props: {
   currentUserId: string;
+  personal: boolean;
   can: { users: boolean; privacy: boolean };
   company: Company;
   users: UserRow[];
@@ -62,18 +64,19 @@ export function SettingsTabs(props: {
   grants: { id: string; reason: string; expiresAt: string; revokedAt: string | null; createdAt: string }[];
   plan: { plan: keyof typeof PLANS; status: string; provider: string; periodEnd: string | null; users: number; aiQuestions30d: number };
 }) {
+  const labels = accountLabels(props.personal ? "PERSONAL" : "BUSINESS");
   return (
     <Tabs defaultValue="empresa">
       <TabsList className="flex-wrap">
-        <TabsTrigger value="empresa">Empresa</TabsTrigger>
-        {props.can.users ? <TabsTrigger value="usuarios">Usuários e permissões</TabsTrigger> : null}
+        <TabsTrigger value="empresa">{labels.profileTab}</TabsTrigger>
+        {props.can.users && !props.personal ? <TabsTrigger value="usuarios">Usuários e permissões</TabsTrigger> : null}
         <TabsTrigger value="plano-contas">Plano de contas</TabsTrigger>
         {props.can.privacy ? <TabsTrigger value="privacidade">Privacidade (LGPD)</TabsTrigger> : null}
         <TabsTrigger value="suporte">Suporte JR</TabsTrigger>
         <TabsTrigger value="plano">Plano</TabsTrigger>
       </TabsList>
       <TabsContent value="empresa">
-        <CompanyForm initial={props.company} />
+        <CompanyForm initial={props.company} personal={props.personal} />
       </TabsContent>
       {props.can.users ? (
         <TabsContent value="usuarios">
@@ -85,7 +88,7 @@ export function SettingsTabs(props: {
       </TabsContent>
       {props.can.privacy ? (
         <TabsContent value="privacidade">
-          <PrivacyPanel initial={props.privacy} companyName={props.company.name} />
+          <PrivacyPanel initial={props.privacy} companyName={props.company.name} personal={props.personal} />
         </TabsContent>
       ) : null}
       <TabsContent value="suporte">
@@ -98,7 +101,8 @@ export function SettingsTabs(props: {
   );
 }
 
-function CompanyForm({ initial }: { initial: Company }) {
+function CompanyForm({ initial, personal }: { initial: Company; personal: boolean }) {
+  const labels = accountLabels(personal ? "PERSONAL" : "BUSINESS");
   const router = useRouter();
   const [c, setC] = useState(initial);
   const [saving, setSaving] = useState(false);
@@ -107,7 +111,7 @@ function CompanyForm({ initial }: { initial: Company }) {
     setSaving(true);
     try {
       await api("/api/settings/company", { method: "PATCH", json: { ...c, cnpj: c.cnpj || null, logoUrl: c.logoUrl || null, segment: c.segment || null } });
-      toast.success("Dados da empresa atualizados.");
+      toast.success(personal ? "Perfil atualizado." : "Dados da empresa atualizados.");
       router.refresh();
     } finally {
       setSaving(false);
@@ -116,14 +120,18 @@ function CompanyForm({ initial }: { initial: Company }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Configurações → Empresa</CardTitle>
+        <CardTitle>{labels.profileTitle}</CardTitle>
         <CardDescription>Metas e caixa mínimo alimentam insights, alertas e o fluxo de caixa.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Field label="Nome"><Input value={c.name} onChange={(e) => setC({ ...c, name: e.target.value })} /></Field>
-        <Field label="CNPJ"><Input value={c.cnpj} onChange={(e) => setC({ ...c, cnpj: e.target.value })} /></Field>
-        <Field label="Logo (URL https)"><Input value={c.logoUrl} onChange={(e) => setC({ ...c, logoUrl: e.target.value })} placeholder="https://..." /></Field>
-        <Field label="Segmento"><Input value={c.segment} onChange={(e) => setC({ ...c, segment: e.target.value })} /></Field>
+        <Field label={labels.nameLabel}><Input value={c.name} onChange={(e) => setC({ ...c, name: e.target.value })} /></Field>
+        {!personal ? (
+          <>
+            <Field label="CNPJ (opcional)"><Input value={c.cnpj} onChange={(e) => setC({ ...c, cnpj: e.target.value })} /></Field>
+            <Field label="Logo (URL https)"><Input value={c.logoUrl} onChange={(e) => setC({ ...c, logoUrl: e.target.value })} placeholder="https://..." /></Field>
+            <Field label="Segmento"><Input value={c.segment} onChange={(e) => setC({ ...c, segment: e.target.value })} /></Field>
+          </>
+        ) : null}
         <Field label="Moeda">
           <Select value={c.currency} onChange={(e) => setC({ ...c, currency: e.target.value })}>
             <option value="BRL">Real (BRL)</option>
@@ -354,7 +362,7 @@ function ChartPanel({ rows }: { rows: ChartRow[] }) {
   );
 }
 
-function PrivacyPanel({ initial, companyName }: { initial: { dataRetentionDays: number; aiProviderConsent: boolean; allowExternalAiTraining: boolean; aiProvider: string }; companyName: string }) {
+function PrivacyPanel({ initial, companyName, personal }: { initial: { dataRetentionDays: number; aiProviderConsent: boolean; allowExternalAiTraining: boolean; aiProvider: string }; companyName: string; personal: boolean }) {
   const router = useRouter();
   const [p, setP] = useState(initial);
   const [confirm, setConfirm] = useState("");
@@ -376,7 +384,7 @@ function PrivacyPanel({ initial, companyName }: { initial: { dataRetentionDays: 
               <span className="block text-xs text-muted-foreground">Provedor atual: {p.aiProvider}. Sem autorização, o Cortex usa apenas o motor interno determinístico.</span>
             </span>
           </label>
-          <Notice>Treinamento de modelos externos com dados da empresa: <strong>desabilitado</strong>. Os dados nunca são usados para treinamento sem autorização explícita e contratual.</Notice>
+          <Notice>Treinamento de modelos externos com seus dados: <strong>desabilitado</strong>. Os dados nunca são usados para treinamento sem autorização explícita e contratual.</Notice>
           <Button
             onClick={async () => {
               await api("/api/settings/privacy", { method: "PATCH", json: { dataRetentionDays: p.dataRetentionDays, aiProviderConsent: p.aiProviderConsent } });
@@ -396,13 +404,13 @@ function PrivacyPanel({ initial, companyName }: { initial: { dataRetentionDays: 
         <CardContent className="space-y-4 text-sm">
           <div>
             <p className="font-medium">Exportar dados</p>
-            <p className="text-muted-foreground">Arquivo JSON com todos os dados empresariais do Cortex (credenciais não são exportadas).</p>
+            <p className="text-muted-foreground">Arquivo JSON com todos os seus dados no Cortex (credenciais não são exportadas).</p>
             <Button asChild variant="outline" size="sm" className="mt-2">
               <a href="/api/privacy/export">Exportar dados (JSON)</a>
             </Button>
           </div>
           <div className="rounded-md border border-critical/30 p-3">
-            <p className="font-medium text-critical">Excluir dados empresariais</p>
+            <p className="font-medium text-critical">{personal ? "Excluir meus dados" : "Excluir dados empresariais"}</p>
             <p className="text-muted-foreground">Remove vendas, financeiro, cadastros, importações, conversas e relatórios. Usuários, configurações e auditoria são preservados. Ação irreversível.</p>
             <Input className="mt-2" placeholder={`Digite "${companyName}" para confirmar`} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
             <Button
@@ -412,7 +420,7 @@ function PrivacyPanel({ initial, companyName }: { initial: { dataRetentionDays: 
               disabled={confirm !== companyName}
               onClick={async () => {
                 await api("/api/privacy/delete", { method: "POST", json: { confirm } });
-                toast.success("Dados empresariais excluídos.");
+                toast.success("Dados excluídos.");
                 setConfirm("");
                 router.refresh();
               }}
@@ -434,7 +442,7 @@ function SupportPanel({ grants }: { grants: { id: string; reason: string; expire
     <Card>
       <CardHeader>
         <CardTitle>Acesso de suporte JR Consultorias</CardTitle>
-        <CardDescription>Administradores da JR não visualizam dados da empresa sem autorização explícita e temporária. O acesso é somente leitura e auditado.</CardDescription>
+        <CardDescription>Administradores da JR não visualizam seus dados sem autorização explícita e temporária. O acesso é somente leitura e auditado.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-[1fr_140px_auto]">

@@ -9,6 +9,7 @@ export default async function OnboardingPage() {
   const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: ctx.tenantId } });
   return (
     <OnboardingFlow
+      personal={tenant.kind === "PERSONAL"}
       canImport={ctx.permissions.has("import:run")}
       canSettings={ctx.permissions.has("settings:manage")}
       company={{ name: tenant.name, cnpj: tenant.cnpj ?? "", segment: tenant.segment ?? "", timezone: tenant.timezone, currency: tenant.currency, fiscalYearStartMonth: tenant.fiscalYearStartMonth, minCashBalance: tenant.minCashBalance ? Number(tenant.minCashBalance) : null, revenueGoalMonthly: tenant.revenueGoalMonthly ? Number(tenant.revenueGoalMonthly) : null }}

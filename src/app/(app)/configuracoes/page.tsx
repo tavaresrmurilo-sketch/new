@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requirePage } from "@/server/auth/guard";
 import { providerStatus } from "@/server/ai/providers";
 import { SettingsTabs } from "./tabs";
+import { accountLabels } from "@/lib/account-labels";
 
 export const metadata = { title: "Configurações" };
 
@@ -18,9 +19,10 @@ export default async function SettingsPage() {
   const ai = providerStatus();
   return (
     <>
-      <PageHeader title="Configurações" description="Empresa, usuários e permissões, plano de contas, privacidade (LGPD), suporte e plano." />
+      <PageHeader title="Configurações" description={accountLabels(tenant.kind).settingsDescription} />
       <SettingsTabs
         currentUserId={ctx.userId}
+        personal={tenant.kind === "PERSONAL"}
         can={{ users: ctx.permissions.has("users:manage"), privacy: ctx.permissions.has("privacy:manage") }}
         company={{
           name: tenant.name,

@@ -27,6 +27,20 @@ enum TenantStatus {
   CANCELLED
 }
 
+/// Tipo de conta na plataforma (define destino após login e acesso ao /admin).
+enum UserRole {
+  ADMIN
+  PERSON
+  COMPANY
+}
+
+/// Espaço de trabalho: pessoal (pessoa física) ou empresarial.
+enum TenantKind {
+  PERSONAL
+  BUSINESS
+}
+
+/// Papéis internos (RBAC) dentro de um espaço de trabalho.
 enum RoleKey {
   SUPER_ADMIN
   ADMIN_CLIENTE
@@ -218,6 +232,7 @@ enum ImportStatus {
 model Tenant {
   id                    String       @id @default(cuid())
   name                  String
+  kind                  TenantKind   @default(BUSINESS)
   slug                  String       @unique
   cnpj                  String?
   logoUrl               String?
@@ -299,6 +314,9 @@ model User {
   tenant        Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   email         String    @unique
   name          String
+  firstName     String?
+  lastName      String?
+  userRole      UserRole  @default(COMPANY)
   passwordHash  String
   roleId        String
   role          Role      @relation(fields: [roleId], references: [id])
@@ -319,6 +337,7 @@ model User {
   knowledge     KnowledgeItem[]
 
   @@index([tenantId])
+  @@index([userRole, createdAt])
 }
 
 model Role {

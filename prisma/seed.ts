@@ -10,6 +10,7 @@ import { PrismaClient, type DreGroup, type Prisma, type RoleKey } from "@prisma/
 import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
 import { PERMISSIONS, ROLE_LABELS, ROLE_PERMISSIONS, type PermissionKey } from "../src/server/auth/permissions";
+import { ensureAdmin } from "../src/server/bootstrap/admin";
 
 const prisma = new PrismaClient();
 
@@ -463,14 +464,10 @@ async function seedDemo(roles: Record<string, string>) {
 async function main() {
   console.log("JR Cortex AI — seed");
   const roles = await seedRbac();
-  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@jrconsultorias.com.br";
-  const adminPwd = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD ?? "JrCortex@2026admin", 12);
-  await prisma.user.upsert({
-    where: { email: adminEmail },
-    create: { email: adminEmail, name: "JR Consultorias — Administração", passwordHash: adminPwd, roleId: roles.SUPER_ADMIN },
-    update: { roleId: roles.SUPER_ADMIN },
-  });
-  console.log(`• SUPER_ADMIN: ${adminEmail}`);
+  const admin = await ensureAdmin(prisma);
+  if (admin.status === "created") console.log(`• Administrador criado: ${admin.email}`);
+  else if (admin.status === "exists") console.log(`• Administrador já existe: ${admin.email} (senha não alterada)`);
+  else console.log(`• Administrador não criado: ${admin.reason}`);
   if (process.env.SEED_SKIP_DEMO !== "1") {
     const t = await seedDemo(roles);
     console.log(`• Tenant demonstrativo criado: ${t.name} (${t.slug})`);

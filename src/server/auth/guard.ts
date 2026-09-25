@@ -27,10 +27,25 @@ export async function requirePage(perm?: PermissionKey): Promise<TenantContext> 
   return ctx as TenantContext;
 }
 
+/** Área /admin: somente contas ADMIN. Demais usuários são registrados e enviados ao próprio dashboard. */
 export async function requirePlatformAdminPage(): Promise<AuthContext> {
   const ctx = await getAuth();
   if (!ctx) redirect("/login");
-  if (!ctx.isPlatformAdmin) redirect("/acesso-negado");
+  if (!ctx.isPlatformAdmin) {
+    await audit(ctx, { action: "admin.access_denied", resource: "admin", result: "DENIED" });
+    redirect(ctx.tenantId ? "/dashboard" : "/login");
+  }
+  return ctx;
+}
+
+/** APIs de administração: somente contas ADMIN fora do modo suporte. */
+export async function requireAdminApi(): Promise<AuthContext> {
+  const ctx = await getAuth();
+  if (!ctx) throw new UnauthorizedError();
+  if (!ctx.isPlatformAdmin) {
+    await audit(ctx, { action: "admin.access_denied", resource: "admin", result: "DENIED" });
+    throw new ForbiddenError("Acesso restrito ao administrador.");
+  }
   return ctx;
 }
 

@@ -15,7 +15,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
-    "jobs:run": "tsx scripts/run-jobs.ts"
+    "jobs:run": "tsx scripts/run-jobs.ts",
+    "admin:create": "tsx scripts/create-admin.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

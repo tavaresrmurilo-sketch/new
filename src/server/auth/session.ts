@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
-import type { RoleKey } from "@prisma/client";
+import type { RoleKey, TenantKind, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { hashToken, randomToken } from "@/server/security/crypto";
@@ -13,13 +13,18 @@ export interface AuthContext {
   userId: string;
   userEmail: string;
   userName: string;
+  /** papel interno (RBAC) dentro do espaço de trabalho */
   role: RoleKey;
+  /** tipo de conta na plataforma: ADMIN, PERSON ou COMPANY */
+  accountRole: UserRole;
+  /** true somente para contas ADMIN (validado no servidor) */
   isPlatformAdmin: boolean;
   /** true quando um SUPER_ADMIN acessa um tenant via autorização de suporte */
   supportMode: boolean;
   tenantId: string | null;
   tenantName: string | null;
   tenantSlug: string | null;
+  tenantKind: TenantKind | null;
   timezone: string;
   isDemo: boolean;
   onboardingCompleted: boolean;
@@ -83,7 +88,8 @@ export const getAuth = cache(async (): Promise<AuthContext | null> => {
   }
 
   const role = session.user.role.key;
-  const isPlatformAdmin = role === "SUPER_ADMIN";
+  const accountRole = session.user.userRole;
+  const isPlatformAdmin = accountRole === "ADMIN";
   let permissions = await loadPermissions(session.user.roleId);
   if (!permissions.size) permissions = new Set(ROLE_PERMISSIONS[role]);
 
@@ -97,7 +103,7 @@ export const getAuth = cache(async (): Promise<AuthContext | null> => {
       await prisma.session.update({ where: { id: session.id }, data: { activeTenantId: null } });
       return {
         sessionId: session.id, userId: session.userId, userEmail: session.user.email, userName: session.user.name,
-        role, isPlatformAdmin, supportMode: false, tenantId: null, tenantName: null, tenantSlug: null,
+        role, accountRole, isPlatformAdmin, supportMode: false, tenantId: null, tenantName: null, tenantSlug: null, tenantKind: null,
         timezone: "America/Sao_Paulo", isDemo: false, onboardingCompleted: true, permissions,
       };
     }
@@ -111,14 +117,23 @@ export const getAuth = cache(async (): Promise<AuthContext | null> => {
     userEmail: session.user.email,
     userName: session.user.name,
     role,
+    accountRole,
     isPlatformAdmin,
     supportMode,
     tenantId: tenant?.id ?? null,
     tenantName: tenant?.name ?? null,
     tenantSlug: tenant?.slug ?? null,
+    tenantKind: tenant?.kind ?? null,
     timezone: tenant?.timezone ?? "America/Sao_Paulo",
     isDemo: tenant?.isDemo ?? false,
     onboardingCompleted: tenant?.onboardingCompleted ?? true,
     permissions,
   };
 });
+
+/** Destino padrão após o login, conforme o tipo de conta. */
+export function homeFor(accountRole: UserRole, hasTenant: boolean, onboardingCompleted: boolean): string {
+  if (accountRole === "ADMIN") return "/admin";
+  if (!hasTenant) return "/login";
+  return onboardingCompleted ? "/dashboard" : "/onboarding";
+}

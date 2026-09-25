@@ -26,7 +26,7 @@ O JR Cortex AI é um SaaS multiempresa que funciona como um **analista de dados 
 | **Integrações** | Conectores modulares, Credentials Vault, sincronização manual/agendada/incremental/reprocessamento, logs |
 | **Importação** | CSV/XLSX com detecção de colunas, mapeamento sugerido e confirmação antes de importar |
 | **Auditoria, Configurações, LGPD** | Audit log, empresa, usuários/RBAC, plano de contas, retenção, exportação/exclusão, acesso de suporte |
-| **JR Admin** | Painel da plataforma (clientes, uso, erros, planos) sem acesso a dados financeiros sem autorização |
+| **Admin** (`/admin`) | Totais de usuários/pessoas/empresas, cadastros recentes, busca, filtro e bloqueio de usuários, métricas da plataforma — sem acesso a dados financeiros sem autorização |
 | **Onboarding** | 6 etapas até "Seu Cortex está pronto." |
 | **Modo demonstração** | Tenant **JR Demo** com DADOS DEMONSTRATIVOS (26 meses fictícios) |
 
@@ -74,6 +74,7 @@ Preencha no mínimo:
 | `ENCRYPTION_KEY` | `openssl rand -base64 32` (chave do Credentials Vault — **não perca**: credenciais cifradas dependem dela) |
 | `AI_PROVIDER` | `rules` (motor interno, sem chave) · `claude` · `openai` · `gemini` · `local` |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` |
+| `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` | sua conta de administrador (senha com 10+ caracteres, letras e números) |
 
 Chaves de IA (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_AI_API_KEY`, `LOCAL_LLM_URL`) são opcionais — veja [AI.md](AI.md). Nunca commite chaves reais.
 
@@ -91,13 +92,19 @@ npm run db:migrate
 npm run db:seed
 ```
 
-Cria permissões e papéis, o usuário **SUPER_ADMIN** da JR e o tenant **JR Demo** (DADOS DEMONSTRATIVOS). Credenciais padrão (altere via variáveis `SEED_ADMIN_PASSWORD` / `SEED_DEMO_PASSWORD` antes de rodar em qualquer ambiente compartilhado):
+Cria permissões e papéis, o **administrador principal** (a partir do `.env`) e o espaço **JR Demo** (DADOS DEMONSTRATIVOS).
 
-| Perfil | E-mail | Senha padrão |
+### Tipos de conta
+
+| Tipo (`UserRole`) | Como é criado | Destino após login |
 |---|---|---|
-| JR Admin (SUPER_ADMIN) | `admin@jrconsultorias.com.br` | `JrCortex@2026admin` |
-| Administrador do cliente | `admin@demo.jrcortex.com.br` | `Demo@2026cortex` |
-| Diretor / Financeiro / Comercial / Analista / Viewer | `diretor@`, `financeiro@`, `comercial@`, `analista@`, `viewer@demo.jrcortex.com.br` | `Demo@2026cortex` |
+| `ADMIN` | `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` no `.env` + `npm run db:seed` ou `npm run admin:create` | `/admin` |
+| `PERSON` | Cadastro em `/registrar` → perfil **Pessoa** (nome, sobrenome, e-mail, senha) | painel pessoal (`/dashboard`) |
+| `COMPANY` | Cadastro em `/registrar` → perfil **Empresa** (empresa, responsável, e-mail, senha, CNPJ opcional) | painel empresarial (`/dashboard`) |
+
+O administrador só é criado se ainda não existir; a senha nunca é sobrescrita nem fica no código. O cadastro público nunca cria contas `ADMIN`.
+
+Usuários do ambiente demonstrativo (senha em `SEED_DEMO_PASSWORD`, padrão `Demo@2026cortex` — use apenas localmente): `admin@`, `diretor@`, `financeiro@`, `comercial@`, `analista@`, `viewer@demo.jrcortex.com.br`.
 
 O seed é idempotente: rodá-lo novamente recria apenas o tenant JR Demo. Use `SEED_SKIP_DEMO=1` para não criar dados demonstrativos.
 
