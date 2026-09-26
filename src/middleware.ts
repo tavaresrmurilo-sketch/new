@@ -8,7 +8,7 @@ export function middleware(req: NextRequest) {
   if (PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"))) return NextResponse.next();
   const hasSession = Boolean(req.cookies.get("jrc_session")?.value);
   if (!hasSession) {
-    if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Não autenticado.", code: "UNAUTHORIZED" }, { status: 401 });
+    if (pathname.startsWith("/api/")) return NextResponse.json({ success: false, error: "Não autenticado.", code: "UNAUTHORIZED" }, { status: 401 });
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";

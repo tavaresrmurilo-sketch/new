@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import { logger } from "@/lib/logger";
 import { audit } from "@/server/audit";
-import { AppError, ForbiddenError, RateLimitError, UnauthorizedError } from "@/server/errors";
+import { AppError, ForbiddenError, fromPrismaError, RateLimitError, UnauthorizedError } from "@/server/errors";
 import { rateLimit } from "@/server/security/rate-limit";
 import type { PermissionKey } from "./permissions";
 import { getAuth, type AuthContext, type TenantContext } from "./session";
@@ -90,23 +90,34 @@ export function apiRoute<P = Record<string, string>>(handler: Handler<P>) {
       const params = await context.params;
       return await handler(req, params);
     } catch (err) {
+      // Respostas de erro padronizadas: { success: false, error, code } — sem stack trace nem detalhes internos.
       if (err instanceof RateLimitError) {
         return NextResponse.json(
-          { error: err.message, code: err.code },
+          { success: false, error: err.message, code: err.code },
           { status: 429, headers: { "Retry-After": String(err.retryAfter) } },
         );
       }
       if (err instanceof AppError) {
-        return NextResponse.json({ error: err.message, code: err.code }, { status: err.status });
+        if (err.status === 401 || err.status === 403) logger.warn("auth.denied", { path: req.nextUrl.pathname, code: err.code });
+        return NextResponse.json({ success: false, error: err.message, code: err.code }, { status: err.status });
       }
       if (err instanceof ZodError) {
         return NextResponse.json(
-          { error: "Dados inválidos.", code: "VALIDATION_ERROR", issues: err.issues.map((i) => ({ path: i.path.join("."), message: i.message })) },
+          { success: false, error: "Dados inválidos.", code: "VALIDATION_ERROR", issues: err.issues.map((i) => ({ path: i.path.join("."), message: i.message })) },
           { status: 422 },
         );
       }
+      if (err instanceof SyntaxError && /JSON/i.test(err.message)) {
+        return NextResponse.json({ success: false, error: "Corpo da requisição inválido.", code: "INVALID_JSON" }, { status: 400 });
+      }
+      const mapped = fromPrismaError(err);
+      if (mapped) {
+        const e = err as { code?: string; name?: string };
+        logger.error(mapped.status === 503 ? "db.unavailable" : "db.query_failed", { path: req.nextUrl.pathname, prismaCode: e.code ?? e.name });
+        return NextResponse.json({ success: false, error: mapped.message, code: mapped.code }, { status: mapped.status });
+      }
       logger.error("api.unhandled_error", { path: req.nextUrl.pathname, err: err instanceof Error ? err.stack : String(err) });
-      return NextResponse.json({ error: "Erro interno. A equipe foi notificada.", code: "INTERNAL" }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Erro interno. A falha foi registrada; tente novamente.", code: "INTERNAL" }, { status: 500 });
     } finally {
       logger.debug("api.request", { method: req.method, path: req.nextUrl.pathname, ms: Date.now() - started });
     }

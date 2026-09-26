@@ -56,10 +56,17 @@ export function KnowledgeManager({ items, canManage }: { items: Item[]; canManag
     }
   }
 
+  const [removing, setRemoving] = useState<string | null>(null);
   async function remove(id: string) {
     if (!window.confirm("Excluir este item de conhecimento?")) return;
-    await api(`/api/knowledge/${id}`, { method: "DELETE" });
-    router.refresh();
+    setRemoving(id);
+    try {
+      await api(`/api/knowledge/${id}`, { method: "DELETE" });
+      toast.success("Item excluído.");
+      router.refresh();
+    } finally {
+      setRemoving(null);
+    }
   }
 
   return (
@@ -88,7 +95,7 @@ export function KnowledgeManager({ items, canManage }: { items: Item[]; canManag
                     <Button variant="ghost" size="icon" onClick={() => setEditing(i)} aria-label="Editar">
                       <Pencil />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => remove(i.id)} aria-label="Excluir">
+                    <Button variant="ghost" size="icon" onClick={() => remove(i.id)} disabled={removing === i.id} aria-label="Excluir">
                       <Trash2 />
                     </Button>
                   </div>
@@ -135,8 +142,8 @@ export function KnowledgeManager({ items, canManage }: { items: Item[]; canManag
             <Button variant="outline" onClick={() => setEditing(null)}>
               Cancelar
             </Button>
-            <Button onClick={save} disabled={saving || !editing?.title || !editing?.content}>
-              Salvar
+            <Button onClick={save} disabled={saving || !editing?.title?.trim() || !editing?.content?.trim()}>
+              {saving ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>

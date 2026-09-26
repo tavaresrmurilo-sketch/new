@@ -44,6 +44,17 @@ const HELP = `Não consegui identificar qual informação você procura. Exemplo
 - "Quais clientes reduziram as compras?"
 - "Quais despesas mais aumentaram?"`;
 
+/** Motivo amigável para falhas do provedor externo (sem detalhes técnicos nem chaves). */
+function aiFailureReason(err: unknown): string {
+  const e = err as { status?: number; name?: string; message?: string };
+  const msg = `${e?.name ?? ""} ${e?.message ?? ""}`.toLowerCase();
+  if (e?.status === 401 || e?.status === 403) return "chave de API inválida ou sem permissão";
+  if (e?.status === 429) return "limite de uso atingido";
+  if (/timeout|timed out|abort/.test(msg)) return "tempo de resposta esgotado";
+  if (typeof e?.status === "number" && e.status >= 500) return "instabilidade no provedor";
+  return "falha de comunicação";
+}
+
 async function recordUsage(tenantId: string, provider: AIProvider, feature: string, usage: { inputTokens: number; outputTokens: number; model?: string } | null) {
   if (!usage) return;
   await prisma.aIUsage
@@ -79,8 +90,8 @@ export async function askCortex(args: {
       calls = plan.calls.slice(0, 4);
       planner = provider.name;
     } catch (err) {
-      plannerFallback = `Falha no provedor ${provider.name}: ${errorMessage(err)}. Usado planejador interno.`;
-      logger.warn("ai.plan_failed", { tenantId: ctx.tenantId, err: errorMessage(err) });
+      plannerFallback = `Provedor de IA (${provider.name}) indisponível no momento — ${aiFailureReason(err)}. A resposta foi calculada pelo motor interno do Cortex.`;
+      logger.warn("ai.plan_failed", { tenantId: ctx.tenantId, provider: provider.name, err: errorMessage(err) });
     }
   }
   if (!calls.length) {
@@ -134,7 +145,8 @@ export async function askCortex(args: {
         narratorRejected = { reason: res.text ? "A resposta do modelo continha números não rastreáveis aos dados; exibida a resposta calculada." : "Resposta vazia do modelo.", unverified: check.unverified.slice(0, 10) };
       }
     } catch (err) {
-      narratorRejected = { reason: `Falha no provedor: ${errorMessage(err)}` };
+      logger.warn("ai.narrate_failed", { tenantId: ctx.tenantId, provider: provider.name, err: errorMessage(err) });
+      narratorRejected = { reason: `Provedor de IA indisponível (${aiFailureReason(err)}); exibida a resposta calculada pelo Cortex.` };
     }
   }
 

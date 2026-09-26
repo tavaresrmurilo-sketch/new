@@ -21,7 +21,7 @@ export class OpenAICompatibleProvider implements AIProvider {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : {}) },
       body: JSON.stringify({ model: this.model, ...body }),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(25_000),
     });
     if (!res.ok) throw new Error(`${this.name}: HTTP ${res.status}`);
     return (await res.json()) as ChatResponse;

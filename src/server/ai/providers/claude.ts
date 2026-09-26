@@ -12,7 +12,7 @@ export class ClaudeProvider implements AIProvider {
     apiKey: string,
     readonly model: string = "claude-opus-5",
   ) {
-    this.client = new Anthropic({ apiKey, timeout: 60_000, maxRetries: 2 });
+    this.client = new Anthropic({ apiKey, timeout: 25_000, maxRetries: 1 });
   }
 
   private fallbackParams() {

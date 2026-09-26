@@ -127,6 +127,14 @@ npm run build        # prisma generate + next build
 npm start            # servidor de produção na porta 3000
 ```
 
+## Antes de uma apresentação
+
+```powershell
+npm run pre-demo
+```
+
+Verifica variáveis obrigatórias, conexão com o banco, migrations, contas administrativas e se a aplicação está respondendo (`/api/health`). Nunca imprime segredos.
+
 ## 8. Deploy
 
 Veja [DEPLOYMENT.md](DEPLOYMENT.md) (Docker, Vercel/Render/Railway, VM com PM2/Nginx, cron de jobs, backups e checklist de segurança).

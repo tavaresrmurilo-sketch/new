@@ -1,12 +1,19 @@
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { Logo } from "@/components/layout/logo";
+import { logger } from "@/lib/logger";
 import { getAuth, homeFor } from "@/server/auth/session";
 import { LoginForm } from "./login-form";
 
 export const metadata = { title: "Entrar" };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const auth = await getAuth();
+  // Redireciona quem já está logado. Se o banco estiver indisponível, a tela de login continua
+  // sendo exibida e o envio do formulário retorna a mensagem amigável da API (503).
+  const auth = await getAuth().catch((err: unknown) => {
+    unstable_rethrow(err); // erros internos do Next.js (renderização dinâmica) seguem o fluxo normal
+    logger.warn("auth.session_check_failed", { err: err instanceof Error ? err.name : "unknown" });
+    return null;
+  });
   if (auth) redirect(homeFor(auth.accountRole, Boolean(auth.tenantId), auth.onboardingCompleted));
   const params = await searchParams;
   return (

@@ -38,6 +38,10 @@ const nextConfig: NextConfig = {
       { source: "/settings/integrations", destination: "/integracoes", permanent: false },
     ];
   },
+  async rewrites() {
+    // Navegadores pedem /favicon.ico automaticamente; servimos o ícone SVG do app.
+    return [{ source: "/favicon.ico", destination: "/icon.svg" }];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

@@ -94,6 +94,11 @@ export const getAuth = cache(async (): Promise<AuthContext | null> => {
   if (!permissions.size) permissions = new Set(ROLE_PERMISSIONS[role]);
 
   const tenant = session.activeTenant;
+  // Empresa suspensa/cancelada pelo JR Admin: sessões dos usuários dela deixam de valer imediatamente.
+  if (tenant && !isPlatformAdmin && (tenant.status === "SUSPENDED" || tenant.status === "CANCELLED")) {
+    await prisma.session.delete({ where: { id: session.id } }).catch(() => undefined);
+    return null;
+  }
   let supportMode = false;
   if (isPlatformAdmin && tenant) {
     const grant = await prisma.supportAccessGrant.findFirst({

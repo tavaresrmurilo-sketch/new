@@ -145,12 +145,35 @@ const CHART: { code: string; name: string; group: DreGroup; aliases: string[]; s
   { code: "8.1", name: "IRPJ e CSLL", group: "INCOME_TAXES", aliases: ["IRPJ e CSLL"] },
 ];
 
+/** Senha das contas demo: sempre de SEED_DEMO_PASSWORD em produção; valor padrão apenas em desenvolvimento local. */
+function demoPassword(): string | null {
+  const fromEnv = process.env.SEED_DEMO_PASSWORD?.trim();
+  if (fromEnv) return fromEnv;
+  if (process.env.NODE_ENV === "production") return null;
+  console.warn("• SEED_DEMO_PASSWORD não definida: usando a senha padrão de desenvolvimento para as contas demo.");
+  return "Demo@2026cortex";
+}
+
 async function seedDemo(roles: Record<string, string>) {
   const existing = await prisma.tenant.findUnique({ where: { slug: "jr-demo" } });
+  if (existing && !existing.isDemo) {
+    // Proteção: nunca apagar um tenant real que por acaso use o slug "jr-demo".
+    console.log("• Tenant com slug jr-demo não é demonstrativo — seed demo ignorado.");
+    return null;
+  }
   if (existing) {
-    console.log("• Removendo tenant JR Demo anterior (dados demonstrativos)...");
+    if (process.env.SEED_RESET_DEMO !== "1") {
+      console.log("• Tenant JR Demo já existe — mantido sem alterações (defina SEED_RESET_DEMO=1 para recriar os dados demonstrativos).");
+      return null;
+    }
+    console.log("• SEED_RESET_DEMO=1: recriando o tenant JR Demo (somente dados demonstrativos)...");
     await prisma.user.deleteMany({ where: { tenantId: existing.id } });
     await prisma.tenant.delete({ where: { id: existing.id } });
+  }
+  const password = demoPassword();
+  if (!password) {
+    console.log("• Ambiente de produção sem SEED_DEMO_PASSWORD — tenant demonstrativo não criado.");
+    return null;
   }
   const today = todaySP();
   const tenant = await prisma.tenant.create({
@@ -171,7 +194,7 @@ async function seedDemo(roles: Record<string, string>) {
   });
   const tid = tenant.id;
 
-  const pwd = await bcrypt.hash(process.env.SEED_DEMO_PASSWORD ?? "Demo@2026cortex", 12);
+  const pwd = await bcrypt.hash(password, 12);
   const demoUsers: [string, string, RoleKey][] = [
     ["admin@demo.jrcortex.com.br", "Administrador Demo", "ADMIN_CLIENTE"],
     ["diretor@demo.jrcortex.com.br", "Diretoria Demo", "DIRETOR"],
@@ -470,7 +493,7 @@ async function main() {
   else console.log(`• Administrador não criado: ${admin.reason}`);
   if (process.env.SEED_SKIP_DEMO !== "1") {
     const t = await seedDemo(roles);
-    console.log(`• Tenant demonstrativo criado: ${t.name} (${t.slug})`);
+    if (t) console.log(`• Tenant demonstrativo criado: ${t.name} (${t.slug})`);
   }
   console.log("Seed concluído.");
 }

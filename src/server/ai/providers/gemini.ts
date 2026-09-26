@@ -19,7 +19,7 @@ export class GeminiProvider implements AIProvider {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": this.apiKey },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(25_000),
     });
     if (!res.ok) throw new Error(`gemini: HTTP ${res.status}`);
     return (await res.json()) as GeminiResponse;

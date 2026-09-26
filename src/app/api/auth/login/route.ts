@@ -37,6 +37,13 @@ export const POST = apiRoute(async (req) => {
     throw new AppError("E-mail ou senha inválidos.", 401, "INVALID_CREDENTIALS");
   }
 
+  if (user.tenantId && user.userRole !== "ADMIN") {
+    const t = await prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { status: true } });
+    if (t && (t.status === "SUSPENDED" || t.status === "CANCELLED")) {
+      await audit(actor, { action: "auth.login", resource: "session", result: "DENIED", metadata: { reason: "tenant_suspended" } });
+      throw new AppError("O acesso desta empresa está suspenso. Entre em contato com a JR Consultorias.", 403, "TENANT_SUSPENDED");
+    }
+  }
   await prisma.user.update({ where: { id: user.id }, data: { failedLogins: 0, lockedUntil: null, lastLoginAt: new Date() } });
   const info = await requestInfo();
   await createSession(user.id, user.tenantId, info.ip, info.userAgent);

@@ -88,10 +88,23 @@ Use `SEED_SKIP_DEMO=1` se não quiser o tenant JR Demo no ambiente.
 
 ## Migrations automáticas na Vercel
 
-A Vercel executa o script `vercel-build` (em vez de `build`):
+A Vercel executa o script `vercel-build` (em vez de `build`), implementado em `scripts/vercel-build.mjs` (multiplataforma):
 
 ```
-prisma generate && prisma migrate deploy && next build
+prisma generate → prisma migrate deploy → next build
 ```
 
 Assim, toda migration nova é aplicada no Neon antes do build, sem apagar dados (`migrate deploy` só aplica migrations pendentes). Se a `DATABASE_URL` usar o pooler do Neon (host com `-pooler`), defina também `DIRECT_URL` com a conexão direta — as migrations usam essa URL. Se uma migration falhar, o deploy é interrompido e a versão anterior continua no ar.
+
+## Cron na Vercel
+
+`vercel.json` agenda `GET /api/jobs/run` **uma vez por dia (09:00 UTC = 06:00 em Brasília)** — compatível com o plano Hobby, que só aceita crons diários. Defina `CRON_SECRET` nas variáveis do projeto. No plano Pro é possível aumentar a frequência (ex.: `"0 * * * *"` para sincronizar integrações a cada hora).
+
+## Verificação antes de uma apresentação
+
+```powershell
+npm run pre-demo                                  # .env, banco, migrations, contas e servidor local
+npm run pre-demo -- --url=https://SEU-APP.vercel.app   # também verifica a aplicação publicada
+```
+
+Também é possível abrir `https://SEU-APP.vercel.app/api/health` — a resposta saudável é `{"status":"ok","database":"connected",...}`.
