@@ -1,0 +1,27 @@
+# Python
+engine/.venv/
+**/__pycache__/
+*.pyc
+engine/build/
+engine/dist/
+.pytest_cache/
+
+# Node / Electron
+node_modules/
+dist/
+dist-electron/
+release/
+test-results/
+playwright-report/
+*.tsbuildinfo
+
+# Secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+engine/*.spec
