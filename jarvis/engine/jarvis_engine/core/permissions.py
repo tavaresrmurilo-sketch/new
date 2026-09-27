@@ -165,12 +165,14 @@ class PermissionManager:
         req.future.set_result(bool(approved))
         return True
 
-    def respond_latest(self, approved: bool) -> bool:
-        """Voice confirmation ("sim"/"não") answers the most recent pending request."""
-        if not self._pending:
-            return False
-        latest = max(self._pending.values(), key=lambda r: r.created_at)
-        return self.respond(latest.id, approved)
+    def current(self) -> PendingRequest | None:
+        """The request the confirmation dialog is showing: the oldest pending one."""
+        return min(self._pending.values(), key=lambda r: r.created_at, default=None)
+
+    def respond_current(self, approved: bool) -> bool:
+        """Voice confirmation ("sim"/"não") answers the request that is on screen."""
+        req = self.current()
+        return self.respond(req.id, approved) if req else False
 
     def cancel_all(self) -> int:
         count = 0

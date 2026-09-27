@@ -166,6 +166,7 @@ class Tool:
     requires_setting: str | None = None  # e.g. "system.computer_control_enabled"
     # Cheap read-only check run *before* asking permission (e.g. "is the app even open?").
     precheck: Precheck | None = None
+    timeout_s: float = 120.0
 
     @property
     def available(self) -> bool:
@@ -236,6 +237,7 @@ def tool(
     expose_to_llm: bool = True,
     requires_setting: str | None = None,
     precheck: Precheck | None = None,
+    timeout_s: float = 120.0,
 ) -> Callable[[Executor], Tool]:
     """Decorator that turns an async function into a Tool definition."""
 
@@ -254,6 +256,7 @@ def tool(
             expose_to_llm=expose_to_llm,
             requires_setting=requires_setting,
             precheck=precheck,
+            timeout_s=timeout_s,
         )
 
     return wrap

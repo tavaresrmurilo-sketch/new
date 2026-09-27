@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import os
-import re
 import time
 from pathlib import Path
 from typing import Any
@@ -12,7 +11,7 @@ from typing import Any
 import psutil
 
 from ..core.text import normalize, similarity
-from ..platform.base import AppEntry, spawn_detached
+from ..platform.base import CMD_UNSAFE, AppEntry, spawn_detached
 from ..security import check_read, is_critical_process
 from .base import PermissionLevel as L
 from .base import Tool, ToolContext, ToolExecutionError, ToolParam, ToolResult, fail, ok, tool
@@ -205,9 +204,6 @@ async def window_state(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
     return ok(f"Janela de {w.process or w.title} {verb}.", {"window": w.to_dict()})
 
 
-_CMD_UNSAFE = re.compile(r'[&|<>^%"!]')
-
-
 @tool("open_in_vscode", "Abrir no VS Code",
       "Abre uma pasta ou arquivo no Visual Studio Code (vazio = pasta/projeto do contexto atual).",
       L.REVERSIBLE, "dev",
@@ -224,7 +220,7 @@ async def open_in_vscode(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
         target = check_read(raw)
         if not target.exists():
             return fail(f"Caminho não encontrado: {target}")
-        if cmd[0].lower().endswith((".cmd", ".bat")) and _CMD_UNSAFE.search(str(target)):
+        if cmd[0].lower().endswith((".cmd", ".bat")) and CMD_UNSAFE.search(str(target)):
             return fail("Esse caminho tem caracteres que não posso repassar com segurança ao VS Code.")
         argv.append(str(target))
     await asyncio.to_thread(spawn_detached, argv)

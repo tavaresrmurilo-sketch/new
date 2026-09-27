@@ -19,7 +19,7 @@ function show(v: unknown): string {
   return String(v);
 }
 
-/** Explicit confirmation for level 2/3 actions. Voice "sim"/"não" also answers it. */
+/** Explicit confirmation for level 2/3 actions. Voice "sim"/"não" ("confirmo" for level 3) also answers it. */
 export function PermissionDialog() {
   const permissions = useStore((s) => s.permissions);
   const req = permissions[0];
@@ -67,7 +67,7 @@ export function PermissionDialog() {
             </div>
             <h2 id="perm-title" className="perm__title">{req.summary}</h2>
             <p id="perm-desc" className="t-sm t-muted">
-              {req.level >= 3 ? "Essa ação é destrutiva ou sensível. Confirme apenas se tiver certeza." : "Essa ação altera o seu computador. Deseja continuar?"} Você também pode responder por voz: “sim” ou “não”.
+              {req.level >= 3 ? "Essa ação é destrutiva ou sensível. Confirme apenas se tiver certeza." : "Essa ação altera o seu computador. Deseja continuar?"} Você também pode responder por voz: {req.level >= 3 ? "“confirmo” ou “não”" : "“sim” ou “não”"}.
             </p>
             {args.length > 0 && (
               <dl className="perm__args selectable">

@@ -40,6 +40,15 @@ def infer_category(text: str) -> str:
     return "fact"
 
 
+
+_STOP = {"jarvis", "voce", "você", "que", "qual", "quais", "como", "para", "meu", "minha", "meus", "minhas", "sobre",
+         "the", "what", "sabe", "about", "know", "de", "do", "da", "o", "a", "e", "isso", "disso", "esse", "essa"}
+
+
+def _keywords(text: str) -> list[str]:
+    return [w for w in re.findall(r"\w+", text.lower()) if w not in _STOP and len(w) > 2]
+
+
 class MemoryManager:
     def __init__(self, db: Database, bus: EventBus) -> None:
         self.db = db
@@ -94,15 +103,15 @@ class MemoryManager:
                                  (category, limit))
         return self.db.query("SELECT * FROM memories ORDER BY updated_at DESC LIMIT ?", (limit,))
 
-    def search(self, text: str, limit: int = 10, category: str | None = None) -> list[dict[str, Any]]:
+    def search(self, text: str, limit: int = 10, category: str | None = None,
+               match_all: bool = False) -> list[dict[str, Any]]:
         match = fts_query(text)
         if not match:
             return self.list(category, limit)
-        # OR semantics: any meaningful word can surface a memory.
-        or_match = " OR ".join(match.split(" "))
+        # OR semantics for recall (any meaningful word can surface a memory); AND when deleting.
         sql = ("SELECT m.*, bm25(memories_fts) AS rank FROM memories_fts JOIN memories m ON m.id = memories_fts.rowid "
                "WHERE memories_fts MATCH ?")
-        params: list[Any] = [or_match]
+        params: list[Any] = [match if match_all else " OR ".join(match.split(" "))]
         if category:
             sql += " AND m.category = ?"
             params.append(category)
@@ -114,15 +123,14 @@ class MemoryManager:
         return rows
 
     def relevant(self, text: str, limit: int = 5) -> list[dict[str, Any]]:
-        stop = {"jarvis", "voce", "você", "que", "qual", "quais", "como", "para", "meu", "minha", "sobre", "the",
-                "what", "sabe", "about", "know", "de", "do", "da", "o", "a", "e"}
-        words = [w for w in re.findall(r"\w+", text.lower()) if w not in stop and len(w) > 2]
-        if not words:
-            return []
-        return self.search(" ".join(words), limit=limit)
+        words = _keywords(text)
+        return self.search(" ".join(words), limit=limit) if words else []
 
     def forget_matching(self, text: str) -> list[dict[str, Any]]:
-        return self.search(text, limit=20)
+        # Only memories containing every meaningful word: "esqueça que meu carro é azul" must not
+        # delete everything else that mentions "meu".
+        words = _keywords(text)
+        return self.search(" ".join(words), limit=20, match_all=True) if words else []
 
     def count(self) -> int:
         return int(self.db.scalar("SELECT COUNT(*) FROM memories") or 0)

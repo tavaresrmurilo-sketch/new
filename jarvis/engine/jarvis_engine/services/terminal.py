@@ -227,26 +227,24 @@ class TerminalManager:
         assert mp.proc and mp.proc.stdout
         batch: list[str] = []
         last_flush = time.time()
+        pending = b""
         while True:
+            # Chunked reads: readline() raises on lines over 64 KiB (minified output, progress bars).
             try:
-                line_b = await asyncio.wait_for(mp.proc.stdout.readline(), timeout=0.25)
+                chunk: bytes | None = await asyncio.wait_for(mp.proc.stdout.read(65536), timeout=0.25)
             except asyncio.TimeoutError:
-                line_b = None
-            if line_b == b"":
+                chunk = None
+            if chunk == b"":
+                if pending:
+                    await self._ingest(mp, pending, batch)
                 break
-            if line_b is not None:
-                line = _strip_ansi(line_b.decode("utf-8", errors="replace").rstrip("\r\n"))
-                mp.output.append(line)
-                batch.append(line)
-                for rx in _PORT_PATTERNS:
-                    for m in rx.finditer(line):
-                        try:
-                            port = int(m.group(1))
-                        except (TypeError, ValueError):
-                            continue
-                        if 1 <= port <= 65535 and port not in mp.ports:
-                            mp.ports.append(port)
-                            await self.bus.publish("terminal.port", {"id": mp.id, "port": port})
+            if chunk:
+                *complete, pending = (pending + chunk).split(b"\n")
+                if len(pending) > 65536:
+                    complete.append(pending)
+                    pending = b""
+                for line_b in complete:
+                    await self._ingest(mp, line_b, batch)
             if batch and (time.time() - last_flush > 0.1 or len(batch) > 50):
                 await self.bus.publish("terminal.output", {"id": mp.id, "lines": batch})
                 batch, last_flush = [], time.time()
@@ -261,6 +259,20 @@ class TerminalManager:
         self.activity.log(Category.TOOLS, f"Processo finalizado: {mp.label} (código {code})", level=level,
                           durationS=mp.duration_s)
         await self.bus.publish("terminal.exited", mp.public())
+
+    async def _ingest(self, mp: ManagedProcess, line_b: bytes, batch: list[str]) -> None:
+        line = _strip_ansi(line_b.decode("utf-8", errors="replace").rstrip("\r"))[:4000]
+        mp.output.append(line)
+        batch.append(line)
+        for rx in _PORT_PATTERNS:
+            for m in rx.finditer(line):
+                try:
+                    port = int(m.group(1))
+                except (TypeError, ValueError):
+                    continue
+                if 1 <= port <= 65535 and port not in mp.ports:
+                    mp.ports.append(port)
+                    await self.bus.publish("terminal.port", {"id": mp.id, "port": port})
 
     async def wait(self, mp: ManagedProcess, timeout: float) -> bool:
         if not mp.proc:

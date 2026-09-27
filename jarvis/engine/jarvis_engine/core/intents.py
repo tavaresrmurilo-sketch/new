@@ -175,9 +175,12 @@ class IntentRouter:
                         r"interromper|cala a boca|quieto)", f):
             return Intent("cancel", confidence=1.0)
         if self.s.permissions.has_pending():
-            if re.fullmatch(r"(sim|pode|pode sim|confirmo|confirmar|confirma|claro|ok|okay|isso|pode continuar|"
-                            r"continue|prossiga|yes|go ahead|do it|afirmativo|autorizo)", f):
+            if re.fullmatch(r"(sim|pode|pode sim|claro|ok|okay|isso|pode continuar|continue|prossiga|yes|go ahead|"
+                            r"do it|afirmativo)", f):
                 return Intent("confirm", args={"approved": True}, confidence=1.0)
+            # Deliberate wording, required to approve level-3 actions by voice.
+            if re.fullmatch(r"((sim |pode )?(confirmo|confirmar|confirma|autorizo)( sim)?|yes,? confirm|confirm)", f):
+                return Intent("confirm", args={"approved": True, "explicit": True}, confidence=1.0)
             if re.fullmatch(r"(nao|negativo|nao pode|nao quero|no|nope|negado|recuse|nao autorizo)", f):
                 return Intent("confirm", args={"approved": False}, confidence=1.0)
 
@@ -438,7 +441,11 @@ class IntentRouter:
         m = re.match(r"^(apague|apaga|apagar|delete|deletar|exclua|excluir|remova|remover|jogue na lixeira)"
                      r"( permanentemente)?( o arquivo| a pasta| o| a| os arquivos| esses arquivos)?\s*(?P<a>.*)$", f)
         if m and not re.search(r"\bnota\b|\blembrete\b|\bmemoria\b", f):
-            return plan_i("delete", 0.88, target=g(m, "a"), permanent=bool(m.group(2)))
+            target = g(m, "a")
+            if not target and m.group(3):
+                # "apague esses arquivos" / "apague o arquivo": the article *is* the reference.
+                target = "esses arquivos" if "arquivos" in m.group(3) else "isso"
+            return plan_i("delete", 0.88, target=target, permanent=bool(m.group(2)))
         m = re.match(r"^(organize|organizar|organiza|arrume|arrumar)( a pasta| os arquivos d[aeo]s?| a| o)?\s*(?P<f>.*)$",
                      f)
         if m:

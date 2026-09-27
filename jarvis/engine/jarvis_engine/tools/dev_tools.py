@@ -69,7 +69,7 @@ def _describe(a: dict[str, Any]) -> str:
                  enum=["node", "npm", "python", "git", "pnpm", "yarn"]),
        ToolParam("wait_seconds", "integer", "Quanto esperar pela saída", required=False, default=90, minimum=1,
                  maximum=600)],
-      dynamic_level=_level, describe=_describe)
+      dynamic_level=_level, describe=_describe, timeout_s=660)
 async def run_command(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
     s = ctx.services
     project = resolve_project(ctx, args.get("project")) if args["command"] != "versions" or args.get("project") \
@@ -119,7 +119,7 @@ async def list_project_scripts(args: dict[str, Any], ctx: ToolContext) -> ToolRe
       "e abre a URL local. Mostra o progresso em etapas.", L.IMPORTANT, "dev",
       [ToolParam("project", "string", "Nome ou caminho do projeto (vazio = contexto)", required=False, max_length=1000),
        ToolParam("open_editor", "boolean", "Abrir também no VS Code", required=False, default=False)],
-      describe=lambda a: f"Rodar o projeto {a.get('project') or 'atual'} (iniciar servidor de desenvolvimento)")
+      describe=lambda a: f"Rodar o projeto {a.get('project') or 'atual'} (iniciar servidor de desenvolvimento)", timeout_s=900)
 async def run_project(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
     from ..core.planner import run_project_plan
 

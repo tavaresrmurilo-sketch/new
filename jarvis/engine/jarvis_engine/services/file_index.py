@@ -184,14 +184,15 @@ class FileIndex:
                         progress(st)
                     if st.scanned_files >= MAX_FILES:
                         stack.clear()
-            # Sweep entries under the indexed roots that were not seen in this pass.
+            # Sweep entries under the indexed roots not seen in this pass (a concurrent refresh_dirs
+            # stamps a newer generation, so only older rows are stale).
             conn.execute("BEGIN")
             try:
                 for root in roots:
                     prefix = str(root)
                     like = prefix.rstrip("\\/") + os.sep + "%"
                     ids = [r[0] for r in conn.execute(
-                        "SELECT id FROM files WHERE seen != ? AND (path = ? OR path LIKE ?)", (gen, prefix, like))]
+                        "SELECT id FROM files WHERE seen < ? AND (path = ? OR path LIKE ?)", (gen, prefix, like))]
                     for i in range(0, len(ids), 500):
                         chunk = ids[i:i + 500]
                         marks = ",".join("?" * len(chunk))
@@ -315,7 +316,7 @@ class FileIndex:
             gen = self._next_gen()
             subdirs: list[Path] = []
             self._scan_dir(conn, d, gen, subdirs, want)
-            gone = [r[0] for r in conn.execute("SELECT path FROM files WHERE parent = ? AND seen != ?", (key, gen))]
+            gone = [r[0] for r in conn.execute("SELECT path FROM files WHERE parent = ? AND seen < ?", (key, gen))]
             for path in gone:
                 self._delete_tree(conn, path)
             if level < depth:

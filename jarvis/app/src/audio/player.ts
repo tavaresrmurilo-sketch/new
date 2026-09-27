@@ -23,6 +23,8 @@ export class SpeechPlayer {
   private current: AudioBufferSourceNode | null = null;
   private ended = new Map<string, number>(); // utteranceId -> item count
   private played = new Map<string, number>();
+  private dropped = new Set<string>(); // interrupted utterances: late sentences are discarded
+  private playingId = "";
   private busy = false;
   private sinkId = "default";
   speaking = false;
@@ -81,6 +83,7 @@ export class SpeechPlayer {
   }
 
   private insert(item: QueueItem): void {
+    if (this.dropped.has(item.utteranceId)) return;
     this.queue.push(item);
     this.queue.sort((a, b) => (a.utteranceId === b.utteranceId ? a.seq - b.seq : 0));
     void this.pump();
@@ -99,6 +102,7 @@ export class SpeechPlayer {
     try {
       while (this.queue.length) {
         const item = this.queue.shift()!;
+        this.playingId = item.utteranceId;
         this.setSpeaking(true);
         if (item.buffer) await this.playBuffer(item.buffer);
         else if (item.text) await this.speakText(item);
@@ -159,6 +163,11 @@ export class SpeechPlayer {
 
   /** Barge-in / "pare": stop immediately and drop everything queued. */
   stop(): void {
+    for (const id of [this.playingId, ...this.queue.map((q) => q.utteranceId), ...this.ended.keys()]) {
+      if (id) this.dropped.add(id);
+    }
+    if (this.dropped.size > 64) this.dropped = new Set([...this.dropped].slice(-32));
+    this.playingId = "";
     this.queue = [];
     this.ended.clear();
     this.played.clear();

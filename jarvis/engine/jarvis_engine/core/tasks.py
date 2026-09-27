@@ -89,6 +89,11 @@ class TaskManager:
 
     def create(self, title: str, source: str = "text") -> TaskRun:
         task = TaskRun(id=secrets.token_hex(6), title=title[:200], source=source)
+        try:
+            # The asyncio task doing the work (command handler / tool run) is what cancel() stops.
+            task.handle = asyncio.current_task()
+        except RuntimeError:
+            task.handle = None
         self.db.execute("INSERT INTO tasks(id, title, status, progress, source, created_at, updated_at) "
                         "VALUES (?,?,?,?,?,?,?)", (task.id, task.title, task.status, 0, source, now(), now()))
         self.active[task.id] = task
@@ -175,11 +180,6 @@ class TaskManager:
                     await self.set_step(task, rest, "cancelled")
             await self.set_status(task, "cancelled", error="Cancelada pelo usuário")
         return task
-
-    def start(self, task: TaskRun) -> asyncio.Task[TaskRun]:
-        handle = asyncio.create_task(self.run(task), name=f"task-{task.id}")
-        task.handle = handle
-        return handle
 
     def cancel(self, task_id: str) -> bool:
         task = self.active.get(task_id)

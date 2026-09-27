@@ -15,7 +15,7 @@ from .base import Tool, ToolContext, ToolParam, ToolResult, fail, ok, tool
       "um erro visível.", L.IMPORTANT, "vision",
       [ToolParam("question", "string", "O que analisar (ex.: 'explique o erro na tela')", required=False,
                  max_length=500, default="Descreva o que está na tela e destaque qualquer erro visível.")],
-      describe=lambda a: "Capturar sua tela uma vez para análise: " + str(a.get("question", ""))[:80])
+      describe=lambda a: "Capturar sua tela uma vez para análise: " + str(a.get("question", ""))[:80], timeout_s=300)
 async def screen_analysis(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
     s = ctx.services
     if not s.settings.privacy.screen_capture_enabled:

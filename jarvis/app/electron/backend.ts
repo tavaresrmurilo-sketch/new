@@ -68,6 +68,7 @@ export class EngineProcess extends EventEmitter {
   private child: ChildProcess | null = null;
   private restarts: number[] = [];
   private stopping = false;
+  private restartTimer: NodeJS.Timeout | null = null;
   private logStream: fs.WriteStream | null = null;
 
   get info(): EngineInfo {
@@ -99,6 +100,8 @@ export class EngineProcess extends EventEmitter {
   }
 
   async start(): Promise<void> {
+    // A manual start/restart supersedes a pending automatic restart (never run two engines).
+    this.clearRestart();
     this.stopping = false;
     const command = this.resolveCommand();
     if (!command) {
@@ -156,7 +159,16 @@ export class EngineProcess extends EventEmitter {
     }
     this.restarts.push(now);
     const delay = 1000 * 2 ** (this.restarts.length - 1);
-    setTimeout(() => void this.start(), delay);
+    this.clearRestart();
+    this.restartTimer = setTimeout(() => {
+      this.restartTimer = null;
+      void this.start();
+    }, delay);
+  }
+
+  private clearRestart(): void {
+    if (this.restartTimer) clearTimeout(this.restartTimer);
+    this.restartTimer = null;
   }
 
   async restart(): Promise<void> {
@@ -167,6 +179,7 @@ export class EngineProcess extends EventEmitter {
 
   stop(): Promise<void> {
     this.stopping = true;
+    this.clearRestart();
     const child = this.child;
     this.child = null;
     if (!child || child.pid === undefined) return Promise.resolve();

@@ -298,9 +298,11 @@ async def copy_path(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
     if not folder.is_dir():
         return fail(f"A pasta de destino {folder} não existe.")
     dest = folder / src.name
-    if dest.exists():
-        stem, suffix = dest.stem, dest.suffix
-        dest = folder / f"{stem} (cópia){suffix}"
+    n = 1
+    while dest.exists():  # never overwrite: "x (cópia).txt", "x (cópia 2).txt", ...
+        label = "cópia" if n == 1 else f"cópia {n}"
+        dest = folder / (f"{src.name} ({label})" if src.is_dir() else f"{src.stem} ({label}){src.suffix}")
+        n += 1
     if src.is_dir():
         await asyncio.to_thread(shutil.copytree, src, dest)
     else:
@@ -409,7 +411,7 @@ async def read_file(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
       [ToolParam("path", "string", "Caminho do arquivo (vazio = arquivo do contexto)", required=False,
                  max_length=1000),
        ToolParam("focus", "string", "Foco do resumo (opcional)", required=False, max_length=300)],
-      describe=lambda a: f"Resumir {Path(a['path']).name if a.get('path') else 'o documento atual'}")
+      describe=lambda a: f"Resumir {Path(a['path']).name if a.get('path') else 'o documento atual'}", timeout_s=300)
 async def summarize_file(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
     p = _pick_path(ctx, args.get("path"))
     text = await asyncio.to_thread(_read_text, p)

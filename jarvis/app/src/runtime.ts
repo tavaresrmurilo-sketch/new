@@ -263,7 +263,8 @@ class Runtime {
   command(text: string): boolean {
     const t = text.trim();
     if (!t) return false;
-    this.player?.stop();
+    // A new command supersedes the answer being spoken, including sentences not synthesized yet.
+    this.interrupt();
     return this.client.command(t, "text");
   }
 

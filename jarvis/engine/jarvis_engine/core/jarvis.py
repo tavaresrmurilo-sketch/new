@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any
 
 from ..activity import Category
 from ..providers.base import ChatMessage, ProviderError, ToolsNotSupported
-from ..tools.base import ToolResult
+from ..tools.base import PermissionLevel, ToolResult
 from .intents import Intent, IntentRouter
 from .planner import ActionPlanner
 
@@ -74,7 +74,12 @@ class JarvisCore:
             return None
         if intent.kind == "confirm":
             await self._record_user(text, source)
-            self.s.permissions.respond_latest(bool(intent.args.get("approved")))
+            approved = bool(intent.args.get("approved"))
+            req = self.s.permissions.current()
+            if approved and req and req.level >= PermissionLevel.DESTRUCTIVE and not intent.args.get("explicit"):
+                await self.reply("Essa ação é de nível 3. Diga “confirmo” ou use o botão Confirmar.", source=source)
+                return None
+            self.s.permissions.respond_current(approved)
             return None
         task = asyncio.create_task(self._handle(text, source, intent), name="command")
         self._running.add(task)
@@ -163,10 +168,16 @@ class JarvisCore:
         messages = []
         for step, part in zip(steps, intent.parts):
             await tm.set_step(task, step, "running")
-            if part.kind == "tool":
-                res = await self.s.executor.execute(part.tool_id, part.args, source=source, task_id=task.id)
-            else:
-                res = await self.planner.run(part, source)
+            try:
+                if part.kind == "tool":
+                    res = await self.s.executor.execute(part.tool_id, part.args, source=source, task_id=task.id)
+                else:
+                    res = await self.planner.run(part, source)
+            except asyncio.CancelledError:
+                for rest in steps[step.idx:]:
+                    await tm.set_step(task, rest, "cancelled")
+                await tm.set_status(task, "cancelled", error="Cancelada pelo usuário")
+                raise
             await tm.set_step(task, step, "completed" if res.ok else "failed", res.message)
             messages.append(res.message)
             if not res.ok:

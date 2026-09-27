@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import secrets
 from typing import Any, AsyncIterator
+from urllib.parse import urlparse
 
 import httpx
 
@@ -18,16 +20,34 @@ VISION_HINTS = ("llava", "vision", "qwen2.5vl", "qwen2-vl", "gemma3", "minicpm-v
                 "llama4", "mistral-small3.1")
 
 
+def _is_loopback(host: str) -> bool:
+    name = (urlparse(host).hostname or "").lower()
+    if name == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(name).is_loopback
+    except ValueError:
+        return False
+
+
 class OllamaProvider(AIProvider):
     name = "ollama"
-    label = "Ollama (local)"
-    is_external = False
 
     def __init__(self, host: str = "http://localhost:11434", model: str = "", context_window: int = 8192) -> None:
         super().__init__(model)
         self.host = host.rstrip("/")
         self.context_window = context_window
         self._capabilities: dict[str, list[str]] = {}
+
+    @property
+    def is_external(self) -> bool:  # type: ignore[override]
+        # An Ollama server on another machine receives prompts, files and screenshots:
+        # it needs the same consent as a cloud provider.
+        return not _is_loopback(self.host)
+
+    @property
+    def label(self) -> str:  # type: ignore[override]
+        return "Ollama (remoto)" if self.is_external else "Ollama (local)"
 
     def _messages(self, messages: list[ChatMessage]) -> list[dict[str, Any]]:
         out = []

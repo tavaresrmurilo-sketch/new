@@ -43,8 +43,28 @@ export class MicCapture {
     return Boolean(this.ctx && this.stream);
   }
 
-  async start(deviceId: string): Promise<void> {
-    await this.stop();
+  private opening: { deviceId: string; promise: Promise<void> } | null = null;
+  private chain: Promise<void> = Promise.resolve();
+
+  /** Idempotent for the same device while opening; opens are serialized so streams never leak. */
+  start(deviceId: string): Promise<void> {
+    if (this.opening?.deviceId === deviceId) return this.opening.promise;
+    const promise = (this.chain = this.chain.catch(() => undefined).then(() => this.open(deviceId)));
+    this.opening = { deviceId, promise };
+    const clear = () => {
+      if (this.opening?.promise === promise) this.opening = null;
+    };
+    promise.then(clear, clear);
+    return promise;
+  }
+
+  stop(): Promise<void> {
+    this.opening = null;
+    return (this.chain = this.chain.catch(() => undefined).then(() => this.close()));
+  }
+
+  private async open(deviceId: string): Promise<void> {
+    await this.close();
     const constraints: MediaStreamConstraints = {
       audio: {
         deviceId: deviceId && deviceId !== "default" ? { exact: deviceId } : undefined,
@@ -73,7 +93,7 @@ export class MicCapture {
     this.node.connect(sink).connect(this.ctx.destination);
   }
 
-  async stop(): Promise<void> {
+  private async close(): Promise<void> {
     this.node?.port.close();
     this.node?.disconnect();
     this.source?.disconnect();

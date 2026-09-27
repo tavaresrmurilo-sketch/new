@@ -18,15 +18,18 @@ _ALLOWED_SCHEMES = ("http", "https", "mailto")
 _DOMAIN = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+(:\d+)?(/.*)?$", re.I)
 
 
+_LOCAL = re.compile(r"^(localhost|127\.0\.0\.1)(:\d+)?(/.*)?$", re.I)
+_HAS_SCHEME = re.compile(r"^[a-z][a-z0-9+.\-]*:(//)?", re.I)
+
+
 def normalize_url(raw: str) -> str:
     url = raw.strip()
+    # "localhost:5173" / "site.com:8080" parse as scheme "localhost"/"site.com": check host forms first.
+    if _LOCAL.match(url) or _DOMAIN.match(url):
+        url = ("http://" if _LOCAL.match(url) else "https://") + url
+    elif not _HAS_SCHEME.match(url):
+        raise ValueError("Isso não parece um endereço web válido.")
     parsed = urllib.parse.urlparse(url)
-    if not parsed.scheme:
-        if _DOMAIN.match(url) or url.startswith(("localhost", "127.0.0.1")):
-            url = ("http://" if url.startswith(("localhost", "127.0.0.1")) else "https://") + url
-            parsed = urllib.parse.urlparse(url)
-        else:
-            raise ValueError("Isso não parece um endereço web válido.")
     if parsed.scheme.lower() not in _ALLOWED_SCHEMES:
         raise ValueError(f"Esquema de URL não permitido: {parsed.scheme}")
     if parsed.scheme in ("http", "https") and not parsed.netloc:

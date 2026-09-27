@@ -9,6 +9,7 @@ development and CI) stay interchangeable. Unsupported operations raise
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -79,7 +80,15 @@ def run_quiet(argv: list[str], timeout: float = 15.0, input_text: str | None = N
     )
 
 
+# cmd.exe re-parses the arguments of .cmd/.bat launchers (e.g. VS Code's code.cmd), so a
+# path like "demo&calc" would run a second command.
+CMD_UNSAFE = re.compile(r'[&|<>^%"!]')
+
+
 def spawn_detached(argv: list[str], cwd: str | None = None) -> None:
+    if sys.platform == "win32" and argv and argv[0].lower().endswith((".cmd", ".bat")) \
+            and any(CMD_UNSAFE.search(a) for a in argv[1:]):
+        raise ValueError("Esse caminho tem caracteres que não posso repassar com segurança a esse programa.")
     kwargs: dict[str, Any] = {"cwd": cwd, "stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL,
                               "stderr": subprocess.DEVNULL}
     if sys.platform == "win32":

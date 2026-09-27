@@ -28,7 +28,6 @@ DENY_MESSAGES = {
     "cancelled": "Ação cancelada.",
 }
 
-TOOL_TIMEOUT_S = 120.0
 
 
 class ActionExecutor:
@@ -75,7 +74,7 @@ class ActionExecutor:
         await s.bus.publish("tool.started", {"tool": tool.id, "name": tool.name, "summary": summary,
                                              "level": int(tool.level_for(clean)), "taskId": task_id})
         try:
-            result = await asyncio.wait_for(tool.run(clean, ctx), timeout=TOOL_TIMEOUT_S)
+            result = await asyncio.wait_for(tool.run(clean, ctx), timeout=tool.timeout_s)
         except ToolExecutionError as exc:
             result = fail(str(exc), exc.detail or str(exc))
         except (PathDenied, CommandDenied) as exc:

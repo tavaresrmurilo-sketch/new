@@ -191,13 +191,16 @@ class VoiceService:
         if not text or len(text) < 2:
             await self.s.bus.publish("voice.ignored", {"reason": "no_speech"})
             return
-        needs_wake = v.wake_word_enabled and mode != "command" and not barge_in and not self.in_follow_up() \
-            and not self.s.permissions.has_pending()
+        needs_wake = v.wake_word_enabled and mode != "command" and not barge_in and not self.in_follow_up()
         wake = detect_wake(text, v.wake_word)
-        if needs_wake:
-            if not wake.matched:
+        if needs_wake and not wake.matched:
+            # Without the wake word only a yes/no/stop answers an open confirmation;
+            # any other background speech is dropped, never run as a command.
+            if not (self.s.permissions.has_pending() and self.s.core.router.route(text).kind in ("confirm", "cancel")):
                 await self.s.bus.publish("voice.ignored", {"reason": "no_wake_word"})
                 return
+            command = text
+        elif needs_wake:
             command = wake.command
         else:
             command = wake.command if wake.matched and wake.position == "start" else text
