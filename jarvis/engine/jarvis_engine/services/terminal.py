@@ -2,8 +2,9 @@
 
 The model can never type a command line. It picks a *classified command*
 (e.g. `run_script`, `git_status`) whose arguments are validated; the manager
-builds the argv list itself, applies the security denylist and spawns the
-process without a shell. Output is streamed to the UI and every process can
+builds the argv list itself, applies the security denylist (to the argv and to
+the bodies of the package.json scripts the package manager will run) and
+spawns the process without a shell. Output is streamed to the UI and every process can
 be cancelled (whole process tree).
 """
 
@@ -26,7 +27,7 @@ import psutil
 
 from ..activity import ActivityLog, Category
 from ..eventbus import EventBus
-from ..security import check_command, check_read
+from ..security import check_command, check_read, check_script
 
 _SCRIPT_NAME = re.compile(r"^[A-Za-z0-9:_.\-]{1,64}$")
 _PORT_PATTERNS = [
@@ -102,6 +103,28 @@ def project_scripts(project: Path) -> dict[str, str]:
     return {k: str(v) for k, v in scripts.items() if isinstance(k, str) and _SCRIPT_NAME.match(k)}
 
 
+_SCRIPT_REF = re.compile(r"\b(?:npm|pnpm|yarn|bun)(?:\s+run)?\s+([A-Za-z0-9:_.\-]{1,64})")
+INSTALL_HOOKS = ("preinstall", "install", "postinstall", "preprepare", "prepare", "postprepare")
+
+
+def scripts_to_run(scripts: dict[str, str], entry: tuple[str, ...]) -> list[str]:
+    """The scripts a package manager will run for `entry`: pre/post hooks and scripts they call."""
+    seen: list[str] = []
+    todo = list(entry)
+    while todo:
+        name = todo.pop(0)
+        if name in seen or name not in scripts:
+            continue
+        seen.append(name)
+        todo += [f"pre{name}", f"post{name}"] + _SCRIPT_REF.findall(scripts[name])
+    return seen
+
+
+def check_scripts(scripts: dict[str, str], entry: tuple[str, ...]) -> None:
+    for name in scripts_to_run(scripts, entry):
+        check_script(name, scripts[name])
+
+
 def _resolve_exe(name: str) -> str:
     exe = shutil.which(name)
     if not exe:
@@ -130,6 +153,7 @@ class TerminalManager:
             if script not in scripts:
                 avail = ", ".join(sorted(scripts)) or "nenhum"
                 raise ValueError(f"Script '{script}' não existe no package.json (disponíveis: {avail}).")
+            check_scripts(scripts, (script,))
             pm = detect_package_manager(project)
             argv = [_resolve_exe(pm), "run", script]
             long_running = script in ("dev", "start", "serve", "watch", "preview") or "watch" in scripts[script]
@@ -138,9 +162,11 @@ class TerminalManager:
             pm = detect_package_manager(project)
             if not (project / "package.json").exists():
                 raise ValueError("Não há package.json nesse projeto.")
+            check_scripts(project_scripts(project), INSTALL_HOOKS)
             return [_resolve_exe(pm), "install"], f"{pm} install", False
         if command == "run_tests":
             if (project / "package.json").exists() and "test" in project_scripts(project):
+                check_scripts(project_scripts(project), ("test",))
                 pm = detect_package_manager(project)
                 return [_resolve_exe(pm), "test"], f"{pm} test", False
             if any((project / f).exists() for f in ("pyproject.toml", "pytest.ini", "setup.cfg", "tests")):

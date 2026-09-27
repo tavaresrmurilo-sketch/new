@@ -36,11 +36,22 @@ def _level(args: dict[str, Any]) -> L:
     return L.READ if args.get("command") in _READ_ONLY else L.IMPORTANT
 
 
+def _script_body(project: str | None, script: str) -> str:
+    # Shown in the confirmation so the user sees what the package manager will actually run.
+    try:
+        p = check_read(project) if project and Path(project).is_absolute() else None
+        body = project_scripts(p).get(script, "") if p and p.is_dir() else ""
+    except (OSError, ValueError):
+        return ""
+    return body if len(body) <= 160 else body[:157] + "…"
+
+
 def _describe(a: dict[str, Any]) -> str:
     cmd = a.get("command")
     target = f" em {Path(a['project']).name}" if a.get("project") else ""
     if cmd == "run_script":
-        return f"Executar o script '{a.get('script')}'{target}"
+        body = _script_body(a.get("project"), str(a.get("script", "")))
+        return f"Executar o script '{a.get('script')}'{target}" + (f": {body}" if body else "")
     return {"install_deps": "Instalar dependências", "run_tests": "Executar os testes", "git_status": "Ver git status",
             "git_log": "Ver histórico git", "git_diff_stat": "Ver alterações git",
             "versions": f"Ver versão de {a.get('tool', 'node')}"}.get(str(cmd), str(cmd)) + target

@@ -97,6 +97,44 @@ def check_read(path: str | os.PathLike[str]) -> Path:
     return p
 
 
+# Types the shell would *run* (or that redirect to something runnable) when "opened".
+# Based on Windows' high-risk attachment list plus shortcut/handler formats.
+_EXECUTABLE_EXTS = frozenset("""
+    .exe .com .scr .pif .cpl .msc .dll .ocx .sys .drv .bat .cmd .ps1 .ps1xml .ps2 .ps2xml .psc1 .psc2
+    .psd1 .psm1 .vb .vbs .vbe .js .jse .ws .wsf .wsc .wsh .sct .hta .msi .msp .mst .jar .lnk .url
+    .reg .inf .scf .application .appref-ms .gadget .xbap .appx .appxbundle .msix .msixbundle
+    .settingcontent-ms .library-ms .search-ms .searchconnector-ms .theme .themepack .deskthemepack
+    .diagcab .diagcfg .diagpkg .msh .msh1 .msh2 .mshxml .msh1xml .msh2xml .chm .hlp .shb .shs .xll
+    .py .pyw .pyc .pyz .pyzw .rb .pl .sh .bash .command .desktop .run .appimage .elf .bin .apk
+""".split())
+
+# Documents and media that open in a viewer/editor; anything else asks first.
+_VIEWABLE_EXTS = frozenset("""
+    .txt .md .markdown .rtf .log .csv .tsv .json .yaml .yml .toml .ini .xml .html .htm .css .ts .tsx
+    .jsx .c .h .cpp .hpp .cs .java .go .rs .php .sql .pdf .doc .docx .odt .xls .xlsx .ods .ppt .pptx .odp
+    .epub .png .jpg .jpeg .gif .bmp .webp .svg .tif .tiff .heic .ico .mp3 .wav .flac .ogg .m4a .aac
+    .wma .mp4 .mkv .mov .avi .webm .wmv .m4v .srt .zip .7z .rar .tar .gz
+""".split())
+
+
+def _open_ext(path: Path) -> str:
+    # Windows ignores trailing dots/spaces ("setup.exe." runs setup.exe).
+    name = path.name.rstrip(". ")
+    return os.path.splitext(name)[1].lower()
+
+
+def open_risk(path: Path) -> str:
+    """How risky it is to hand `path` to the shell's default handler:
+    'blocked' (it would run code), 'confirm' (unknown type) or 'safe'."""
+    if path.is_dir():
+        return "safe"
+    ext = _open_ext(path)
+    pathext = {e.strip().lower() for e in os.environ.get("PATHEXT", "").split(";") if e.strip()}
+    if ext in _EXECUTABLE_EXTS or ext in pathext:
+        return "blocked"
+    return "safe" if ext in _VIEWABLE_EXTS else "confirm"
+
+
 def check_write(path: str | os.PathLike[str], extra_roots: list[str] | None = None) -> Path:
     p = normalize(path)
     if is_sensitive(p):
@@ -152,6 +190,10 @@ _DENY_PATTERNS = [
     r"\bchmod\s+-R\s+777\s+/", r"\bsudo\b", r"\brunas\b",
 ]
 _DENY_RE = [re.compile(p, re.IGNORECASE) for p in _DENY_PATTERNS]
+# package.json scripts routinely clean build output ("rm -rf dist"); relative recursive
+# deletes are allowed there, everything else on the denylist still applies.
+_SCRIPT_OK = {r"\bdel(\.exe)?\s+.*?/[sq]", r"\brd\s+/s", r"\brmdir\s+/s", r"\brm\s+-rf\b"}
+_SCRIPT_DENY_RE = [re.compile(p, re.IGNORECASE) for p in _DENY_PATTERNS if p not in _SCRIPT_OK]
 
 
 class CommandDenied(PermissionError):
@@ -163,3 +205,11 @@ def check_command(argv: list[str]) -> None:
     for rx in _DENY_RE:
         if rx.search(line):
             raise CommandDenied(f"Comando bloqueado pela política de segurança ({rx.pattern}).")
+
+
+def check_script(name: str, body: str) -> None:
+    """Denylist for a package.json script body (what the package manager will run in a shell)."""
+    for rx in _SCRIPT_DENY_RE:
+        if rx.search(body):
+            raise CommandDenied(f"O script '{name}' do package.json foi bloqueado pela política de segurança "
+                                f"({rx.pattern}).")

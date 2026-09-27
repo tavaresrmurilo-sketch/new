@@ -13,7 +13,7 @@ from typing import Any
 
 from ..core import fmt
 from ..core.text import normalize
-from ..security import PathDenied, check_read, check_write, safe_filename
+from ..security import PathDenied, check_read, check_write, open_risk, safe_filename
 from ..services.file_index import EXT_GROUPS, extract_text
 from .base import PermissionLevel as L
 from .base import Tool, ToolContext, ToolExecutionError, ToolParam, ToolResult, fail, ok, tool
@@ -158,18 +158,25 @@ async def find_projects(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
     return ok(msg, {"results": results}, entities=ent)
 
 
-@tool("open_path", "Abrir arquivo ou pasta", "Abre um arquivo com o aplicativo padrão ou uma pasta no Explorador.",
+def _open_level(args: dict[str, Any]) -> L:
+    # Unknown file types are confirmed first; only folders and known documents/media open directly.
+    try:
+        return L.REVERSIBLE if open_risk(check_read(args.get("path", ""))) == "safe" else L.IMPORTANT
+    except (PathDenied, OSError, ValueError):
+        return L.IMPORTANT
+
+
+@tool("open_path", "Abrir arquivo ou pasta", "Abre um documento ou mídia com o aplicativo padrão, ou uma pasta no Explorador.",
       L.REVERSIBLE, "files",
       [ToolParam("path", "string", "Caminho completo", max_length=1000)],
+      dynamic_level=_open_level,
       describe=lambda a: f"Abrir {Path(a.get('path', '')).name or a.get('path')}")
 async def open_path(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
     p = check_read(args["path"])
     if not p.exists():
         return fail(f"Não encontrei {p}.")
-    ext = p.suffix.lower()
-    if ext in (".exe", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".msi", ".scr", ".com", ".lnk", ".jar", ".hta") \
-            and p.is_file():
-        return fail("Por segurança, não executo programas ou scripts diretamente. Use 'abrir aplicativo'.")
+    if open_risk(p) == "blocked":
+        return fail("Por segurança, não executo programas, scripts ou atalhos diretamente. Use 'abrir aplicativo'.")
     await asyncio.to_thread(ctx.services.platform.open_path, p)
     kind = "folder" if p.is_dir() else "file"
     return ok(f"Abrindo {p.name or str(p)}.", {"path": str(p)},

@@ -19,6 +19,7 @@ import {
   Tray,
 } from "electron";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { EngineProcess } from "./backend";
 import { DesktopPrefs, loadPrefs, sanitize, savePrefs, WindowMode } from "./prefs";
 
@@ -50,17 +51,27 @@ function load(win: BrowserWindow, route: string): void {
   else void win.loadFile(target.file!, { hash: target.hash });
 }
 
-const ALLOWED_ORIGINS = () => (DEV_SERVER ? [DEV_SERVER] : ["file://"]);
+/** Only the app's own page (any hash route) may navigate, use IPC or get permissions. */
+function isAppUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    if (DEV_SERVER) return u.origin === new URL(DEV_SERVER).origin;
+    if (u.protocol !== "file:") return false;
+    const same = (a: string, b: string) => (process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b);
+    return same(path.resolve(fileURLToPath(u)), path.resolve(rendererUrl("").file!));
+  } catch {
+    return false;
+  }
+}
 
 function trusted(event: IpcMainEvent | IpcMainInvokeEvent): boolean {
-  const url = event.senderFrame?.url ?? "";
-  return ALLOWED_ORIGINS().some((o) => url.startsWith(o));
+  return isAppUrl(event.senderFrame?.url ?? "");
 }
 
 function secureWebContents(win: BrowserWindow): void {
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   win.webContents.on("will-navigate", (e, url) => {
-    if (!ALLOWED_ORIGINS().some((o) => url.startsWith(o))) e.preventDefault();
+    if (!isAppUrl(url)) e.preventDefault();
   });
 }
 
@@ -422,11 +433,13 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(async () => {
     app.setAppUserModelId("com.jarvis.desktop");
     const ses = session.defaultSession;
-    ses.setPermissionRequestHandler((_wc, permission, cb, details) => {
+    ses.setPermissionRequestHandler((wc, permission, cb, details) => {
       const media = permission === "media" && (details as { mediaTypes?: string[] }).mediaTypes?.every((t) => t === "audio");
-      cb(Boolean(media) || permission === "notifications" || permission === "clipboard-sanitized-write");
+      const allowed = Boolean(media) || permission === "notifications" || permission === "clipboard-sanitized-write";
+      cb(allowed && isAppUrl(wc.getURL()));
     });
-    ses.setPermissionCheckHandler((_wc, permission) => ["media", "notifications", "clipboard-sanitized-write"].includes(permission));
+    ses.setPermissionCheckHandler((wc, permission) =>
+      ["media", "notifications", "clipboard-sanitized-write"].includes(permission) && isAppUrl(wc?.getURL() ?? ""));
     Menu.setApplicationMenu(null);
     engine.on("status", (info) => broadcast("backend:status", info));
     registerIpc();
