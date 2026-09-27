@@ -3,6 +3,12 @@ import { useStore } from "../state/store";
 import { Gauge, Sparkline } from "./primitives";
 
 /** Left instrument rail: real metrics only; anything unavailable reads N/A. */
+/** Peak of the recent history, so a flat line near zero still reads as a value. */
+function Peak({ data }: { data: number[] }) {
+  if (!data.length) return null;
+  return <span className="t-xs t-muted t-num">pico {Math.round(Math.max(...data))}%</span>;
+}
+
 export function SystemPanel() {
   const m = useStore((s) => s.metrics);
   const history = useStore((s) => s.history);
@@ -29,11 +35,11 @@ export function SystemPanel() {
       </div>
       <div className="rail__rows">
         <div className="metric-row">
-          <span className="metric-row__label">CPU</span>
+          <span className="metric-row__label">CPU <Peak data={history.cpu} /></span>
           <Sparkline data={history.cpu} max={100} label="Histórico de CPU" />
         </div>
         <div className="metric-row">
-          <span className="metric-row__label">RAM</span>
+          <span className="metric-row__label">RAM <Peak data={history.ram} /></span>
           <Sparkline data={history.ram} max={100} label="Histórico de memória" />
         </div>
         <div className="metric-row">

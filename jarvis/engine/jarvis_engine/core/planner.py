@@ -8,16 +8,19 @@ the PermissionManager), except inside an already-authorised composite tool
 from __future__ import annotations
 
 import asyncio
+import shutil
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import httpx
+import psutil
 
 from ..activity import Category
+from ..platform.base import spawn_detached
 from ..security import check_read
-from ..services.terminal import detect_package_manager, project_scripts
+from ..services.terminal import detect_package_manager, listening_ports, project_scripts
 from ..tools.base import ToolContext, ToolResult, fail, ok
 from .intents import KNOWN_SITES, MEDIA_APPS, Intent, fold
 from .tasks import Step, StepOutcome, TaskRun
@@ -283,8 +286,6 @@ async def run_project_plan(ctx: ToolContext, project_query: str | None, open_edi
         path: Path = st["path"]
         cmd = s.platform.vscode_command() if open_editor else None
         if cmd:
-            from ..platform.base import spawn_detached
-
             await asyncio.to_thread(spawn_detached, cmd + [str(path)])
             return StepOutcome(True, "Aberto no VS Code")
         if open_editor:
@@ -308,8 +309,6 @@ async def run_project_plan(ctx: ToolContext, project_query: str | None, open_edi
     async def detect_pm(t: TaskRun, step: Step) -> StepOutcome:
         pm = detect_package_manager(st["path"])
         st["pm"] = pm
-        import shutil
-
         if not shutil.which(pm):
             return StepOutcome(False, f"{pm} não está instalado ou não está no PATH")
         return StepOutcome(True, pm)
@@ -335,10 +334,6 @@ async def run_project_plan(ctx: ToolContext, project_query: str | None, open_edi
         return StepOutcome(True, label)
 
     async def detect_port(t: TaskRun, step: Step) -> StepOutcome:
-        import psutil
-
-        from ..services.terminal import listening_ports
-
         mp = st["mp"]
         deadline = time.time() + 90
         while time.time() < deadline:

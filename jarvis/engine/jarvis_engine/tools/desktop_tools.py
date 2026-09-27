@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+import sys
 import urllib.parse
 from typing import Any
 
@@ -85,8 +86,6 @@ async def open_browser(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
 
 def _is_default_browser_hint(name: str, ctx: ToolContext) -> bool:
     """Best-effort: on Windows read the http UserChoice ProgId; elsewhere don't guess."""
-    import sys
-
     if sys.platform != "win32":
         return False
     try:

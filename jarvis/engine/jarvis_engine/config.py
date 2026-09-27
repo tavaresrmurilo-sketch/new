@@ -6,6 +6,7 @@ from `.env.local` files. They are never written to the database or sent to the U
 
 from __future__ import annotations
 
+import ipaddress
 import os
 import secrets
 import sys
@@ -22,6 +23,17 @@ IS_MAC = sys.platform == "darwin"
 IS_LINUX = sys.platform.startswith("linux")
 
 SECRET_ENV_KEYS = ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY")
+
+
+def is_loopback(host: str) -> bool:
+    """True for localhost / 127.0.0.0/8 / ::1 (a bare host name, not a URL)."""
+    name = host.strip("[]").lower()
+    if name == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(name).is_loopback
+    except ValueError:
+        return False
 
 
 def _default_data_dir() -> Path:
@@ -107,7 +119,7 @@ class EngineConfig:
         env_files = tuple(load_env_local())
         data_dir = Path(os.environ.get("JARVIS_DATA_DIR") or _default_data_dir()).expanduser()
         host = os.environ.get("JARVIS_HOST", "127.0.0.1")
-        if host not in ("127.0.0.1", "localhost", "::1"):
+        if not is_loopback(host):
             # The engine controls the computer; it must never listen on a public interface.
             raise SystemExit("JARVIS_HOST must be a loopback address (127.0.0.1).")
         port = int(os.environ.get("JARVIS_PORT", "8765"))

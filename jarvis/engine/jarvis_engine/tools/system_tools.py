@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import platform as pyplatform
 import time
 from datetime import datetime
@@ -181,8 +182,6 @@ async def kill_process(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
     names = {t.name() for t in targets if t.is_running()}
     if any(is_critical_process(n) for n in names):
         return fail("Esse é um processo crítico do sistema; não vou encerrá-lo.")
-    import os
-
     if any(t.pid == os.getpid() for t in targets):
         return fail("Não vou encerrar o próprio Jarvis por aqui. Use 'Sair' na bandeja.")
     for t in targets:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import ipaddress
 import json
 import secrets
 from typing import Any, AsyncIterator
@@ -10,6 +9,7 @@ from urllib.parse import urlparse
 
 import httpx
 
+from ..config import is_loopback
 from .base import (AIProvider, ChatMessage, Health, ProviderError, StreamEvent, ToolCall, ToolsNotSupported,
                    http_error, parse_json_args)
 
@@ -18,16 +18,6 @@ TOOL_FAMILIES = ("qwen3", "qwen2.5", "llama3.3", "llama3.2", "llama3.1", "mistra
                  "granite3", "hermes3", "gpt-oss", "firefunction")
 VISION_HINTS = ("llava", "vision", "qwen2.5vl", "qwen2-vl", "gemma3", "minicpm-v", "moondream", "bakllava",
                 "llama4", "mistral-small3.1")
-
-
-def _is_loopback(host: str) -> bool:
-    name = (urlparse(host).hostname or "").lower()
-    if name == "localhost":
-        return True
-    try:
-        return ipaddress.ip_address(name).is_loopback
-    except ValueError:
-        return False
 
 
 class OllamaProvider(AIProvider):
@@ -43,7 +33,7 @@ class OllamaProvider(AIProvider):
     def is_external(self) -> bool:  # type: ignore[override]
         # An Ollama server on another machine receives prompts, files and screenshots:
         # it needs the same consent as a cloud provider.
-        return not _is_loopback(self.host)
+        return not is_loopback(urlparse(self.host).hostname or "")
 
     @property
     def label(self) -> str:  # type: ignore[override]
