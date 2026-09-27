@@ -56,6 +56,8 @@ export interface PermissionRequest {
   levelLabel: string;
   summary: string;
   args: Record<string, unknown>;
+  /** Parameter descriptions from the tool definition (fallback labels). */
+  labels?: Record<string, string>;
   createdAt: number;
   taskId: string | null;
 }

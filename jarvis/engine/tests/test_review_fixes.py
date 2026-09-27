@@ -158,3 +158,14 @@ def test_spawn_detached_refuses_cmd_metacharacters(monkeypatch):
     monkeypatch.setattr(base.sys, "platform", "win32")
     with pytest.raises(ValueError):
         base.spawn_detached([r"C:\VS Code\bin\code.cmd", r"C:\Users\x\demo&calc"])
+
+
+async def test_stop_does_not_steal_the_exit_status(services, tmp_path):
+    # kill_tree must not waitpid() our own child, or Process.wait() hangs (uvloop / child watchers).
+    tm = services.terminal
+    code = "import time; print('ready', flush=True); time.sleep(60)"
+    mp = await tm.start([sys.executable, "-c", code], tmp_path, "sleeper", long_running=True)
+    await asyncio.sleep(0.5)
+    assert await tm.stop(mp.id)
+    assert await tm.wait(mp, timeout=10)
+    assert mp.status == "killed" and mp.exit_code is not None

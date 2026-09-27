@@ -52,6 +52,7 @@ class PendingRequest:
     created_at: float
     future: asyncio.Future[bool] = field(repr=False)
     task_id: str | None = None
+    labels: dict[str, str] = field(default_factory=dict)  # parameter name -> human description
 
     def public(self) -> dict[str, Any]:
         return {
@@ -61,6 +62,7 @@ class PendingRequest:
             "levelLabel": LEVEL_LABEL[self.level],
             "summary": self.summary,
             "args": self.args,
+            "labels": self.labels,
             "createdAt": self.created_at,
             "taskId": self.task_id,
         }
@@ -132,6 +134,7 @@ class PermissionManager:
             created_at=time.time(),
             future=loop.create_future(),
             task_id=task_id,
+            labels={p.name: p.description for p in tool.parameters if p.name in args},
         )
         self._pending[req.id] = req
         self.activity.log(Category.SECURITY, f"Confirmação solicitada: {summary}", tool=tool.id, level_n=int(level))

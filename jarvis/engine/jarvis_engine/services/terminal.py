@@ -328,12 +328,29 @@ def kill_tree(pid: int, timeout: float = 4.0) -> None:
             p.terminate()
         except psutil.Error:
             pass
-    _, alive = psutil.wait_procs(procs, timeout=timeout)
-    for p in alive:
+    for p in _wait_gone(procs, timeout):
         try:
             p.kill()
         except psutil.Error:
             pass
+
+
+def _alive(p: psutil.Process) -> bool:
+    try:
+        return p.is_running() and p.status() != psutil.STATUS_ZOMBIE
+    except psutil.Error:
+        return False
+
+
+def _wait_gone(procs: list[psutil.Process], timeout: float) -> list[psutil.Process]:
+    """Poll until the processes exit. Never reaps them: psutil.wait_procs() calls waitpid() on our
+    own children, stealing the exit status from the event loop so `await proc.wait()` never returns."""
+    deadline = time.time() + timeout
+    alive = [p for p in procs if _alive(p)]
+    while alive and time.time() < deadline:
+        time.sleep(0.05)
+        alive = [p for p in alive if _alive(p)]
+    return alive
 
 
 _ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")

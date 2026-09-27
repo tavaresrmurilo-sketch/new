@@ -73,7 +73,7 @@ export function PermissionDialog() {
               <dl className="perm__args selectable">
                 {args.map(([k, v]) => (
                   <div key={k} className="perm__arg">
-                    <dt className="t-xs t-muted">{ARG_LABEL[k] ?? k}</dt>
+                    <dt className="t-xs t-muted">{ARG_LABEL[k] ?? req.labels?.[k] ?? k}</dt>
                     <dd className="t-sm">{show(v)}</dd>
                   </div>
                 ))}
