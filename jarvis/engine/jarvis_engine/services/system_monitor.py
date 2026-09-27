@@ -249,7 +249,7 @@ class SystemMonitor:
             try:
                 snap = await asyncio.to_thread(self.sample)
                 await self.bus.publish("system.metrics", snap)
-                if active and self._tick % 3 == 0:
+                if active and (self._tick % 3 == 0 or not self.last_processes):
                     procs = await asyncio.to_thread(self.top_processes, "memory", 200)
                     self.last_processes = procs
                     grouped = self.aggregate_by_name(procs)[:8]

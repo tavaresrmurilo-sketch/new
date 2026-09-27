@@ -228,6 +228,7 @@ async def snapshot(s: Services) -> dict[str, Any]:
         "secrets": secret_status(),
         "terminal": s.terminal.public(),
         "history": s.history.messages(limit=30),
+        "processes": s.monitor.aggregate_by_name(s.monitor.last_processes)[:8] if s.monitor.last_processes else [],
     }
 
 

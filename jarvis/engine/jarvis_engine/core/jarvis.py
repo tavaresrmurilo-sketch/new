@@ -146,6 +146,7 @@ class JarvisCore:
             return
         if self.state not in ("ERROR",):
             await self.set_state("IDLE")
+        await self.s.bus.publish("context.updated", self.s.context.public())
 
     async def _reply_result(self, result: ToolResult, source: str) -> None:
         if not result.ok:
