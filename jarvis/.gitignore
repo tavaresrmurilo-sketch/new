@@ -4,7 +4,6 @@ engine/.venv/
 *.pyc
 engine/build/
 engine/dist/
-*.spec
 .pytest_cache/
 
 # Node / Electron

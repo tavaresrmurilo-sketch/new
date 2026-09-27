@@ -310,7 +310,8 @@ class RecordingAdapter(PlatformAdapter):
         return self.inner.settings_uri(page) or f"ms-settings:{page}"
 
     def user_folders(self) -> dict[str, Path]:
-        return self.inner.user_folders()
+        # Hermetic: HOME/USERPROFILE-based folders, never the real Windows Known Folders.
+        return PlatformAdapter.user_folders(self)
 
     def gpu_metrics(self) -> dict[str, Any] | None:
         return self.inner.gpu_metrics()
