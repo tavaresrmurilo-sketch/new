@@ -1,4 +1,4 @@
-import { memo, useId } from "react";
+import { memo, useEffect, useId, useState } from "react";
 
 /** Radial instrument gauge (SVG arc). `value` null renders as N/A, never as zero. */
 export const Gauge = memo(function Gauge({ value, label, sub, size = 64, warn = 85 }: { value: number | null; label: string; sub?: string; size?: number; warn?: number }) {
@@ -57,13 +57,24 @@ export const Sparkline = memo(function Sparkline({ data, max, width = 120, heigh
   );
 });
 
-export function Toggle({ checked, onChange, label, hint, disabled, id }: { checked: boolean; onChange: (v: boolean) => void; label: string; hint?: string; disabled?: boolean; id?: string }) {
+/**
+ * Switch with optimistic feedback: flips instantly, then reverts if the handler
+ * reports failure (returns/resolves to null or false).
+ */
+export function Toggle({ checked, onChange, label, hint, disabled, id, className }: { checked: boolean; onChange: (v: boolean) => unknown; label: string; hint?: string; disabled?: boolean; id?: string; className?: string }) {
   const auto = useId();
   const fid = id ?? auto;
+  const [local, setLocal] = useState(checked);
+  useEffect(() => setLocal(checked), [checked]);
+  const change = async (v: boolean) => {
+    setLocal(v);
+    const res = await onChange(v);
+    if (res === null || res === false) setLocal(checked);
+  };
   return (
-    <div className="setting-row">
+    <div className={`setting-row ${className ?? ""}`}>
       <label className="toggle" htmlFor={fid}>
-        <input id={fid} type="checkbox" role="switch" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+        <input id={fid} type="checkbox" role="switch" checked={local} disabled={disabled} onChange={(e) => void change(e.target.checked)} />
         <span>{label}</span>
       </label>
       {hint && <p className="field__hint">{hint}</p>}

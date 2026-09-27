@@ -225,10 +225,10 @@ function Voice({ s }: { s: Settings }) {
   const voice = useStore((st) => st.voice);
   return (
     <>
-      <Toggle checked={s.voice.enabled} onChange={(v) => void update({ voice: { enabled: v } })} label="Voz ativada" hint="Desligado: o microfone não é aberto e o Jarvis responde só por texto." />
+      <Toggle checked={s.voice.enabled} onChange={(v) => update({ voice: { enabled: v } })} label="Voz ativada" hint="Desligado: o microfone não é aberto e o Jarvis responde só por texto." />
       <MicSetup s={s} />
       <SpeakerSetup s={s} />
-      <Toggle checked={s.voice.wake_word_enabled} onChange={(v) => void update({ voice: { wake_word_enabled: v } })} label="Palavra de ativação" hint="Desligado: fale apenas após clicar no núcleo, no microfone ou no atalho." />
+      <Toggle checked={s.voice.wake_word_enabled} onChange={(v) => update({ voice: { wake_word_enabled: v } })} label="Palavra de ativação" hint="Desligado: fale apenas após clicar no núcleo, no microfone ou no atalho." />
       <Field label="Detector" hint={voice?.wake.detail}>
         <select className="select" value={s.voice.wake_engine} onChange={(e) => void update({ voice: { wake_engine: e.target.value } })} disabled={!s.voice.wake_word_enabled}>
           <option value="whisper">“Jarvis” — reconhecimento local (exato)</option>
@@ -239,8 +239,8 @@ function Voice({ s }: { s: Settings }) {
       <Field label={`Janela de continuação: ${s.voice.follow_up_seconds} s`} hint="Depois de uma resposta, fale sem repetir “Jarvis” durante esse tempo.">
         <input type="range" min={0} max={30} step={1} value={s.voice.follow_up_seconds} onChange={(e) => void update({ voice: { follow_up_seconds: Number(e.target.value) } })} />
       </Field>
-      <Toggle checked={s.voice.barge_in} onChange={(v) => void update({ voice: { barge_in: v } })} label="Permitir interromper a fala" hint="Falando alto enquanto o Jarvis fala, ele para e escuta." />
-      <Toggle checked={s.voice.speak_responses} onChange={(v) => void update({ voice: { speak_responses: v } })} label="Falar respostas de comandos digitados" />
+      <Toggle checked={s.voice.barge_in} onChange={(v) => update({ voice: { barge_in: v } })} label="Permitir interromper a fala" hint="Falando alto enquanto o Jarvis fala, ele para e escuta." />
+      <Toggle checked={s.voice.speak_responses} onChange={(v) => update({ voice: { speak_responses: v } })} label="Falar respostas de comandos digitados" />
       {voice?.latency && Object.keys(voice.latency).length > 0 && (
         <p className="t-xs t-muted">Latência medida: {Object.entries(voice.latency).map(([k, v]) => `${k} ${v} ms`).join(" · ")}</p>
       )}
@@ -347,10 +347,10 @@ function Privacy({ s }: { s: Settings }) {
   const open = useStore((st) => st.openModule);
   return (
     <>
-      <Toggle checked={s.privacy.screen_capture_enabled} onChange={(v) => void update({ privacy: { screen_capture_enabled: v } })} label="Permitir captura de tela" hint="Cada captura pede confirmação e mostra um indicador vermelho." />
-      <Toggle checked={s.privacy.memory_enabled} onChange={(v) => void update({ privacy: { memory_enabled: v } })} label="Memória de longo prazo" />
-      <Toggle checked={s.privacy.history_enabled} onChange={(v) => void update({ privacy: { history_enabled: v } })} label="Histórico de conversas" />
-      <Toggle checked={s.privacy.external_provider_consent} onChange={(v) => void update({ privacy: { external_provider_consent: v } })} label="Autorizar provedores de IA externos" hint="Sem isso, OpenAI/Anthropic/Gemini nunca recebem dados." />
+      <Toggle checked={s.privacy.screen_capture_enabled} onChange={(v) => update({ privacy: { screen_capture_enabled: v } })} label="Permitir captura de tela" hint="Cada captura pede confirmação e mostra um indicador vermelho." />
+      <Toggle checked={s.privacy.memory_enabled} onChange={(v) => update({ privacy: { memory_enabled: v } })} label="Memória de longo prazo" />
+      <Toggle checked={s.privacy.history_enabled} onChange={(v) => update({ privacy: { history_enabled: v } })} label="Histórico de conversas" />
+      <Toggle checked={s.privacy.external_provider_consent} onChange={(v) => update({ privacy: { external_provider_consent: v } })} label="Autorizar provedores de IA externos" hint="Sem isso, OpenAI/Anthropic/Gemini nunca recebem dados." />
       <p className="t-sm setting-row">Telemetria: o Jarvis não envia telemetria nem estatísticas de uso para lugar nenhum.</p>
       <button type="button" className="btn btn--sm setting-row" onClick={() => open("privacy")}>Abrir Central de Privacidade</button>
     </>
@@ -365,8 +365,8 @@ function System({ s }: { s: Settings }) {
   const roots = s.system.file_index_roots;
   return (
     <>
-      <Toggle checked={s.system.file_index_enabled} onChange={(v) => void update({ system: { file_index_enabled: v } })} label="Indexar arquivos" hint={index ? `${index.files.toLocaleString("pt-BR")} itens · ${index.projects} projetos · ${index.state === "indexing" ? "indexando…" : "atualizado"}` : undefined} />
-      <Toggle checked={s.system.index_content} onChange={(v) => void update({ system: { index_content: v } })} label="Indexar conteúdo de textos, PDFs e DOCX" />
+      <Toggle checked={s.system.file_index_enabled} onChange={(v) => update({ system: { file_index_enabled: v } })} label="Indexar arquivos" hint={index ? `${index.files.toLocaleString("pt-BR")} itens · ${index.projects} projetos · ${index.state === "indexing" ? "indexando…" : "atualizado"}` : undefined} />
+      <Toggle checked={s.system.index_content} onChange={(v) => update({ system: { index_content: v } })} label="Indexar conteúdo de textos, PDFs e DOCX" />
       <div className="setting-row">
         <span className="t-sm">Pastas extras para indexar</span>
         <ul className="roots">
@@ -384,7 +384,7 @@ function System({ s }: { s: Settings }) {
         <button type="button" className="btn btn--sm" onClick={() => void act(async () => setApps(await runtime.rpc<number>("apps.refresh", {}, 90000)), "Aplicativos atualizados")}>Atualizar lista de aplicativos</button>
         {apps !== null && <span className="t-sm t-muted">{apps} aplicativos</span>}
       </div>
-      <Toggle checked={s.system.proactive_enabled} onChange={(v) => void update({ system: { proactive_enabled: v } })} label="Assistência proativa" hint="Alertas discretos, com intervalo mínimo entre repetições." />
+      <Toggle checked={s.system.proactive_enabled} onChange={(v) => update({ system: { proactive_enabled: v } })} label="Assistência proativa" hint="Alertas discretos, com intervalo mínimo entre repetições." />
       <div className="grid-2 setting-row">
         {([
           ["ram_percent", "RAM acima de (%)", 50, 100],
@@ -402,7 +402,7 @@ function System({ s }: { s: Settings }) {
       <Field label="Apps fechados no modo foco" hint="Separados por vírgula (ex.: Discord, Steam). O Jarvis pede confirmação antes.">
         <TextSetting value={s.system.focus_close_apps.join(", ")} onSave={(v) => void update({ system: { focus_close_apps: v.split(",").map((x) => x.trim()).filter(Boolean) } })} />
       </Field>
-      <Toggle checked={s.system.computer_control_enabled} onChange={(v) => void update({ system: { computer_control_enabled: v } })} label="Controle de interface (experimental)" hint="Permite ao Jarvis acionar botões e campos via UI Automation do Windows, sempre com confirmação." />
+      <Toggle checked={s.system.computer_control_enabled} onChange={(v) => update({ system: { computer_control_enabled: v } })} label="Controle de interface (experimental)" hint="Permite ao Jarvis acionar botões e campos via UI Automation do Windows, sempre com confirmação." />
     </>
   );
 }
@@ -466,8 +466,8 @@ function Appearance({ s }: { s: Settings }) {
       <Field label={`Intensidade do HUD: ${Math.round(s.appearance.hud_intensity * 100)}%`}>
         <input type="range" min={0.2} max={1} step={0.05} value={s.appearance.hud_intensity} onChange={(e) => void update({ appearance: { hud_intensity: Number(e.target.value) } })} />
       </Field>
-      <Toggle checked={s.appearance.compact_mode} onChange={(v) => void update({ appearance: { compact_mode: v } })} label="Modo compacto" hint="Painéis mais estreitos e núcleo menor para telas pequenas." />
-      <Toggle checked={s.appearance.sounds_enabled} onChange={(v) => void update({ appearance: { sounds_enabled: v } })} label="Sons de interface" hint="Ativação, confirmação, erro e conclusão." />
+      <Toggle checked={s.appearance.compact_mode} onChange={(v) => update({ appearance: { compact_mode: v } })} label="Modo compacto" hint="Painéis mais estreitos e núcleo menor para telas pequenas." />
+      <Toggle checked={s.appearance.sounds_enabled} onChange={(v) => update({ appearance: { sounds_enabled: v } })} label="Sons de interface" hint="Ativação, confirmação, erro e conclusão." />
     </>
   );
 }
@@ -514,9 +514,9 @@ function Desktop() {
   };
   return (
     <>
-      <ShortcutInput label="Paleta de comandos (global)" value={prefs.shortcuts.palette} onChange={(v) => void save({ shortcuts: { palette: v } })} />
-      <ShortcutInput label="Mostrar/ocultar o HUD (global)" value={prefs.shortcuts.toggle} onChange={(v) => void save({ shortcuts: { toggle: v } })} />
-      <ShortcutInput label="Ouvir agora, sem palavra de ativação (global)" value={prefs.shortcuts.listen} onChange={(v) => void save({ shortcuts: { listen: v } })} />
+      <ShortcutInput label="Paleta de comandos (global)" value={prefs.shortcuts.palette} onChange={(v) => save({ shortcuts: { palette: v } })} />
+      <ShortcutInput label="Mostrar/ocultar o HUD (global)" value={prefs.shortcuts.toggle} onChange={(v) => save({ shortcuts: { toggle: v } })} />
+      <ShortcutInput label="Ouvir agora, sem palavra de ativação (global)" value={prefs.shortcuts.listen} onChange={(v) => save({ shortcuts: { listen: v } })} />
       {Object.values(errors).map((e) => <p key={e} className="notice notice--warn t-sm">{e}</p>)}
       <Field label="Modo da janela">
         <select className="select" value={prefs.mode} onChange={(e) => void b.window.setMode(e.target.value as DesktopPrefs["mode"]).then(() => setPrefs({ ...prefs, mode: e.target.value as DesktopPrefs["mode"] }))}>
@@ -526,8 +526,8 @@ function Desktop() {
           <option value="voice">Somente voz (sem janela)</option>
         </select>
       </Field>
-      <Toggle checked={prefs.startWithWindows} onChange={(v) => void save({ startWithWindows: v })} label="Iniciar com o Windows" hint="Inicia minimizado na bandeja. Desligado por padrão." />
-      <Toggle checked={prefs.closeToTray} onChange={(v) => void save({ closeToTray: v })} label="Fechar para a bandeja" hint="O botão fechar mantém o Jarvis ativo em segundo plano." />
+      <Toggle checked={prefs.startWithWindows} onChange={(v) => save({ startWithWindows: v })} label="Iniciar com o Windows" hint="Inicia minimizado na bandeja. Desligado por padrão." />
+      <Toggle checked={prefs.closeToTray} onChange={(v) => save({ closeToTray: v })} label="Fechar para a bandeja" hint="O botão fechar mantém o Jarvis ativo em segundo plano." />
     </>
   );
 }

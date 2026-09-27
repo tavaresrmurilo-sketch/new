@@ -39,7 +39,7 @@ function AIStep({ s }: { s: Settings }) {
         </div>
       )}
       {s.ai.provider !== "ollama" && s.ai.provider !== "none" && (
-        <Toggle checked={s.privacy.external_provider_consent} onChange={(v) => void update({ privacy: { external_provider_consent: v } })} label="Autorizo enviar comandos e contexto a este provedor externo" />
+        <Toggle checked={s.privacy.external_provider_consent} onChange={(v) => update({ privacy: { external_provider_consent: v } })} label="Autorizo enviar comandos e contexto a este provedor externo" />
       )}
     </>
   );
@@ -132,7 +132,7 @@ export function Onboarding({ onFinish }: { onFinish: () => void }) {
                 )}
                 {step === 1 && (
                   <>
-                    <Toggle checked={s.voice.enabled} onChange={(v) => void update({ voice: { enabled: v } })} label="Usar voz" />
+                    <Toggle checked={s.voice.enabled} onChange={(v) => update({ voice: { enabled: v } })} label="Usar voz" />
                     {s.voice.enabled && <MicSetup s={s} />}
                     <p className="t-xs t-muted">Fale algo: a barra deve se mover. Depois calibre em silêncio.</p>
                   </>
@@ -141,7 +141,7 @@ export function Onboarding({ onFinish }: { onFinish: () => void }) {
                 {step === 3 && <AIStep s={s} />}
                 {step === 4 && (
                   <>
-                    <Toggle checked={s.voice.wake_word_enabled} onChange={(v) => void update({ voice: { wake_word_enabled: v } })} label="Ativar com a palavra “Jarvis”" hint="Fala sem a palavra de ativação é descartada — não é exibida nem salva." />
+                    <Toggle checked={s.voice.wake_word_enabled} onChange={(v) => update({ voice: { wake_word_enabled: v } })} label="Ativar com a palavra “Jarvis”" hint="Fala sem a palavra de ativação é descartada — não é exibida nem salva." />
                     <label className="field setting-row">
                       <span className="t-sm">Detector</span>
                       <select className="select" value={s.voice.wake_engine} onChange={(e) => void update({ voice: { wake_engine: e.target.value } })}>
@@ -155,8 +155,8 @@ export function Onboarding({ onFinish }: { onFinish: () => void }) {
                 {step === 5 && <PermissionsStep />}
                 {step === 6 && (
                   <>
-                    <Toggle checked={s.privacy.memory_enabled} onChange={(v) => void update({ privacy: { memory_enabled: v } })} label="Memória de longo prazo" hint="Só guarda o que você pedir: “Jarvis, lembre que…”." />
-                    <Toggle checked={s.privacy.history_enabled} onChange={(v) => void update({ privacy: { history_enabled: v } })} label="Guardar histórico de conversas" hint={`Mantido por ${s.privacy.history_retention_days} dias.`} />
+                    <Toggle checked={s.privacy.memory_enabled} onChange={(v) => update({ privacy: { memory_enabled: v } })} label="Memória de longo prazo" hint="Só guarda o que você pedir: “Jarvis, lembre que…”." />
+                    <Toggle checked={s.privacy.history_enabled} onChange={(v) => update({ privacy: { history_enabled: v } })} label="Guardar histórico de conversas" hint={`Mantido por ${s.privacy.history_retention_days} dias.`} />
                   </>
                 )}
                 {step === 7 && <StartupStep />}

@@ -112,6 +112,10 @@ async def search_files(args: dict[str, Any], ctx: ToolContext) -> ToolResult:
     results = await asyncio.to_thread(fi.search, terms, exts=exts or None, folder=folder, modified_after=after,
                                       modified_before=before, kind=kind, limit=args.get("limit", 10), sort=sort)
     source = "índice"
+    if not results and exts and terms:
+        # File-type words ("apresentação", "documento") are hints, not hard filters: retry by name/content.
+        results = await asyncio.to_thread(fi.search, terms, folder=folder, modified_after=after,
+                                          modified_before=before, kind=kind, limit=args.get("limit", 10), sort=sort)
     if not results and terms and (fi.status.state == "indexing" or fi.status.files == 0 or folder is not None):
         roots = [folder] if folder else fi.roots()
         results = await asyncio.to_thread(fi.live_search, terms, roots, 2.5, args.get("limit", 10))

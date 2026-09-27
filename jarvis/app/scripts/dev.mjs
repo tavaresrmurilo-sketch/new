@@ -2,7 +2,7 @@
 import { spawn } from "node:child_process";
 import { createServer } from "vite";
 
-const server = await createServer({ configFile: "vite.config.ts" });
+const server = await createServer({ configFile: "vite.config.mts" });
 await server.listen();
 const url = "http://127.0.0.1:5173";
 server.printUrls();

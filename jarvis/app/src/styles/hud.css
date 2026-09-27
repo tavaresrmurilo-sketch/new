@@ -1333,7 +1333,7 @@ input[type="range"] {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 80; /* permission requests sit above every other layer, including onboarding */
   display: grid;
   place-items: center;
   background: rgba(1, 4, 7, 0.6);
@@ -1394,7 +1394,7 @@ input[type="range"] {
 
 .toasts {
   position: fixed;
-  z-index: 50;
+  z-index: 90;
   right: var(--s-4);
   bottom: calc(var(--dock-h) + var(--s-4));
   display: grid;

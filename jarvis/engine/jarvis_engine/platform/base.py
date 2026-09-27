@@ -217,12 +217,107 @@ def get_platform() -> PlatformAdapter:
     if sys.platform == "win32":
         from .windows import WindowsAdapter
 
-        return WindowsAdapter()
-    from .posix import PosixAdapter
+        adapter: PlatformAdapter = WindowsAdapter()
+    else:
+        from .posix import PosixAdapter
 
-    return PosixAdapter()
+        adapter = PosixAdapter()
+    sandbox_log = os.environ.get("JARVIS_SANDBOX_LOG")
+    if sandbox_log:
+        return RecordingAdapter(adapter, sandbox_log)
+    return adapter
 
 
 def env_path(name: str) -> Path | None:
     value = os.environ.get(name)
     return Path(value) if value else None
+
+
+class RecordingAdapter(PlatformAdapter):
+    """Test/demo sandbox (JARVIS_SANDBOX_LOG=<file>): delegates reads to the real adapter but only
+    *records* side effects (opening, launching, closing, volume, power) as JSON lines."""
+
+    def __init__(self, inner: PlatformAdapter, log_file: str) -> None:
+        self.inner = inner
+        self.name = f"{inner.name}-sandbox"
+        self.log_file = log_file
+        self.volume = 50.0
+        self.muted = False
+
+    def _record(self, action: str, **data: Any) -> None:
+        import json
+        import time
+
+        with open(self.log_file, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps({"ts": time.time(), "action": action, **data}, ensure_ascii=False) + "\n")
+
+    def open_path(self, path: Path) -> None:
+        self._record("open_path", path=str(path))
+
+    def open_uri(self, uri: str) -> None:
+        self._record("open_uri", uri=uri)
+
+    def launch_app(self, entry: AppEntry) -> None:
+        self._record("launch_app", name=entry.name)
+
+    def scan_apps(self) -> list[AppEntry]:
+        return self.inner.scan_apps()
+
+    def builtin_apps(self) -> list[AppEntry]:
+        return self.inner.builtin_apps() + [AppEntry("Google Chrome", "chrome", "exe", "chrome.exe", "sandbox",
+                                                     ["chrome", "navegador do google"]),
+                                            AppEntry("Spotify", "spotify", "exe", "spotify.exe", "sandbox")]
+
+    def vscode_command(self) -> list[str] | None:
+        return self.inner.vscode_command()
+
+    def active_window(self) -> WindowInfo | None:
+        return self.inner.active_window()
+
+    def close_process_gracefully(self, pid: int) -> None:
+        self._record("close_process", pid=pid)
+
+    def get_master_volume(self) -> float | None:
+        return self.volume
+
+    def set_master_volume(self, percent: float) -> None:
+        self.volume = percent
+        self._record("set_volume", percent=percent)
+
+    def get_mute(self) -> bool | None:
+        return self.muted
+
+    def set_mute(self, muted: bool) -> None:
+        self.muted = muted
+        self._record("set_mute", muted=muted)
+
+    def media_key(self, action: str) -> None:
+        self._record("media_key", key=action)
+
+    def lock(self) -> None:
+        self._record("lock")
+
+    def sleep(self) -> None:
+        self._record("sleep")
+
+    def shutdown(self, restart: bool, delay_s: int) -> None:
+        self._record("shutdown", restart=restart, delay=delay_s)
+
+    def cancel_shutdown(self) -> None:
+        self._record("cancel_shutdown")
+
+    def settings_uri(self, page: str) -> str | None:
+        return self.inner.settings_uri(page) or f"ms-settings:{page}"
+
+    def user_folders(self) -> dict[str, Path]:
+        return self.inner.user_folders()
+
+    def gpu_metrics(self) -> dict[str, Any] | None:
+        return self.inner.gpu_metrics()
+
+    def clipboard_get(self) -> str | None:
+        return self.inner.clipboard_get()
+
+    def clipboard_set(self, text: str) -> bool:
+        self._record("clipboard_set", length=len(text))
+        return True

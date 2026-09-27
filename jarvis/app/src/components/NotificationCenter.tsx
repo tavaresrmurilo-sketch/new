@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import { when } from "../lib/format";
 import { runtime } from "../runtime";
 import { useStore } from "../state/store";
-import { Empty } from "./primitives";
+import { act } from "../hooks";
+import { Empty, Toggle } from "./primitives";
 
 export function NotificationCenter({ onClose }: { onClose: () => void }) {
   const items = useStore((s) => s.notifications);
@@ -29,11 +30,8 @@ export function NotificationCenter({ onClose }: { onClose: () => void }) {
     <div ref={ref} className="popover notif-center" role="dialog" aria-label="Notificações" tabIndex={-1}>
       <div className="popover__head">
         <span className="t-label">Notificações</span>
-        <label className="toggle t-xs">
-          <input type="checkbox" role="switch" checked={proactive}
-            onChange={(e) => void runtime.updateSettings({ system: { proactive_enabled: e.target.checked } })} />
-          <span>Assistência proativa</span>
-        </label>
+        <Toggle className="t-xs" checked={proactive} label="Assistência proativa"
+          onChange={(v) => act(() => runtime.updateSettings({ system: { proactive_enabled: v } }))} />
       </div>
       {items.length === 0 ? (
         <Empty title="Nenhuma notificação">Alertas de sistema, lembretes e tarefas concluídas aparecem aqui.</Empty>

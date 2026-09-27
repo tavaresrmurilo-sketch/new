@@ -4,6 +4,7 @@ import type { ProviderStatus } from "../../lib/types";
 import { runtime } from "../../runtime";
 import { useStore } from "../../state/store";
 import { IconCloud, IconDownload, IconMic, IconScreen, IconShield } from "../icons";
+import { Toggle } from "../primitives";
 
 interface Summary {
   dataDir: string;
@@ -73,10 +74,7 @@ export function PrivacyCenter() {
             ["memory_enabled", "Memória de longo prazo"],
             ["history_enabled", "Guardar histórico de conversas"],
           ].map(([key, label]) => (
-            <label key={key} className="toggle setting-row">
-              <input type="checkbox" role="switch" checked={Boolean(p[key as keyof typeof p])} onChange={(e) => void runtime.updateSettings({ privacy: { [key]: e.target.checked } })} />
-              <span>{label}</span>
-            </label>
+            <Toggle key={key} checked={Boolean(p[key as keyof typeof p])} label={label} onChange={(v) => act(() => runtime.updateSettings({ privacy: { [key]: v } }))} />
           ))}
           <label className="field">
             <span className="t-sm">Reter histórico por (dias)</span>
