@@ -173,23 +173,26 @@ npm run test:e2e       # Playwright (sobe o `npm run dev` se nada estiver rodand
 
 ## 8. Publicar na Vercel
 
-1. **Banco:** crie um PostgreSQL (Neon, Supabase ou Vercel Postgres/Neon pela aba *Storage*). Guarde a URL com pooling (`DATABASE_URL`) e, se houver, a direta (`DIRECT_URL`).
-2. **Importar o projeto:** em vercel.com → *Add New → Project*, escolha o repositório e defina **Root Directory = `chavix-3d`**. O framework é detectado como Next.js.
-3. **Build:** a Vercel usa automaticamente o script `vercel-build` (`prisma generate && prisma migrate deploy && next build`), então as migrations são aplicadas a cada deploy.
-4. **Variáveis:** em *Settings → Environment Variables*, cadastre `DATABASE_URL`, `DIRECT_URL` (opcional), `NEXT_PUBLIC_SITE_URL` (ex.: `https://chavix3d.com.br`), `AUTH_SECRET`, `PIX_KEY`, `PIX_RECEIVER_NAME`, `PIX_CITY`.
-5. **Imagens (opcional, recomendado com muitos produtos):** na aba *Storage*, crie um Blob Store e conecte ao projeto (isso cria `BLOB_READ_WRITE_TOKEN`); depois defina `STORAGE_DRIVER=vercel-blob`.
-6. **Deploy.** Depois do primeiro deploy, rode o seed uma vez apontando para o banco de produção, da sua máquina:
-   ```bash
-   DATABASE_URL="url-de-producao" ADMIN_EMAIL="voce@..." ADMIN_PASSWORD="SenhaForte123" SEED_DEMO_PRODUCTS=false npm run db:seed
-   ```
-   (`SEED_DEMO_PRODUCTS=false` publica a loja sem os produtos de demonstração.)
-7. **Domínio:** em *Settings → Domains*, adicione seu domínio e atualize `NEXT_PUBLIC_SITE_URL`.
+O script `vercel-build` (`scripts/vercel-build.mjs`) confere as variáveis, aplica as migrations, roda o seed e compila. Na **primeira** publicação em um banco vazio ele cria o admin, as configurações, as categorias, os cupons (inativos) e os produtos de demonstração. Nos deploys seguintes só cria o admin se ele ainda não existir: o que você mudar ou apagar pelo painel não volta.
+
+1. **Importar:** vercel.com → *Add New → Project* → escolha o repositório → **Root Directory = `chavix-3d`** → em *Environment Variables* cadastre:
+   - `AUTH_SECRET` — texto aleatório com 32+ caracteres
+   - `PIX_KEY`, `PIX_RECEIVER_NAME`, `PIX_CITY`
+   - `ADMIN_EMAIL`, `ADMIN_PASSWORD` (10+ caracteres, letras e números), `ADMIN_NAME`
+   - `SEED_DEMO_PRODUCTS=false` se não quiser os produtos de demonstração
+2. **Deploy.** O primeiro deploy vai parar com a mensagem “Banco de dados não conectado” — é esperado, o banco vem a seguir.
+3. **Banco:** no projeto, aba *Storage* → *Create Database* → **Neon** (Postgres, plano gratuito) → conecte ao projeto. Isso cria `DATABASE_URL` sozinho.
+4. **Branch de produção:** se o código não estiver na `main`, vá em *Settings → Git → Production Branch* e informe a branch onde ele está.
+5. *Deployments* → **⋯ → Redeploy**. Pronto: a loja abre no endereço `*.vercel.app` e o painel em `/admin/login`.
+6. **Opcional:** *Settings → Domains* para usar seu domínio (depois defina `NEXT_PUBLIC_SITE_URL=https://seudominio.com.br` e faça Redeploy). Para muitas fotos, crie um Blob Store em *Storage* e defina `STORAGE_DRIVER=vercel-blob`.
+
+Também funciona com a integração Supabase da Vercel (`POSTGRES_URL` / `POSTGRES_URL_NON_POOLING` são reconhecidas).
 
 ---
 
 ## 9. Administrador inicial
 
-O admin é criado pelo seed a partir de `ADMIN_EMAIL`, `ADMIN_PASSWORD` e `ADMIN_NAME` (senha mínima de 10 caracteres com letras e números; nenhuma senha está no código). Acesse `/admin/login`.
+O admin é criado pelo seed (inclusive no deploy da Vercel) a partir de `ADMIN_EMAIL`, `ADMIN_PASSWORD` e `ADMIN_NAME` (senha mínima de 10 caracteres com letras e números; nenhuma senha está no código). Acesse `/admin/login`.
 
 - Troque a senha em **Configurações → Sua senha** depois do primeiro acesso.
 - 5 senhas erradas seguidas bloqueiam o acesso por 15 minutos; há limite por IP e por e-mail.

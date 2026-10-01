@@ -1,11 +1,16 @@
 /**
- * Seed da CHAVIX 3D — idempotente (pode rodar mais de uma vez sem duplicar nada).
+ * Seed da CHAVIX 3D — seguro para rodar a cada deploy.
  *
- *  - Administrador inicial: ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_NAME do .env
+ * Sempre: cria o administrador de ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_NAME se ele ainda
+ * não existir (nunca altera a senha de um admin existente).
+ *
+ * Só na primeira execução em um banco vazio (sem configurações da loja):
  *  - Configurações da loja com padrões (frete e tabela do personalizado)
  *  - Categorias iniciais
  *  - Cupons CHAVIX10 e PRIMEIRACOMPRA, criados INATIVOS
  *  - Produtos de demonstração com arte original (desligue com SEED_DEMO_PRODUCTS=false)
+ *
+ * Assim, o que você apagar ou mudar pelo painel não volta no próximo deploy.
  */
 
 import "./load-env";
@@ -184,10 +189,17 @@ async function seedProducts() {
 async function main() {
   console.log("Semeando CHAVIX 3D…");
   await seedAdmin();
-  await seedSettings();
+  const firstRun = !(await db.storeSettings.findUnique({ where: { id: "default" }, select: { id: true } }));
+  if (!firstRun) {
+    console.log("• Loja já configurada: catálogo, cupons e configurações não foram alterados.");
+    console.log("Pronto.");
+    return;
+  }
   await seedCategories();
   await seedCoupons();
   await seedProducts();
+  // Por último: a existência das configurações marca o banco como já semeado.
+  await seedSettings();
   console.log("Pronto.");
 }
 
