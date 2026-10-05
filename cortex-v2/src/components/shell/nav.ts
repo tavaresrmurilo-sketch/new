@@ -1,7 +1,7 @@
 import {
   Activity, BarChart3, Bot, Brain, Briefcase, Calculator, CalendarDays, CheckSquare, FileSignature, FileText,
   FolderKanban, Gauge, Inbox, KanbanSquare, LayoutDashboard, Lightbulb, ListChecks, type LucideIcon, Radar,
-  Scale, Settings, Sparkles, Target, Trash2, UserPlus, Users, Users2, Video, Wallet, Workflow, Zap, FolderOpen,
+  Scale, Settings, Sparkles, Target, Trash2, UserPlus, Users, Users2, Video, Wallet, Zap, FolderOpen,
 } from "lucide-react";
 import type { Permission } from "@/lib/permissions";
 

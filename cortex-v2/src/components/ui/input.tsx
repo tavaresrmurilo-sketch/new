@@ -34,7 +34,7 @@ export const NativeSelect = React.forwardRef<HTMLSelectElement, React.SelectHTML
 NativeSelect.displayName = "NativeSelect";
 
 export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
-  // eslint-disable-next-line jsx-a11y/label-has-associated-control
+   
   return <label className={cn("text-[13px] font-medium leading-none text-foreground/90", className)} {...props} />;
 }
 

@@ -65,7 +65,7 @@ export function RecordPicker({
         <button
           type="button"
           id={id}
-          aria-invalid={invalid || undefined}
+          data-invalid={invalid || undefined}
           aria-haspopup="listbox"
           className={cn(inputClass, "items-center justify-between gap-2 text-left", !value && "text-muted-foreground")}
         >

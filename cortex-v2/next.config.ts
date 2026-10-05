@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -31,6 +32,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   devIndicators: false,
   serverExternalPackages: ["pdfkit", "@prisma/client"],
+  // o repositório raiz contém outra aplicação; o rastreamento de arquivos fica restrito a esta pasta
+  outputFileTracingRoot: path.join(import.meta.dirname),
   experimental: {
     serverActions: { bodySizeLimit: "12mb" },
   },
