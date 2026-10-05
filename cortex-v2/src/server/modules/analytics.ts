@@ -194,3 +194,15 @@ export async function winLossAnalysis(ctx: Ctx, start: Date, end: Date) {
     avgCycleDays: cycleDays.length ? cycleDays.reduce((a, b) => a + b, 0) / cycleDays.length : null,
   };
 }
+
+/**
+ * Janelas comparáveis: período atual até agora vs. o mesmo intervalo decorrido no período anterior
+ * (ex.: 1–5 deste mês vs. 1–5 do mês passado), evitando comparar um mês parcial com um mês completo.
+ */
+export function comparableWindows(range: PeriodRange, now = new Date()) {
+  const partial = range.end > now;
+  const curEnd = partial ? now : range.end;
+  const elapsed = Math.max(0, curEnd.getTime() - range.start.getTime());
+  const prevEnd = partial ? new Date(Math.min(range.prevStart.getTime() + elapsed, range.prevEnd.getTime())) : range.prevEnd;
+  return { cur: { start: range.start, end: curEnd }, prev: { start: range.prevStart, end: prevEnd }, partial };
+}

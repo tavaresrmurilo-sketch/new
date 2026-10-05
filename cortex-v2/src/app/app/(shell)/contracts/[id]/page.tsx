@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/common/badges";
 import { BreadcrumbLabel } from "@/components/shell/shell-context";
 import { Card, CardContent } from "@/components/ui/card";
 import { ContractActions } from "@/features/contracts/components/contract-actions";
+import { ContractScheduleButton } from "@/features/finance/components/receivable-actions";
 import { DocumentList } from "@/features/documents/components/document-list";
 import { DocumentUploadButton } from "@/features/documents/components/document-upload";
 import { addDaysToKey, dateOnlyKey, dayKeyInTz, diffKeys } from "@/lib/dates";
@@ -78,7 +79,15 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
             <DocumentList documents={c.documents} tz={tz} canDelete={writable && ctx.permissions.has("documents.delete")} />
           </Section>
           {finance ? (
-            <Section title="Recebíveis" actions={<Link href={`/app/finance?tab=receivables`} className="text-xs text-primary hover:underline">Gerenciar no Financeiro</Link>}>
+            <Section
+              title="Recebíveis"
+              actions={
+                <div className="flex items-center gap-2">
+                  {writable && ctx.permissions.has("finance.write") && c.status !== "CANCELED" ? <ContractScheduleButton contractId={id} recurrence={c.recurrence} /> : null}
+                  <Link href={`/app/finance?contract=${id}&status=ALL`} className="text-xs text-primary hover:underline">Gerenciar no Financeiro</Link>
+                </div>
+              }
+            >
               <ul className="divide-y rounded-lg border bg-card">
                 {c.receivables.map((r) => (
                   <li key={r.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">

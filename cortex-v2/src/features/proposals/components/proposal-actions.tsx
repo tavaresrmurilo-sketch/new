@@ -133,7 +133,7 @@ export function ProposalActions({ id, status, publicUrl, hasOpportunity, canWrit
   );
 }
 
-function FollowUpForm({ onSubmit, pending }: { onSubmit: (note: string) => Promise<void>; pending: boolean }) {
+export function FollowUpForm({ onSubmit, pending }: { onSubmit: (note: string) => Promise<void>; pending: boolean }) {
   const [note, setNote] = React.useState("");
   return (
     <div className="space-y-3 px-5 py-4">
@@ -143,5 +143,15 @@ function FollowUpForm({ onSubmit, pending }: { onSubmit: (note: string) => Promi
         <Button loading={pending} disabled={note.trim().length < 2} onClick={() => void onSubmit(note)}>Registrar</Button>
       </div>
     </div>
+  );
+}
+
+/** Botão compacto para registrar follow-up de proposta (usado no Inbox e listas). */
+export function ProposalFollowUpButton({ id }: { id: string }) {
+  const followUp = useAction(proposalFollowUpAction, { success: "Follow-up registrado" });
+  return (
+    <EntityDialog title="Registrar follow-up" size="md" trigger={<Button size="xs" variant="outline">Registrar follow-up</Button>}>
+      {(close) => <FollowUpForm pending={followUp.pending} onSubmit={async (note) => { const r = await followUp.run({ id, note }); if (r.ok) close(); }} />}
+    </EntityDialog>
   );
 }

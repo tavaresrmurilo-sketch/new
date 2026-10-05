@@ -193,3 +193,12 @@ export const PROBABILITY_LABELS = ["", "Rara", "Possível", "Provável", "Quase 
 export function labelOf(map: LabelMap, key: string | null | undefined) {
   return (key && map[key]) || { label: key ?? "—", tone: "neutral" as BadgeTone };
 }
+
+export const DECISION_TYPE: Record<string, { label: string; accept: string; reject: string }> = {
+  APPROVE_PROPOSAL: { label: "Aprovação de proposta", accept: "Aprovar e enviar", reject: "Recusar envio" },
+  RESOLVE_DUPLICATE: { label: "Possível duplicidade", accept: "Mesclar registros", reject: "Não é duplicado" },
+  REVIEW_PROJECT_RISK: { label: "Risco crítico de projeto", accept: "Ciente — iniciar mitigação", reject: "Descartar alerta" },
+  CONFIRM_AI_TASKS: { label: "Tarefas sugeridas pela IA", accept: "Confirmar", reject: "Descartar" },
+  ACCEPT_SUGGESTION: { label: "Sugestão do Córtex", accept: "Aceitar", reject: "Recusar" },
+  CONFIRM_MEMORY: { label: "Confirmar memória", accept: "Confirmar", reject: "Descartar" },
+};

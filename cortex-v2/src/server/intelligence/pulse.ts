@@ -40,6 +40,7 @@ const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.le
  * - Clientes (25%): média da saúde do relacionamento dos clientes ativos.
  * - Operações (20%): 70% tarefas em dia + 30% equipe dentro da capacidade. Requer ≥ 5 tarefas abertas.
  * Componentes sem dados suficientes são excluídos e os pesos redistribuídos.
+ * O índice geral só é calculado com ao menos 2 componentes com dados (evita um “Pulse” baseado em um único sinal).
  */
 export function computePulse(input: PulseInput): PulseResult {
   const c = input.commercial;
@@ -84,6 +85,6 @@ export function computePulse(input: PulseInput): PulseResult {
   ];
   const available = components.filter((x) => x.score !== null);
   const totalW = available.reduce((s, x) => s + x.weight, 0);
-  const score = totalW ? clampScore(available.reduce((s, x) => s + (x.score as number) * x.weight, 0) / totalW) : null;
+  const score = available.length >= 2 && totalW ? clampScore(available.reduce((s, x) => s + (x.score as number) * x.weight, 0) / totalW) : null;
   return { score, ...pulseLabel(score), components };
 }

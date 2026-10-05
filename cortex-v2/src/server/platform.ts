@@ -12,6 +12,7 @@ export const PLATFORM_DEFAULTS = {
   "retention.deletionGraceDays": 30,
   "retention.auditLogDays": 730,
   "retention.demoHours": 24,
+  "retention.trashDays": 30,
   "signup.enabled": true,
 } as const;
 

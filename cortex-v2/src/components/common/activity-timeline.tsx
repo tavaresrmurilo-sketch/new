@@ -1,4 +1,5 @@
 import * as React from "react";
+import Link from "next/link";
 import {
   CalendarCheck, CheckCircle2, CircleDot, FileSignature, FileText, FolderKanban, Mail, MessageCircle, MessageSquare,
   MoveRight, Phone, PlusCircle, StickyNote, TriangleAlert, Trophy, UserPlus, XCircle, MapPin,
@@ -14,6 +15,8 @@ export interface TimelineItem {
   body?: string | null;
   actorName?: string | null;
   occurredAt: Date | string;
+  /** link para o registro de origem (opcional) */
+  href?: string | null;
 }
 
 function iconFor(item: TimelineItem) {
@@ -52,7 +55,13 @@ export function ActivityTimeline({ items, tz, emptyText = "Nenhuma atividade reg
             </span>
             <div className="min-w-0 flex-1 pt-0.5">
               <p className="text-[13px] leading-snug">
-                <span className="font-medium">{item.title}</span>
+                {item.href ? (
+                  <Link href={item.href} className="font-medium hover:underline">
+                    {item.title}
+                  </Link>
+                ) : (
+                  <span className="font-medium">{item.title}</span>
+                )}
               </p>
               {item.body ? <p className="mt-1 whitespace-pre-line text-[13px] leading-relaxed text-muted-foreground">{item.body}</p> : null}
               <p className="mt-1 text-xs text-muted-foreground" title={formatDateTime(date, tz)}>
