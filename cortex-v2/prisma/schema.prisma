@@ -1,0 +1,1683 @@
+// JR Córtex V2 — modelo de dados
+// Convenções:
+//  - Toda entidade de negócio pertence a uma Organization (organizationId) e é sempre consultada pela
+//    camada de dados com escopo de tenant (src/server/db/tenant.ts).
+//  - createdById guarda o autor (sem FK para não acoplar o ciclo de vida do usuário aos registros;
+//    usuários nunca são removidos fisicamente, apenas anonimizados).
+//  - deletedAt = soft delete (lixeira). Registros na lixeira não aparecem nas consultas padrão.
+//  - Valores monetários em Decimal(14,2); probabilidades e scores em inteiros 0–100.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────── Enums ───────────────────────────────
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum MemberStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  SUSPENDED
+}
+
+enum BillingProviderKind {
+  NONE
+  STRIPE
+  MERCADO_PAGO
+}
+
+enum ClientKind {
+  COMPANY
+  INDIVIDUAL
+}
+
+enum ClientStatus {
+  PROSPECT
+  ACTIVE
+  INACTIVE
+  CHURNED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  UNQUALIFIED
+  CONVERTED
+}
+
+enum AcquisitionSource {
+  REFERRAL
+  WEBSITE
+  INBOUND
+  OUTBOUND
+  EVENT
+  SOCIAL
+  PARTNER
+  ADS
+  OTHER
+}
+
+enum DecisionRole {
+  DECISION_MAKER
+  INFLUENCER
+  CHAMPION
+  BLOCKER
+  USER
+  UNKNOWN
+}
+
+enum StageKind {
+  OPEN
+  WON
+  LOST
+}
+
+enum OpportunityStatus {
+  OPEN
+  WON
+  LOST
+}
+
+enum CloseReason {
+  PRICE
+  COMPETITOR
+  TIMING
+  NO_BUDGET
+  POOR_FIT
+  NO_RESPONSE
+  TRUST
+  RELATIONSHIP
+  TECHNICAL_QUALITY
+  DEADLINE
+  REFERRAL
+  REPUTATION
+  OTHER
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  PAUSED
+  DELAYED
+  COMPLETED
+  CANCELED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+  CANCELED
+}
+
+enum TaskSource {
+  MANUAL
+  AI
+  PLAYBOOK
+  AUTOMATION
+  MEETING
+  COMMAND
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  DONE
+  CANCELED
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  VIEWED
+  NEGOTIATION
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum DiscountType {
+  PERCENT
+  AMOUNT
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  RENEWED
+  CANCELED
+}
+
+enum ContractRecurrence {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum RenewalType {
+  AUTOMATIC
+  MANUAL
+  NONE
+}
+
+enum ReceivableStatus {
+  PENDING
+  RECEIVED
+  CANCELED
+}
+
+enum DocumentCategory {
+  CONTRACT
+  PROPOSAL
+  REPORT
+  PROJECT
+  IMAGE
+  TECHNICAL
+  OTHER
+}
+
+enum InteractionChannel {
+  CALL
+  EMAIL
+  WHATSAPP
+  MEETING
+  VISIT
+  NOTE
+  ISSUE
+}
+
+enum RiskStatus {
+  OPEN
+  MITIGATING
+  CLOSED
+  OCCURRED
+}
+
+enum DecisionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  DISMISSED
+}
+
+enum ExecutionStatus {
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+enum DeliveryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum AIMessageRole {
+  USER
+  ASSISTANT
+}
+
+enum MemoryCategory {
+  PREFERENCE
+  REQUIREMENT
+  DEPENDENCY
+  CONTEXT
+  OTHER
+}
+
+enum MemorySource {
+  MANUAL
+  MEETING
+  AI_CONFIRMED
+  IMPORT
+}
+
+enum ImportStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum ConsentType {
+  TERMS
+  PRIVACY
+  MARKETING
+}
+
+// ───────────────────────── Plataforma / identidade ─────────────────────────
+
+model User {
+  id                String     @id @default(cuid())
+  email             String     @unique
+  name              String
+  passwordHash      String?
+  avatarUrl         String?
+  isSuperAdmin      Boolean    @default(false)
+  status            UserStatus @default(ACTIVE)
+  /// conta temporária criada pelo modo demonstração público
+  isDemoGuest       Boolean    @default(false)
+  emailVerifiedAt   DateTime?
+  lastLoginAt       DateTime?
+  passwordChangedAt DateTime?
+  anonymizedAt      DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  sessions              Session[]
+  memberships           OrganizationMember[]
+  passwordResetTokens   PasswordResetToken[]
+  consents              ConsentRecord[]
+  notifications         Notification[]
+  ownedLeads            Lead[]               @relation("LeadOwner")
+  ownedClients          Client[]             @relation("ClientOwner")
+  ownedOpportunities    Opportunity[]        @relation("OpportunityOwner")
+  managedProjects       Project[]            @relation("ProjectManager")
+  projectMemberships    ProjectMember[]
+  assignedTasks         Task[]               @relation("TaskAssignee")
+  ownedProposals        Proposal[]           @relation("ProposalOwner")
+  ownedContracts        Contract[]           @relation("ContractOwner")
+  ownedRisks            Risk[]               @relation("RiskOwner")
+  taskComments          TaskComment[]
+  meetingParticipations MeetingParticipant[]
+  activities            Activity[]           @relation("ActivityActor")
+  aiConversations       AIConversation[]
+  savedViews            SavedView[]
+  favorites             Favorite[]
+  memoryFacts           MemoryFact[]         @relation("MemoryAuthor")
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Session {
+  id                    String   @id @default(cuid())
+  tokenHash             String   @unique
+  userId                String
+  organizationId        String?
+  /// preenchido quando um SUPER_ADMIN acessa um workspace em modo suporte
+  supportOrganizationId String?
+  supportReason         String?
+  ip                    String?
+  userAgent             String?
+  expiresAt             DateTime
+  lastActivityAt        DateTime @default(now())
+  createdAt             DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ConsentRecord {
+  id         String      @id @default(cuid())
+  userId     String
+  type       ConsentType
+  version    String
+  acceptedAt DateTime    @default(now())
+  revokedAt  DateTime?
+  ip         String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}
+
+model Organization {
+  id                    String    @id @default(cuid())
+  name                  String
+  slug                  String    @unique
+  legalName             String?
+  document              String?
+  logoUrl               String?
+  segment               String?
+  employeeRange         String?
+  mainGoal              String?
+  timezone              String    @default("America/Sao_Paulo")
+  currency              String    @default("BRL")
+  locale                String    @default("pt-BR")
+  dateFormat            String    @default("dd/MM/yyyy")
+  /// configurações operacionais validadas por Zod (src/server/modules/organization/settings.ts)
+  settings              Json      @default("{}")
+  isDemo                Boolean   @default(false)
+  /// workspaces demo públicos expiram e são removidos pelo job de retenção
+  demoExpiresAt         DateTime?
+  onboardingStep        Int       @default(1)
+  onboardingCompletedAt DateTime?
+  blockedAt             DateTime?
+  blockedReason         String?
+  deletionRequestedAt   DateTime?
+  deletionScheduledFor  DateTime?
+  proposalSeq           Int       @default(0)
+  contractSeq           Int       @default(0)
+  createdById           String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  members      OrganizationMember[]
+  roles        Role[]
+  subscription Subscription?
+  usage        UsageRecord[]
+  invoices     InvoiceReference[]
+  invitations  Invitation[]
+
+  @@index([createdAt])
+  @@index([isDemo])
+}
+
+model Permission {
+  id          String @id @default(cuid())
+  key         String @unique
+  group       String
+  description String
+
+  roles RolePermission[]
+}
+
+model Role {
+  id             String   @id @default(cuid())
+  organizationId String
+  /// OWNER, ADMIN, MANAGER, MEMBER, VIEWER para papéis de sistema; slug livre para papéis customizados
+  key            String
+  name           String
+  description    String?
+  isSystem       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  permissions  RolePermission[]
+  members      OrganizationMember[]
+  invitations  Invitation[]
+
+  @@unique([organizationId, key])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model OrganizationMember {
+  id                  String       @id @default(cuid())
+  organizationId      String
+  userId              String
+  roleId              String
+  title               String?
+  department          String?
+  status              MemberStatus @default(ACTIVE)
+  /// horas semanais disponíveis — base do Mapa de Capacidade
+  weeklyCapacityHours Int          @default(40)
+  lastActiveAt        DateTime?
+  /// fim da visita anterior — base do "O que mudou?"
+  previousVisitAt     DateTime?
+  notificationPrefs   Json         @default("{}")
+  joinedAt            DateTime     @default(now())
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role         Role         @relation(fields: [roleId], references: [id])
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId, status])
+}
+
+model Invitation {
+  id             String    @id @default(cuid())
+  organizationId String
+  email          String
+  roleId         String
+  tokenHash      String    @unique
+  invitedById    String
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role         Role         @relation(fields: [roleId], references: [id])
+
+  @@index([organizationId])
+  @@index([email])
+}
+
+// ───────────────────────────── Billing ─────────────────────────────
+
+model Plan {
+  id                   String   @id @default(cuid())
+  key                  String   @unique
+  name                 String
+  description          String
+  /// valores em centavos; null = sob consulta
+  priceMonthlyCents    Int?
+  priceYearlyCents     Int?
+  currency             String   @default("BRL")
+  trialDays            Int      @default(14)
+  /// limites: null = ilimitado
+  maxUsers             Int?
+  maxStorageMb         Int?
+  maxAutomations       Int?
+  maxAiRequestsMonth   Int?
+  maxApiKeys           Int?
+  maxWebhooks          Int?
+  /// chaves de recursos habilitados (src/server/billing/features.ts)
+  features             String[]
+  highlights           String[]
+  isPublic             Boolean  @default(true)
+  isActive             Boolean  @default(true)
+  sortOrder            Int      @default(0)
+  stripePriceMonthlyId String?
+  stripePriceYearlyId  String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                 String              @id @default(cuid())
+  organizationId     String              @unique
+  planId             String
+  status             SubscriptionStatus  @default(TRIALING)
+  billingInterval    String              @default("monthly")
+  trialEndsAt        DateTime?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean             @default(false)
+  canceledAt         DateTime?
+  provider           BillingProviderKind @default(NONE)
+  externalId         String?             @unique
+  externalCustomerId String?
+  /// valor mensal efetivo em centavos (base do MRR)
+  mrrCents           Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan         Plan               @relation(fields: [planId], references: [id])
+  invoices     InvoiceReference[]
+
+  @@index([status])
+  @@index([planId])
+}
+
+model UsageRecord {
+  id             String   @id @default(cuid())
+  organizationId String
+  /// AI_REQUESTS, API_CALLS, REPORT_EXPORTS ...
+  metric         String
+  /// AAAA-MM
+  period         String
+  quantity       Int      @default(0)
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, metric, period])
+  @@index([metric, period])
+}
+
+model InvoiceReference {
+  id             String              @id @default(cuid())
+  organizationId String
+  subscriptionId String?
+  provider       BillingProviderKind
+  externalId     String              @unique
+  amountCents    Int
+  currency       String              @default("BRL")
+  status         String
+  hostedUrl      String?
+  issuedAt       DateTime
+  paidAt         DateTime?
+  createdAt      DateTime            @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([organizationId, issuedAt])
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────── CRM ───────────────────────────────
+
+model Lead {
+  id                     String            @id @default(cuid())
+  organizationId         String
+  name                   String
+  companyName            String?
+  email                  String?
+  phone                  String?
+  whatsapp               String?
+  jobTitle               String?
+  source                 AcquisitionSource @default(OTHER)
+  status                 LeadStatus        @default(NEW)
+  ownerId                String?
+  notes                  String?
+  potentialValue         Decimal?          @db.Decimal(14, 2)
+  lastContactAt          DateTime?
+  convertedAt            DateTime?
+  convertedClientId      String?
+  convertedOpportunityId String?
+  createdById            String?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  deletedAt              DateTime?
+
+  owner User? @relation("LeadOwner", fields: [ownerId], references: [id])
+
+  @@index([organizationId, status])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, ownerId])
+  @@index([organizationId, email])
+  @@index([deletedAt])
+}
+
+model Client {
+  id                String            @id @default(cuid())
+  organizationId    String
+  name              String
+  kind              ClientKind        @default(COMPANY)
+  legalName         String?
+  /// CNPJ ou CPF somente dígitos
+  document          String?
+  email             String?
+  phone             String?
+  website           String?
+  domain            String?
+  industry          String?
+  city              String?
+  state             String?
+  status            ClientStatus      @default(ACTIVE)
+  isKeyAccount      Boolean           @default(false)
+  source            AcquisitionSource @default(OTHER)
+  ownerId           String?
+  notes             String?
+  lastInteractionAt DateTime?
+  createdById       String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  deletedAt         DateTime?
+
+  owner          User?          @relation("ClientOwner", fields: [ownerId], references: [id])
+  contacts       Contact[]
+  opportunities  Opportunity[]
+  projects       Project[]
+  tasks          Task[]
+  meetings       Meeting[]
+  proposals      Proposal[]
+  contracts      Contract[]
+  documents      Document[]
+  receivables    Receivable[]
+  memoryFacts    MemoryFact[]
+  portalAccesses PortalAccess[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, ownerId])
+  @@index([organizationId, document])
+  @@index([organizationId, domain])
+  @@index([deletedAt])
+}
+
+model Contact {
+  id             String       @id @default(cuid())
+  organizationId String
+  clientId       String?
+  name           String
+  email          String?
+  phone          String?
+  whatsapp       String?
+  jobTitle       String?
+  department     String?
+  decisionRole   DecisionRole @default(UNKNOWN)
+  /// 1 (baixa) a 5 (muito alta)
+  influence      Int          @default(3)
+  reportsToId    String?
+  isPrimary      Boolean      @default(false)
+  notes          String?
+  createdById    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  client         Client?              @relation(fields: [clientId], references: [id])
+  reportsTo      Contact?             @relation("ContactHierarchy", fields: [reportsToId], references: [id])
+  reports        Contact[]            @relation("ContactHierarchy")
+  opportunities  Opportunity[]
+  participations MeetingParticipant[]
+
+  @@index([organizationId, clientId])
+  @@index([organizationId, email])
+  @@index([deletedAt])
+}
+
+model Pipeline {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  stages        PipelineStage[]
+  opportunities Opportunity[]
+
+  @@index([organizationId])
+}
+
+model PipelineStage {
+  id             String    @id @default(cuid())
+  organizationId String
+  pipelineId     String
+  name           String
+  order          Int
+  probability    Int       @default(10)
+  kind           StageKind @default(OPEN)
+  color          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  pipeline      Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  opportunities Opportunity[]
+
+  @@index([organizationId, pipelineId, order])
+}
+
+model Opportunity {
+  id                String            @id @default(cuid())
+  organizationId    String
+  title             String
+  clientId          String
+  contactId         String?
+  pipelineId        String
+  stageId           String
+  value             Decimal           @default(0) @db.Decimal(14, 2)
+  /// sobrescreve a probabilidade da etapa quando informado
+  probability       Int?
+  expectedCloseDate DateTime?
+  ownerId           String?
+  source            AcquisitionSource @default(OTHER)
+  status            OpportunityStatus @default(OPEN)
+  description       String?
+  nextStep          String?
+  nextStepDate      DateTime?
+  competitors       String[]
+  closeReason       CloseReason?
+  closeNotes        String?
+  wonAt             DateTime?
+  lostAt            DateTime?
+  stageChangedAt    DateTime          @default(now())
+  lastActivityAt    DateTime          @default(now())
+  leadId            String?
+  createdById       String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  deletedAt         DateTime?
+
+  client    Client        @relation(fields: [clientId], references: [id])
+  contact   Contact?      @relation(fields: [contactId], references: [id])
+  pipeline  Pipeline      @relation(fields: [pipelineId], references: [id])
+  stage     PipelineStage @relation(fields: [stageId], references: [id])
+  owner     User?         @relation("OpportunityOwner", fields: [ownerId], references: [id])
+  tasks     Task[]
+  meetings  Meeting[]
+  proposals Proposal[]
+  contracts Contract[]
+  documents Document[]
+  risks     Risk[]
+  projects  Project[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, stageId])
+  @@index([organizationId, clientId])
+  @@index([organizationId, ownerId])
+  @@index([organizationId, expectedCloseDate])
+  @@index([organizationId, createdAt])
+  @@index([deletedAt])
+}
+
+model Activity {
+  id             String              @id @default(cuid())
+  organizationId String
+  /// ex.: lead.created, interaction.logged, opportunity.stage_changed, task.completed
+  action         String
+  channel        InteractionChannel?
+  /// true quando representa contato real com o cliente (ligação, e-mail, reunião...)
+  isInteraction  Boolean             @default(false)
+  title          String
+  body           String?
+  actorId        String?
+  entityType     String
+  entityId       String
+  clientId       String?
+  leadId         String?
+  opportunityId  String?
+  projectId      String?
+  taskId         String?
+  metadata       Json?
+  occurredAt     DateTime            @default(now())
+  createdAt      DateTime            @default(now())
+
+  actor User? @relation("ActivityActor", fields: [actorId], references: [id])
+
+  @@index([organizationId, occurredAt])
+  @@index([organizationId, clientId, occurredAt])
+  @@index([organizationId, opportunityId])
+  @@index([organizationId, projectId])
+  @@index([organizationId, leadId])
+  @@index([organizationId, entityType, entityId])
+}
+
+// ───────────────────────── Projetos e tarefas ─────────────────────────
+
+model Project {
+  id               String        @id @default(cuid())
+  organizationId   String
+  name             String
+  code             String?
+  clientId         String?
+  opportunityId    String?
+  managerId        String?
+  description      String?
+  priority         Priority      @default(MEDIUM)
+  status           ProjectStatus @default(PLANNING)
+  startDate        DateTime?
+  dueDate          DateTime?
+  completedAt      DateTime?
+  /// progresso manual (0–100); quando há tarefas, o progresso exibido é calculado por elas
+  progress         Int           @default(0)
+  budget           Decimal?      @db.Decimal(14, 2)
+  actualCost       Decimal?      @db.Decimal(14, 2)
+  /// visível no Portal do Cliente
+  sharedWithClient Boolean       @default(false)
+  createdById      String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  deletedAt        DateTime?
+
+  client      Client?         @relation(fields: [clientId], references: [id])
+  opportunity Opportunity?    @relation(fields: [opportunityId], references: [id])
+  manager     User?           @relation("ProjectManager", fields: [managerId], references: [id])
+  members     ProjectMember[]
+  tasks       Task[]
+  meetings    Meeting[]
+  documents   Document[]
+  risks       Risk[]
+  receivables Receivable[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, clientId])
+  @@index([organizationId, managerId])
+  @@index([organizationId, dueDate])
+  @@index([organizationId, createdAt])
+  @@index([deletedAt])
+}
+
+model ProjectMember {
+  projectId      String
+  userId         String
+  organizationId String
+  role           String?
+  createdAt      DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+  @@index([organizationId, userId])
+}
+
+model Risk {
+  id             String     @id @default(cuid())
+  organizationId String
+  projectId      String?
+  opportunityId  String?
+  title          String
+  description    String?
+  /// 1 baixo · 2 médio · 3 alto · 4 crítico
+  impact         Int        @default(2)
+  /// 1 rara · 2 possível · 3 provável · 4 quase certa
+  probability    Int        @default(2)
+  ownerId        String?
+  mitigation     String?
+  status         RiskStatus @default(OPEN)
+  createdById    String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  deletedAt      DateTime?
+
+  project     Project?     @relation(fields: [projectId], references: [id])
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id])
+  owner       User?        @relation("RiskOwner", fields: [ownerId], references: [id])
+
+  @@index([organizationId, projectId])
+  @@index([organizationId, opportunityId])
+  @@index([organizationId, status])
+}
+
+model Task {
+  id               String     @id @default(cuid())
+  organizationId   String
+  title            String
+  description      String?
+  projectId        String?
+  clientId         String?
+  opportunityId    String?
+  parentId         String?
+  assigneeId       String?
+  priority         Priority   @default(MEDIUM)
+  /// true quando o usuário definiu a prioridade manualmente (o Smart Priority Engine não sobrescreve)
+  priorityIsManual Boolean    @default(false)
+  priorityReasons  String[]
+  blocksProject    Boolean    @default(false)
+  status           TaskStatus @default(TODO)
+  dueDate          DateTime?
+  completedAt      DateTime?
+  estimateHours    Decimal?   @db.Decimal(6, 2)
+  sortOrder        Int        @default(0)
+  source           TaskSource @default(MANUAL)
+  playbookRunId    String?
+  createdById      String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  deletedAt        DateTime?
+
+  project     Project?      @relation(fields: [projectId], references: [id])
+  client      Client?       @relation(fields: [clientId], references: [id])
+  opportunity Opportunity?  @relation(fields: [opportunityId], references: [id])
+  parent      Task?         @relation("Subtasks", fields: [parentId], references: [id])
+  subtasks    Task[]        @relation("Subtasks")
+  assignee    User?         @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  comments    TaskComment[]
+  documents   Document[]
+  playbookRun PlaybookRun?  @relation(fields: [playbookRunId], references: [id])
+
+  @@index([organizationId, status])
+  @@index([organizationId, assigneeId, status])
+  @@index([organizationId, projectId])
+  @@index([organizationId, clientId])
+  @@index([organizationId, opportunityId])
+  @@index([organizationId, dueDate])
+  @@index([organizationId, createdAt])
+  @@index([parentId])
+  @@index([deletedAt])
+}
+
+model TaskComment {
+  id             String    @id @default(cuid())
+  organizationId String
+  taskId         String
+  authorId       String
+  body           String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id])
+
+  @@index([organizationId, taskId])
+}
+
+// ─────────────────────────────── Reuniões ───────────────────────────────
+
+model Meeting {
+  id             String        @id @default(cuid())
+  organizationId String
+  title          String
+  clientId       String?
+  opportunityId  String?
+  projectId      String?
+  startsAt       DateTime
+  endsAt         DateTime?
+  location       String?
+  description    String?
+  minutes        String?
+  decisions      String?
+  nextActions    String?
+  transcript     String?
+  /// resultado estruturado da análise de transcrição (revisado pelo usuário)
+  aiSummary      Json?
+  status         MeetingStatus @default(SCHEDULED)
+  createdById    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+
+  client       Client?              @relation(fields: [clientId], references: [id])
+  opportunity  Opportunity?         @relation(fields: [opportunityId], references: [id])
+  project      Project?             @relation(fields: [projectId], references: [id])
+  participants MeetingParticipant[]
+  documents    Document[]
+
+  @@index([organizationId, startsAt])
+  @@index([organizationId, clientId])
+  @@index([organizationId, opportunityId])
+  @@index([deletedAt])
+}
+
+model MeetingParticipant {
+  id        String  @id @default(cuid())
+  meetingId String
+  userId    String?
+  contactId String?
+  name      String?
+  email     String?
+
+  meeting Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User?    @relation(fields: [userId], references: [id])
+  contact Contact? @relation(fields: [contactId], references: [id])
+
+  @@index([meetingId])
+  @@index([userId])
+}
+
+// ───────────────────────── Propostas e contratos ─────────────────────────
+
+model Proposal {
+  id              String         @id @default(cuid())
+  organizationId  String
+  number          Int
+  title           String
+  clientId        String
+  opportunityId   String?
+  contactId       String?
+  ownerId         String?
+  scope           String?
+  notes           String?
+  validUntil      DateTime?
+  status          ProposalStatus @default(DRAFT)
+  currency        String         @default("BRL")
+  subtotal        Decimal        @default(0) @db.Decimal(14, 2)
+  discountType    DiscountType   @default(PERCENT)
+  discountValue   Decimal        @default(0) @db.Decimal(14, 2)
+  /// [{ name, rate }] — impostos configuráveis por proposta
+  taxes           Json           @default("[]")
+  taxTotal        Decimal        @default(0) @db.Decimal(14, 2)
+  total           Decimal        @default(0) @db.Decimal(14, 2)
+  sentAt          DateTime?
+  /// somente preenchido por rastreamento real (link público da proposta)
+  viewedAt        DateTime?
+  viewCount       Int            @default(0)
+  acceptedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?
+  statusChangedAt DateTime       @default(now())
+  lastFollowUpAt  DateTime?
+  publicToken     String?        @unique
+  aiGenerated     Boolean        @default(false)
+  createdById     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+
+  client      Client         @relation(fields: [clientId], references: [id])
+  opportunity Opportunity?   @relation(fields: [opportunityId], references: [id])
+  owner       User?          @relation("ProposalOwner", fields: [ownerId], references: [id])
+  items       ProposalItem[]
+  contracts   Contract[]
+  documents   Document[]
+
+  @@unique([organizationId, number])
+  @@index([organizationId, status])
+  @@index([organizationId, clientId])
+  @@index([organizationId, opportunityId])
+  @@index([organizationId, createdAt])
+  @@index([deletedAt])
+}
+
+model ProposalItem {
+  id             String  @id @default(cuid())
+  organizationId String
+  proposalId     String
+  description    String
+  unit           String?
+  quantity       Decimal @db.Decimal(12, 2)
+  unitPrice      Decimal @db.Decimal(14, 2)
+  total          Decimal @db.Decimal(14, 2)
+  sortOrder      Int     @default(0)
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+}
+
+model Contract {
+  id                 String             @id @default(cuid())
+  organizationId     String
+  number             String
+  title              String
+  clientId           String
+  proposalId         String?
+  opportunityId      String?
+  ownerId            String?
+  value              Decimal            @db.Decimal(14, 2)
+  recurrence         ContractRecurrence @default(ONE_TIME)
+  startDate          DateTime
+  endDate            DateTime?
+  renewalType        RenewalType        @default(MANUAL)
+  status             ContractStatus     @default(ACTIVE)
+  signedAt           DateTime?
+  notes              String?
+  /// menor limite de alerta (90/60/30/7 dias) já notificado — evita alertas duplicados
+  lastAlertThreshold Int?
+  renewedFromId      String?
+  createdById        String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  deletedAt          DateTime?
+
+  client      Client       @relation(fields: [clientId], references: [id])
+  proposal    Proposal?    @relation(fields: [proposalId], references: [id])
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id])
+  owner       User?        @relation("ContractOwner", fields: [ownerId], references: [id])
+  documents   Document[]
+  receivables Receivable[]
+
+  @@unique([organizationId, number])
+  @@index([organizationId, status])
+  @@index([organizationId, clientId])
+  @@index([organizationId, endDate])
+  @@index([deletedAt])
+}
+
+/// Recebíveis gerenciais (não é contabilidade oficial): base da "receita recebida"
+model Receivable {
+  id             String           @id @default(cuid())
+  organizationId String
+  description    String
+  clientId       String?
+  contractId     String?
+  projectId      String?
+  amount         Decimal          @db.Decimal(14, 2)
+  dueDate        DateTime
+  receivedAt     DateTime?
+  status         ReceivableStatus @default(PENDING)
+  createdById    String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  deletedAt      DateTime?
+
+  client   Client?   @relation(fields: [clientId], references: [id])
+  contract Contract? @relation(fields: [contractId], references: [id])
+  project  Project?  @relation(fields: [projectId], references: [id])
+
+  @@index([organizationId, status, dueDate])
+  @@index([organizationId, receivedAt])
+  @@index([organizationId, clientId])
+}
+
+// ─────────────────────────────── Documentos ───────────────────────────────
+
+model Document {
+  id               String           @id @default(cuid())
+  organizationId   String
+  name             String
+  description      String?
+  category         DocumentCategory @default(OTHER)
+  fileName         String
+  mimeType         String
+  sizeBytes        Int
+  checksum         String
+  storageProvider  String
+  storageKey       String
+  clientId         String?
+  projectId        String?
+  opportunityId    String?
+  taskId           String?
+  proposalId       String?
+  contractId       String?
+  meetingId        String?
+  sharedWithClient Boolean          @default(false)
+  uploadedById     String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  deletedAt        DateTime?
+
+  client      Client?      @relation(fields: [clientId], references: [id])
+  project     Project?     @relation(fields: [projectId], references: [id])
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id])
+  task        Task?        @relation(fields: [taskId], references: [id])
+  proposal    Proposal?    @relation(fields: [proposalId], references: [id])
+  contract    Contract?    @relation(fields: [contractId], references: [id])
+  meeting     Meeting?     @relation(fields: [meetingId], references: [id])
+
+  @@index([organizationId, category])
+  @@index([organizationId, clientId])
+  @@index([organizationId, projectId])
+  @@index([organizationId, createdAt])
+  @@index([deletedAt])
+}
+
+/// Armazenamento interno (STORAGE_PROVIDER=database): permite uploads sem serviço externo
+model StoredFile {
+  key       String   @id
+  data      Bytes
+  createdAt DateTime @default(now())
+}
+
+// ─────────────────── Organização, colaboração e inteligência ───────────────────
+
+model Tag {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  color          String   @default("slate")
+  createdAt      DateTime @default(now())
+
+  assignments TagAssignment[]
+
+  @@unique([organizationId, name])
+}
+
+model TagAssignment {
+  id             String   @id @default(cuid())
+  organizationId String
+  tagId          String
+  /// client, lead, opportunity, project, task, contact, document
+  entityType     String
+  entityId       String
+  createdAt      DateTime @default(now())
+
+  tag Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([tagId, entityType, entityId])
+  @@index([organizationId, entityType, entityId])
+}
+
+model Notification {
+  id             String    @id @default(cuid())
+  organizationId String
+  userId         String
+  type           String
+  title          String
+  body           String?
+  link           String?
+  entityType     String?
+  entityId       String?
+  /// evita notificações repetidas geradas por jobs
+  dedupeKey      String?
+  readAt         DateTime?
+  archivedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([organizationId, userId, archivedAt, createdAt])
+  @@index([userId, readAt])
+}
+
+model Decision {
+  id             String         @id @default(cuid())
+  organizationId String
+  /// APPROVE_PROPOSAL, REVIEW_PROJECT_RISK, CONFIRM_AI_TASKS, ACCEPT_SUGGESTION, RESOLVE_DUPLICATE, CONFIRM_MEMORY
+  type           String
+  title          String
+  description    String?
+  payload        Json           @default("{}")
+  entityType     String?
+  entityId       String?
+  status         DecisionStatus @default(PENDING)
+  /// SYSTEM, AI, USER
+  source         String         @default("SYSTEM")
+  assigneeId     String?
+  dedupeKey      String?
+  resolvedById   String?
+  resolvedAt     DateTime?
+  resolutionNote String?
+  createdById    String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([organizationId, dedupeKey])
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, assigneeId, status])
+}
+
+model MemoryFact {
+  id             String         @id @default(cuid())
+  organizationId String
+  content        String
+  category       MemoryCategory @default(CONTEXT)
+  source         MemorySource   @default(MANUAL)
+  /// referência da fonte, ex.: meeting:<id>
+  sourceRef      String?
+  clientId       String?
+  projectId      String?
+  opportunityId  String?
+  contactId      String?
+  authorId       String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+
+  client Client? @relation(fields: [clientId], references: [id])
+  author User?   @relation("MemoryAuthor", fields: [authorId], references: [id])
+
+  @@index([organizationId, clientId])
+  @@index([organizationId, projectId])
+  @@index([organizationId, createdAt])
+}
+
+model SavedView {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  /// clients, leads, opportunities, projects, tasks, proposals, contracts
+  entity         String
+  name           String
+  filters        Json
+  isShared       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, userId, entity])
+}
+
+model Favorite {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  /// client, project, report, page
+  entityType     String
+  entityId       String
+  label          String
+  href           String
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId, entityType, entityId])
+  @@index([organizationId, userId])
+}
+
+/// Série histórica diária usada por Anomaly Detection e tendências
+model MetricSnapshot {
+  id             String   @id @default(cuid())
+  organizationId String
+  date           DateTime @db.Date
+  metric         String
+  value          Decimal  @db.Decimal(16, 2)
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, metric, date])
+  @@index([organizationId, date])
+}
+
+model RoiScenario {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  clientId       String?
+  opportunityId  String?
+  inputs         Json
+  results        Json
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId, createdAt])
+}
+
+model ImportJob {
+  id             String       @id @default(cuid())
+  organizationId String
+  entity         String
+  fileName       String
+  status         ImportStatus @default(PENDING)
+  totalRows      Int          @default(0)
+  importedRows   Int          @default(0)
+  skippedRows    Int          @default(0)
+  errors         Json         @default("[]")
+  mapping        Json         @default("{}")
+  createdById    String?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, createdAt])
+}
+
+/// Portal do Cliente: acesso externo por link com token, restrito ao que foi compartilhado
+model PortalAccess {
+  id             String    @id @default(cuid())
+  organizationId String
+  clientId       String
+  label          String
+  tokenHash      String    @unique
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  lastAccessAt   DateTime?
+  accessCount    Int       @default(0)
+  createdById    String?
+  createdAt      DateTime  @default(now())
+
+  client Client @relation(fields: [clientId], references: [id])
+
+  @@index([organizationId, clientId])
+}
+
+// ───────────────────────── Automação e processos ─────────────────────────
+
+model Automation {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  /// evento disparador (src/server/automations/catalog.ts)
+  trigger        String
+  /// [{ field, operator, value }]
+  conditions     Json      @default("[]")
+  /// [{ type, params }]
+  actions        Json      @default("[]")
+  enabled        Boolean   @default(true)
+  runCount       Int       @default(0)
+  lastRunAt      DateTime?
+  createdById    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  executions AutomationExecution[]
+
+  @@index([organizationId, trigger, enabled])
+}
+
+model AutomationExecution {
+  id             String          @id @default(cuid())
+  organizationId String
+  automationId   String
+  event          String
+  entityType     String?
+  entityId       String?
+  status         ExecutionStatus
+  result         Json?
+  error          String?
+  createdAt      DateTime        @default(now())
+
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([automationId, createdAt])
+}
+
+model Playbook {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  category       String?
+  enabled        Boolean   @default(true)
+  createdById    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  steps PlaybookStep[]
+  runs  PlaybookRun[]
+
+  @@index([organizationId])
+}
+
+model PlaybookStep {
+  id             String   @id @default(cuid())
+  organizationId String
+  playbookId     String
+  order          Int
+  title          String
+  description    String?
+  /// prazo relativo ao início do playbook
+  offsetDays     Int      @default(0)
+  /// RUNNER (quem iniciou), ENTITY_OWNER (responsável do registro) ou USER (assigneeId)
+  assigneeMode   String   @default("RUNNER")
+  assigneeId     String?
+  priority       Priority @default(MEDIUM)
+  estimateHours  Decimal? @db.Decimal(6, 2)
+
+  playbook Playbook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+
+  @@index([playbookId, order])
+}
+
+model PlaybookRun {
+  id             String   @id @default(cuid())
+  organizationId String
+  playbookId     String
+  clientId       String?
+  projectId      String?
+  opportunityId  String?
+  startedById    String?
+  createdAt      DateTime @default(now())
+
+  playbook Playbook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  tasks    Task[]
+
+  @@index([organizationId, playbookId])
+}
+
+// ─────────────────────────────── IA ───────────────────────────────
+
+model AIConversation {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  title          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AIMessage[]
+
+  @@index([organizationId, userId, updatedAt])
+}
+
+model AIMessage {
+  id             String        @id @default(cuid())
+  organizationId String
+  conversationId String
+  role           AIMessageRole
+  content        String
+  /// [{ type, id, label, href }] — registros reais citados na resposta
+  references     Json          @default("[]")
+  /// ferramentas determinísticas consultadas
+  tools          String[]
+  provider       String?
+  model          String?
+  createdAt      DateTime      @default(now())
+
+  conversation AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+model AIUsage {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  /// chat, meeting_summary, proposal_generator, command, intent
+  feature        String
+  provider       String
+  model          String
+  inputTokens    Int      @default(0)
+  outputTokens   Int      @default(0)
+  success        Boolean  @default(true)
+  error          String?
+  latencyMs      Int?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([createdAt])
+}
+
+// ───────────────────────── Integrações e API ─────────────────────────
+
+model Webhook {
+  id                  String    @id @default(cuid())
+  organizationId      String
+  name                String
+  url                 String
+  /// segredo cifrado (AES-256-GCM) usado para assinar as entregas
+  secretEncrypted     String
+  events              String[]
+  enabled             Boolean   @default(true)
+  consecutiveFailures Int       @default(0)
+  lastDeliveryAt      DateTime?
+  createdById         String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  deliveries WebhookDelivery[]
+
+  @@index([organizationId])
+}
+
+model WebhookDelivery {
+  id             String         @id @default(cuid())
+  organizationId String
+  webhookId      String
+  event          String
+  payload        Json
+  status         DeliveryStatus @default(PENDING)
+  attempts       Int            @default(0)
+  responseStatus Int?
+  responseBody   String?
+  error          String?
+  nextAttemptAt  DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime       @default(now())
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([status, nextAttemptAt])
+  @@index([webhookId, createdAt])
+}
+
+model ApiKey {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  /// prefixo exibido para identificação (ex.: ctx_live_ab12cd)
+  prefix         String
+  keyHash        String    @unique
+  scopes         String[]
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  createdById    String?
+  createdAt      DateTime  @default(now())
+
+  @@index([organizationId])
+}
+
+// ─────────────────────── Auditoria e operação ───────────────────────
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  /// null para eventos de plataforma (ex.: login de super admin)
+  organizationId String?
+  actorId        String?
+  actorEmail     String?
+  /// super admin em modo suporte
+  impersonatorId String?
+  action         String
+  entityType     String?
+  entityId       String?
+  metadata       Json?
+  ip             String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([createdAt])
+}
+
+model SystemEvent {
+  id             String   @id @default(cuid())
+  /// info, warn, error
+  level          String
+  source         String
+  message        String
+  organizationId String?
+  context        Json?
+  createdAt      DateTime @default(now())
+
+  @@index([level, createdAt])
+  @@index([createdAt])
+}
+
+model JobRun {
+  id         String    @id @default(cuid())
+  job        String
+  status     String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  result     Json?
+  error      String?
+
+  @@index([job, startedAt])
+}
+
+model RateLimitBucket {
+  key         String   @id
+  windowStart DateTime
+  count       Int
+  expiresAt   DateTime
+
+  @@index([expiresAt])
+}
