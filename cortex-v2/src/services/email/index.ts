@@ -49,6 +49,10 @@ class LogOnlyProvider implements EmailProvider {
   }
 }
 
+export function isEmailConfigured() {
+  return Boolean(env().RESEND_API_KEY);
+}
+
 export function emailProvider(): EmailProvider {
   const e = env();
   if (e.RESEND_API_KEY) return new ResendProvider(e.RESEND_API_KEY, e.EMAIL_FROM ?? "JR Córtex <no-reply@jrcortex.com.br>");
