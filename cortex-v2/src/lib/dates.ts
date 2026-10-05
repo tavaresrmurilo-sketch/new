@@ -212,3 +212,12 @@ export function periodRange(key: PeriodKey, tz: string, now = new Date(), custom
 export function isPeriodKey(v: unknown): v is PeriodKey {
   return typeof v === "string" && v in PERIOD_LABELS;
 }
+
+export function isValidTimeZone(tz: string): boolean {
+  try {
+    new Intl.DateTimeFormat("pt-BR", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}

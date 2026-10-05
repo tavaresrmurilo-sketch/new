@@ -17,12 +17,12 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "tsx --conditions=react-server prisma/seed.ts",
     "db:studio": "prisma studio",
-    "jobs:run": "tsx scripts/run-jobs.ts"
+    "jobs:run": "node scripts/run-jobs.mjs"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx --conditions=react-server prisma/seed.ts"
   },
   "engines": {
     "node": ">=20.9.0"

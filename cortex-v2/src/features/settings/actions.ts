@@ -10,6 +10,7 @@ import { revokeUserSessions } from "@/server/auth/session";
 import { AppError } from "@/server/errors";
 import { getPlatformSetting } from "@/server/platform";
 import { isValidCnpj, isValidCpf } from "@/lib/br-docs";
+import { isValidTimeZone } from "@/lib/dates";
 
 const strongPassword = z
   .string()
@@ -53,7 +54,7 @@ export const updateCompanyAction = defineAction(
       legalName: z.string().trim().max(200).nullish(),
       document: z.string().trim().max(20).nullish(),
       segment: z.string().trim().max(60).nullish(),
-      timezone: z.string().trim().min(3).max(60).refine((tz) => { try { new Intl.DateTimeFormat("pt-BR", { timeZone: tz }); return true; } catch { return false; } }, "Fuso horário inválido"),
+      timezone: z.string().trim().min(3).max(60).refine(isValidTimeZone, "Fuso horário inválido"),
       currency: z.enum(["BRL", "USD", "EUR"]),
       logoUrl: z.string().trim().url().startsWith("https://", "Use uma URL https").max(500).nullish().or(z.literal("")),
     }),
