@@ -5,42 +5,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function slugify(input: string): string {
-  return input
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 48);
+export function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n));
 }
 
-/** Normaliza texto para comparação: minúsculas, sem acentos, espaços simples. */
-export function normalizeText(input: string): string {
-  return input
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9%$., -]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+/** Iniciais para avatares ("Ana Paula Souza" → "AS"). */
+export function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  const first = parts[0][0] ?? "";
+  const last = parts.length > 1 ? parts[parts.length - 1][0] ?? "" : "";
+  return (first + last).toUpperCase();
 }
 
-export function round(value: number, digits = 2): number {
-  const f = 10 ** digits;
-  return Math.round((value + Number.EPSILON) * f) / f;
-}
-
-export function pctChange(current: number, previous: number): number | null {
-  if (previous === 0) return null;
-  return round(((current - previous) / Math.abs(previous)) * 100, 2);
-}
-
-export function safeDiv(a: number, b: number): number | null {
-  if (!b) return null;
-  return a / b;
-}
-
-export function sum(values: number[]): number {
-  return round(values.reduce((acc, v) => acc + v, 0), 2);
+/** Aceita apenas caminhos internos em parâmetros "next" (evita open redirect). */
+export function safeNextPath(next: string | null | undefined, fallback = "/"): string {
+  if (!next || typeof next !== "string") return fallback;
+  if (!next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return fallback;
+  return next;
 }

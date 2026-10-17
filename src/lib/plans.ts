@@ -1,9 +1,81 @@
-import type { Plan } from "@prisma/client";
+/**
+ * Definição comercial dos planos para organizadores.
+ * Estes valores são o ponto de partida (seed) — preços e limites ficam no banco
+ * (tabela Plan) e podem ser ajustados no /admin sem novo deploy.
+ */
+export type Tier = "FREE" | "PRO" | "BUSINESS";
 
-/** Estrutura de planos comerciais. Cobrança (Stripe/Mercado Pago/Asaas) será plugada via BillingProvider. */
-export const PLANS: Record<Plan, { label: string; priceBRL: number | null; users: number; integrations: number; aiQuestionsMonth: number; historyMonths: number; features: string[] }> = {
-  STARTER: { label: "Starter", priceBRL: 490, users: 3, integrations: 2, aiQuestionsMonth: 300, historyMonths: 24, features: ["Dashboards", "DRE", "Importação de planilhas", "Pergunte ao Cortex"] },
-  PROFESSIONAL: { label: "Professional", priceBRL: 1290, users: 10, integrations: 5, aiQuestionsMonth: 1500, historyMonths: 60, features: ["Tudo do Starter", "Projeções e cenários", "Relatório executivo", "Integrações API"] },
-  BUSINESS: { label: "Business", priceBRL: 2890, users: 30, integrations: 15, aiQuestionsMonth: 6000, historyMonths: 120, features: ["Tudo do Professional", "Multiempresa", "Auditoria avançada", "Suporte prioritário"] },
-  ENTERPRISE: { label: "Enterprise", priceBRL: null, users: 1000, integrations: 100, aiQuestionsMonth: 100000, historyMonths: 240, features: ["Tudo do Business", "SSO", "SLA dedicado", "Conectores sob medida"] },
-};
+export interface PlanDefinition {
+  tier: Tier;
+  name: string;
+  tagline: string;
+  priceMonthlyCents: number;
+  priceYearlyCents: number | null;
+  maxActiveEvents: number | null;
+  maxMembers: number;
+  maxVenues: number | null;
+  boostsPerMonth: number;
+  fullAnalytics: boolean;
+  csvExport: boolean;
+  highlightBadge: boolean;
+}
+
+export const PLAN_SEED: PlanDefinition[] = [
+  {
+    tier: "FREE",
+    name: "Gratuito",
+    tagline: "Para começar a aparecer no mapa",
+    priceMonthlyCents: 0,
+    priceYearlyCents: null,
+    maxActiveEvents: 3,
+    maxMembers: 1,
+    maxVenues: 2,
+    boostsPerMonth: 0,
+    fullAnalytics: false,
+    csvExport: false,
+    highlightBadge: false,
+  },
+  {
+    tier: "PRO",
+    name: "Pro",
+    tagline: "Para produtores e casas com agenda cheia",
+    priceMonthlyCents: 5900,
+    priceYearlyCents: 59000,
+    maxActiveEvents: null,
+    maxMembers: 3,
+    maxVenues: 10,
+    boostsPerMonth: 2,
+    fullAnalytics: true,
+    csvExport: true,
+    highlightBadge: true,
+  },
+  {
+    tier: "BUSINESS",
+    name: "Business",
+    tagline: "Para redes, festivais e agências",
+    priceMonthlyCents: 19900,
+    priceYearlyCents: 199000,
+    maxActiveEvents: null,
+    maxMembers: 15,
+    maxVenues: null,
+    boostsPerMonth: 10,
+    fullAnalytics: true,
+    csvExport: true,
+    highlightBadge: true,
+  },
+];
+
+export const BOOST_DURATION_DAYS = 7;
+
+export function planFeatureList(p: Pick<PlanDefinition, "maxActiveEvents" | "maxMembers" | "maxVenues" | "boostsPerMonth" | "fullAnalytics" | "csvExport" | "highlightBadge">): string[] {
+  const list = [
+    p.maxActiveEvents == null ? "Eventos ativos ilimitados" : `Até ${p.maxActiveEvents} eventos ativos`,
+    p.maxMembers === 1 ? "1 pessoa na equipe" : `Até ${p.maxMembers} pessoas na equipe`,
+    p.maxVenues == null ? "Locais salvos ilimitados" : `Até ${p.maxVenues} locais salvos`,
+    p.fullAnalytics ? "Estatísticas completas por dia" : "Estatísticas básicas",
+  ];
+  if (p.boostsPerMonth > 0) list.push(`${p.boostsPerMonth} destaques por mês no mapa (${BOOST_DURATION_DAYS} dias cada)`);
+  if (p.highlightBadge) list.push("Selo de organizador profissional");
+  if (p.csvExport) list.push("Exportação das métricas em CSV");
+  return list;
+}

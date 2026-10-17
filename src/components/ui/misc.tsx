@@ -1,76 +1,144 @@
-import { AlertTriangle, CheckCircle2, Info, OctagonAlert, Sparkles, type LucideIcon } from "lucide-react";
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Badge } from "./badge";
 
-export function PageHeader({ title, description, actions, badge }: { title: string; description?: string; actions?: React.ReactNode; badge?: React.ReactNode }) {
+export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("rounded-3xl border border-border bg-surface shadow-card", className)} {...props} />;
+}
+
+export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("flex flex-col gap-1 p-5 pb-0 sm:p-6 sm:pb-0", className)} {...props} />;
+}
+
+export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+  return <h3 className={cn("text-lg font-bold tracking-tight", className)} {...props} />;
+}
+
+export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+  return <p className={cn("text-sm text-muted-foreground", className)} {...props} />;
+}
+
+export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("p-5 sm:p-6", className)} {...props} />;
+}
+
+const badgeTones = {
+  neutral: "bg-surface-2 text-muted-foreground",
+  primary: "bg-primary-soft text-primary",
+  accent: "bg-accent-soft text-accent",
+  success: "bg-success-soft text-success",
+  warning: "bg-warning-soft text-warning",
+  danger: "bg-danger-soft text-danger",
+  info: "bg-info-soft text-info",
+  brand: "bg-brand-gradient text-white",
+  outline: "border border-border-strong text-foreground",
+} as const;
+
+export function Badge({
+  tone = "neutral",
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLSpanElement> & { tone?: keyof typeof badgeTones }) {
   return (
-    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <span
+      className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap [&_svg]:size-3.5", badgeTones[tone], className)}
+      {...props}
+    />
+  );
+}
+
+export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div aria-hidden className={cn("skeleton rounded-2xl", className)} {...props} />;
+}
+
+export function Spinner({ className }: { className?: string }) {
+  return <span role="status" aria-label="Carregando" className={cn("inline-block size-5 animate-spin rounded-full border-2 border-current border-r-transparent", className)} />;
+}
+
+export function Separator({ className }: { className?: string }) {
+  return <hr className={cn("border-0 border-t border-border", className)} />;
+}
+
+interface EmptyStateProps {
+  icon?: React.ReactNode;
+  title: string;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  className?: string;
+}
+
+export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
+  return (
+    <div className={cn("flex flex-col items-center px-6 py-12 text-center", className)}>
+      {icon && (
+        <div className="mb-5 grid size-16 place-items-center rounded-3xl bg-primary-soft text-primary [&_svg]:size-7">{icon}</div>
+      )}
+      <h3 className="text-lg font-bold tracking-tight">{title}</h3>
+      {description && <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-muted-foreground">{description}</p>}
+      {action && <div className="mt-6">{action}</div>}
+    </div>
+  );
+}
+
+const alertTones = {
+  info: "border-info/25 bg-info-soft text-info",
+  success: "border-success/25 bg-success-soft text-success",
+  warning: "border-warning/25 bg-warning-soft text-warning",
+  danger: "border-danger/25 bg-danger-soft text-danger",
+  neutral: "border-border bg-surface-2 text-foreground",
+} as const;
+
+export function Alert({
+  tone = "info",
+  title,
+  children,
+  icon,
+  className,
+  action,
+}: {
+  tone?: keyof typeof alertTones;
+  title?: React.ReactNode;
+  children?: React.ReactNode;
+  icon?: React.ReactNode;
+  className?: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div role={tone === "danger" ? "alert" : "status"} className={cn("flex gap-3 rounded-2xl border p-4 text-sm", alertTones[tone], className)}>
+      {icon && <div className="mt-0.5 shrink-0 [&_svg]:size-5">{icon}</div>}
+      <div className="min-w-0 flex-1">
+        {title && <p className="font-semibold">{title}</p>}
+        {children && <div className={cn("leading-relaxed text-foreground/80", title && "mt-1")}>{children}</div>}
+        {action && <div className="mt-3">{action}</div>}
+      </div>
+    </div>
+  );
+}
+
+export function PageHeader({
+  title,
+  description,
+  actions,
+  className,
+  eyebrow,
+}: {
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  actions?: React.ReactNode;
+  className?: string;
+  eyebrow?: React.ReactNode;
+}) {
+  return (
+    <div className={cn("flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between", className)}>
       <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
-          {badge}
-        </div>
-        {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
+        {eyebrow && <div className="mb-1.5 text-sm font-semibold text-primary">{eyebrow}</div>}
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{title}</h1>
+        {description && <p className="mt-1.5 max-w-2xl text-[15px] text-muted-foreground">{description}</p>}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
 
-export function EmptyState({ icon: Icon = Info, title, description, action }: { icon?: LucideIcon; title: string; description?: string; action?: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed px-6 py-12 text-center">
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-        <Icon className="h-5 w-5 text-muted-foreground" />
-      </div>
-      <p className="text-sm font-medium">{title}</p>
-      {description ? <p className="mt-1 max-w-md text-sm text-muted-foreground">{description}</p> : null}
-      {action ? <div className="mt-4">{action}</div> : null}
-    </div>
-  );
-}
-
-export type Severity = "INFO" | "OPPORTUNITY" | "ATTENTION" | "CRITICAL";
-
-export const SEVERITY_META: Record<Severity, { label: string; icon: LucideIcon; variant: "info" | "success" | "warning" | "critical" }> = {
-  INFO: { label: "Informação", icon: Info, variant: "info" },
-  OPPORTUNITY: { label: "Oportunidade", icon: Sparkles, variant: "success" },
-  ATTENTION: { label: "Atenção", icon: AlertTriangle, variant: "warning" },
-  CRITICAL: { label: "Crítico", icon: OctagonAlert, variant: "critical" },
-};
-
-export function SeverityBadge({ severity }: { severity: Severity }) {
-  const m = SEVERITY_META[severity];
-  const Icon = m.icon;
-  return (
-    <Badge variant={m.variant}>
-      <Icon className="h-3 w-3" />
-      {m.label}
-    </Badge>
-  );
-}
-
-export function StatusDot({ ok, label }: { ok: boolean; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-xs">
-      {ok ? <CheckCircle2 className="h-3.5 w-3.5 text-success" /> : <AlertTriangle className="h-3.5 w-3.5 text-warning" />}
-      {label}
-    </span>
-  );
-}
-
-export function Notice({ tone = "info", children, className }: { tone?: "info" | "warning" | "critical"; children: React.ReactNode; className?: string }) {
-  const styles = {
-    info: "border-info/30 bg-info/5 text-foreground",
-    warning: "border-warning/40 bg-warning/5 text-foreground",
-    critical: "border-critical/40 bg-critical/5 text-foreground",
-  }[tone];
-  const Icon = tone === "info" ? Info : AlertTriangle;
-  return (
-    <div className={cn("flex items-start gap-2 rounded-md border px-3 py-2 text-sm", styles, className)}>
-      <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", tone === "info" ? "text-info" : tone === "warning" ? "text-warning" : "text-critical")} />
-      <div>{children}</div>
-    </div>
-  );
+export function Kbd({ children }: { children: React.ReactNode }) {
+  return <kbd className="rounded-md border border-border-strong bg-surface-2 px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">{children}</kbd>;
 }

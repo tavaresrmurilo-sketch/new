@@ -1,6 +1,4 @@
-// Build usado pela Vercel (script "vercel-build"). Multiplataforma (sem sintaxe de shell).
-// 1) gera o Prisma Client  2) aplica migrations pendentes (nunca apaga dados)  3) build do Next.js
-// Com Neon, DIRECT_URL (conexão direta, sem "-pooler") é usada apenas para as migrations, se definida.
+// Build da Vercel: Prisma Client → migrations pendentes (nunca apaga dados) → seed idempotente → Next.
 import { spawnSync } from "node:child_process";
 
 function run(cmd, args, env = process.env) {
@@ -11,4 +9,5 @@ function run(cmd, args, env = process.env) {
 run("npx", ["prisma", "generate"]);
 const migrateEnv = { ...process.env, DATABASE_URL: process.env.DIRECT_URL || process.env.DATABASE_URL };
 run("npx", ["prisma", "migrate", "deploy"], migrateEnv);
+run("npx", ["tsx", "prisma/seed.ts"], migrateEnv);
 run("npx", ["next", "build"]);

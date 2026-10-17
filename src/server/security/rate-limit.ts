@@ -1,42 +1,55 @@
+import "server-only";
+import { prisma } from "@/server/db";
+
 /**
- * Rate limiter de janela deslizante em memória. Adequado para instância única;
- * em produção com múltiplas instâncias substitua o store por Redis (ver SECURITY.md).
+ * Limitador de taxa em janela fixa, persistido no PostgreSQL — funciona com
+ * várias instâncias (Vercel/serverless) sem depender de Redis.
  */
-interface Bucket {
-  hits: number[];
-}
-
-const buckets = new Map<string, Bucket>();
-let lastSweep = Date.now();
-
 export interface RateLimitResult {
   allowed: boolean;
   remaining: number;
   retryAfterSeconds: number;
 }
 
-export function rateLimit(key: string, limit: number, windowMs: number): RateLimitResult {
-  const now = Date.now();
-  if (now - lastSweep > 60_000) {
-    for (const [k, b] of buckets) if (!b.hits.length || now - b.hits[b.hits.length - 1] > windowMs * 2) buckets.delete(k);
-    lastSweep = now;
-  }
-  const bucket = buckets.get(key) ?? { hits: [] };
-  bucket.hits = bucket.hits.filter((t) => now - t < windowMs);
-  if (bucket.hits.length >= limit) {
-    buckets.set(key, bucket);
-    return { allowed: false, remaining: 0, retryAfterSeconds: Math.ceil((windowMs - (now - bucket.hits[0])) / 1000) };
-  }
-  bucket.hits.push(now);
-  buckets.set(key, bucket);
-  return { allowed: true, remaining: limit - bucket.hits.length, retryAfterSeconds: 0 };
+export const LIMITS = {
+  login: { limit: 10, windowSec: 5 * 60 },
+  register: { limit: 5, windowSec: 60 * 60 },
+  passwordReset: { limit: 5, windowSec: 60 * 60 },
+  verifyResend: { limit: 5, windowSec: 60 * 60 },
+  geocode: { limit: 30, windowSec: 60 },
+  upload: { limit: 30, windowSec: 10 * 60 },
+  report: { limit: 10, windowSec: 60 * 60 },
+  engagement: { limit: 120, windowSec: 60 },
+  publicApi: { limit: 240, windowSec: 60 },
+  mutation: { limit: 60, windowSec: 60 },
+  invite: { limit: 20, windowSec: 60 * 60 },
+  checkout: { limit: 10, windowSec: 10 * 60 },
+} as const;
+
+export type LimitName = keyof typeof LIMITS;
+
+export async function rateLimit(name: LimitName, subject: string): Promise<RateLimitResult> {
+  const { limit, windowSec } = LIMITS[name];
+  const key = `${name}:${subject}`;
+  const now = new Date();
+  const resetAt = new Date(now.getTime() + windowSec * 1000);
+
+  // Upsert atômico: reinicia a janela vencida ou incrementa o contador.
+  const rows = await prisma.$queryRaw<{ count: number; resetAt: Date }[]>`
+    INSERT INTO "RateLimitBucket" ("key", "count", "resetAt")
+    VALUES (${key}, 1, ${resetAt})
+    ON CONFLICT ("key") DO UPDATE SET
+      "count" = CASE WHEN "RateLimitBucket"."resetAt" <= ${now} THEN 1 ELSE "RateLimitBucket"."count" + 1 END,
+      "resetAt" = CASE WHEN "RateLimitBucket"."resetAt" <= ${now} THEN ${resetAt} ELSE "RateLimitBucket"."resetAt" END
+    RETURNING "count", "resetAt"`;
+
+  const row = rows[0];
+  const count = Number(row.count);
+  const retryAfterSeconds = Math.max(0, Math.ceil((row.resetAt.getTime() - now.getTime()) / 1000));
+  return { allowed: count <= limit, remaining: Math.max(0, limit - count), retryAfterSeconds: count <= limit ? 0 : retryAfterSeconds };
 }
 
-export const LIMITS = {
-  login: { limit: 10, windowMs: 60_000 },
-  register: { limit: 5, windowMs: 60 * 60_000 },
-  chat: { limit: 30, windowMs: 60_000 },
-  import: { limit: 20, windowMs: 60_000 },
-  export: { limit: 30, windowMs: 60_000 },
-  api: { limit: 240, windowMs: 60_000 },
-} as const;
+export function retryMessage(seconds: number): string {
+  if (seconds < 60) return `Muitas tentativas. Tente novamente em ${seconds} s.`;
+  return `Muitas tentativas. Tente novamente em ${Math.ceil(seconds / 60)} min.`;
+}

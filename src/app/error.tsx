@@ -1,21 +1,33 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
+import { RotateCcw } from "lucide-react";
+import Link from "next/link";
+import { useEffect } from "react";
+import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 
-/** Falhas em layouts de seção (ex.: banco indisponível ao carregar a sessão). Sem detalhes técnicos. */
-export default function RootSegmentError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6 text-center">
-      <AlertTriangle className="size-8 text-warning" />
-      <h1 className="mt-3 text-xl font-semibold">Não foi possível acessar os dados no momento</h1>
-      <p className="mt-2 max-w-md text-sm text-muted-foreground">O JR Cortex AI está temporariamente sem acesso ao banco de dados. A falha foi registrada. Aguarde alguns instantes e tente novamente.</p>
-      <div className="mt-6 flex gap-2">
-        <Button onClick={reset}>Tentar novamente</Button>
-        <Button variant="outline" onClick={() => (window.location.href = "/login")}>
-          Ir para o login
-        </Button>
+    <main className="grid min-h-dvh place-items-center px-6 text-center">
+      <div className="max-w-md">
+        <LogoMark className="mx-auto size-16" />
+        <h1 className="mt-6 text-3xl font-extrabold tracking-tight">Algo saiu do roteiro</h1>
+        <p className="mt-3 text-[15px] text-muted-foreground">
+          Tivemos um problema ao carregar esta página. Tente novamente — se persistir, fale com a gente.
+          {error.digest && <span className="mt-2 block text-xs text-subtle-foreground">Código: {error.digest}</span>}
+        </p>
+        <div className="mt-8 flex justify-center gap-3">
+          <Button variant="primary" size="lg" onClick={reset}>
+            <RotateCcw /> Tentar de novo
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link href="/">Início</Link>
+          </Button>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

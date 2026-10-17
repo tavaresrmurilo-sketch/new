@@ -1,48 +1,31 @@
+import "server-only";
 import { cookies } from "next/headers";
 import { cache } from "react";
-import type { RoleKey, TenantKind, UserRole } from "@prisma/client";
-import { prisma } from "@/lib/db";
-import { env } from "@/lib/env";
+import type { UserRole } from "@prisma/client";
+import { prisma } from "@/server/db";
+import { env } from "@/server/env";
 import { hashToken, randomToken } from "@/server/security/crypto";
-import { ROLE_PERMISSIONS, SUPPORT_PERMISSIONS, type PermissionKey } from "./permissions";
 
-export const SESSION_COOKIE = "jrc_session";
+export const SESSION_COOKIE = process.env.NODE_ENV === "production" ? "__Host-mx_session" : "mx_session";
 
-export interface AuthContext {
+export interface SessionUser {
   sessionId: string;
-  userId: string;
-  userEmail: string;
-  userName: string;
-  /** papel interno (RBAC) dentro do espaço de trabalho */
-  role: RoleKey;
-  /** tipo de conta na plataforma: ADMIN, PERSON ou COMPANY */
-  accountRole: UserRole;
-  /** true somente para contas ADMIN (validado no servidor) */
-  isPlatformAdmin: boolean;
-  /** true quando um SUPER_ADMIN acessa um tenant via autorização de suporte */
-  supportMode: boolean;
-  tenantId: string | null;
-  tenantName: string | null;
-  tenantSlug: string | null;
-  tenantKind: TenantKind | null;
-  timezone: string;
-  isDemo: boolean;
-  onboardingCompleted: boolean;
-  permissions: Set<PermissionKey>;
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl: string | null;
+  role: UserRole;
+  isAdmin: boolean;
+  emailVerified: boolean;
 }
 
-export interface TenantContext extends AuthContext {
-  tenantId: string;
-  tenantName: string;
-}
-
-export async function createSession(userId: string, tenantId: string | null, ip: string | null, userAgent: string | null) {
+export async function createSession(userId: string, meta: { ip: string | null; userAgent: string | null }) {
   const token = randomToken(32);
-  const maxAgeMs = env().SESSION_MAX_AGE_HOURS * 3_600_000;
-  const expiresAt = new Date(Date.now() + maxAgeMs);
+  const expiresAt = new Date(Date.now() + env().SESSION_MAX_AGE_DAYS * 86_400_000);
   await prisma.session.create({
-    data: { tokenHash: hashToken(token), userId, activeTenantId: tenantId, ip, userAgent, expiresAt },
+    data: { tokenHash: hashToken(token), userId, ip: meta.ip, userAgent: meta.userAgent, expiresAt },
   });
+  await prisma.user.update({ where: { id: userId }, data: { lastLoginAt: new Date() } });
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -60,85 +43,46 @@ export async function destroySession() {
   jar.delete(SESSION_COOKIE);
 }
 
-async function loadPermissions(roleId: string): Promise<Set<PermissionKey>> {
-  const rows = await prisma.rolePermission.findMany({ where: { roleId }, include: { permission: true } });
-  return new Set(rows.map((r) => r.permission.key as PermissionKey));
+/** Encerra todas as sessões de um usuário (troca de senha, suspensão, exclusão). */
+export async function destroyAllSessions(userId: string, exceptSessionId?: string) {
+  await prisma.session.deleteMany({ where: { userId, ...(exceptSessionId ? { id: { not: exceptSessionId } } : {}) } });
 }
 
-/** Sessão da requisição atual (memoizada por requisição). Aplica expiração absoluta e por inatividade. */
-export const getAuth = cache(async (): Promise<AuthContext | null> => {
+/** Usuário da requisição atual (memoizado por requisição). Sessão deslizante. */
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
+  if (!token || token.length > 200) return null;
 
   const session = await prisma.session.findUnique({
     where: { tokenHash: hashToken(token) },
-    include: { user: { include: { role: true } }, activeTenant: true },
+    include: { user: true },
   });
   if (!session) return null;
 
   const now = Date.now();
-  const idleMs = env().SESSION_IDLE_TIMEOUT_MINUTES * 60_000;
-  if (session.expiresAt.getTime() < now || now - session.lastActivityAt.getTime() > idleMs || !session.user.active) {
+  if (session.expiresAt.getTime() < now || session.user.status !== "ACTIVE") {
     await prisma.session.delete({ where: { id: session.id } }).catch(() => undefined);
     return null;
   }
-  if (now - session.lastActivityAt.getTime() > 60_000) {
-    await prisma.session.update({ where: { id: session.id }, data: { lastActivityAt: new Date() } }).catch(() => undefined);
+
+  // Renova a sessão (no máximo uma escrita a cada 10 minutos).
+  if (now - session.lastActivityAt.getTime() > 10 * 60_000) {
+    const expiresAt = new Date(now + env().SESSION_MAX_AGE_DAYS * 86_400_000);
+    await prisma.session
+      .update({ where: { id: session.id }, data: { lastActivityAt: new Date(now), expiresAt } })
+      .catch(() => undefined);
   }
 
-  const role = session.user.role.key;
-  const accountRole = session.user.userRole;
-  const isPlatformAdmin = accountRole === "ADMIN";
-  let permissions = await loadPermissions(session.user.roleId);
-  if (!permissions.size) permissions = new Set(ROLE_PERMISSIONS[role]);
-
-  const tenant = session.activeTenant;
-  // Empresa suspensa/cancelada pelo JR Admin: sessões dos usuários dela deixam de valer imediatamente.
-  if (tenant && !isPlatformAdmin && (tenant.status === "SUSPENDED" || tenant.status === "CANCELLED")) {
-    await prisma.session.delete({ where: { id: session.id } }).catch(() => undefined);
-    return null;
-  }
-  let supportMode = false;
-  if (isPlatformAdmin && tenant) {
-    const grant = await prisma.supportAccessGrant.findFirst({
-      where: { tenantId: tenant.id, revokedAt: null, expiresAt: { gt: new Date() } },
-    });
-    if (!grant) {
-      await prisma.session.update({ where: { id: session.id }, data: { activeTenantId: null } });
-      return {
-        sessionId: session.id, userId: session.userId, userEmail: session.user.email, userName: session.user.name,
-        role, accountRole, isPlatformAdmin, supportMode: false, tenantId: null, tenantName: null, tenantSlug: null, tenantKind: null,
-        timezone: "America/Sao_Paulo", isDemo: false, onboardingCompleted: true, permissions,
-      };
-    }
-    supportMode = true;
-    permissions = new Set([...SUPPORT_PERMISSIONS, "platform:admin"]);
-  }
-
+  const u = session.user;
   return {
     sessionId: session.id,
-    userId: session.userId,
-    userEmail: session.user.email,
-    userName: session.user.name,
-    role,
-    accountRole,
-    isPlatformAdmin,
-    supportMode,
-    tenantId: tenant?.id ?? null,
-    tenantName: tenant?.name ?? null,
-    tenantSlug: tenant?.slug ?? null,
-    tenantKind: tenant?.kind ?? null,
-    timezone: tenant?.timezone ?? "America/Sao_Paulo",
-    isDemo: tenant?.isDemo ?? false,
-    onboardingCompleted: tenant?.onboardingCompleted ?? true,
-    permissions,
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    avatarUrl: u.avatarUrl,
+    role: u.role,
+    isAdmin: u.role === "ADMIN",
+    emailVerified: Boolean(u.emailVerifiedAt),
   };
 });
-
-/** Destino padrão após o login, conforme o tipo de conta. */
-export function homeFor(accountRole: UserRole, hasTenant: boolean, onboardingCompleted: boolean): string {
-  if (accountRole === "ADMIN") return "/admin";
-  if (!hasTenant) return "/login";
-  return onboardingCompleted ? "/dashboard" : "/onboarding";
-}

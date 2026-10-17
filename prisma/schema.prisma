@@ -1,6 +1,5 @@
-// JR Cortex AI — schema do banco de dados
-// Regra de ouro: toda entidade empresarial carrega tenantId e é consultada
-// exclusivamente através da camada de tenant (src/server/tenant.ts).
+// Mixtour — modelo de dados
+// PostgreSQL 14+ com as extensões pg_trgm e unaccent (criadas na primeira migration).
 
 generator client {
   provider = "prisma-client-js"
@@ -11,1189 +10,677 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ───────────────────────────── Enums ─────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Contas e autenticação
+// ─────────────────────────────────────────────────────────────
 
-enum Plan {
-  STARTER
-  PROFESSIONAL
-  BUSINESS
-  ENTERPRISE
-}
-
-enum TenantStatus {
-  ACTIVE
-  TRIAL
-  SUSPENDED
-  CANCELLED
-}
-
-/// Tipo de conta na plataforma (define destino após login e acesso ao /admin).
 enum UserRole {
-  ADMIN
-  PERSON
-  COMPANY
-}
-
-/// Espaço de trabalho: pessoal (pessoa física) ou empresarial.
-enum TenantKind {
-  PERSONAL
-  BUSINESS
-}
-
-/// Papéis internos (RBAC) dentro de um espaço de trabalho.
-enum RoleKey {
-  SUPER_ADMIN
-  ADMIN_CLIENTE
-  DIRETOR
-  FINANCEIRO
-  COMERCIAL
-  ANALISTA
-  VIEWER
-}
-
-enum BillingProvider {
-  NONE
-  STRIPE
-  MERCADO_PAGO
-  ASAAS
-}
-
-enum ConnectorType {
-  ERP
-  CRM
-  FINANCE
-  ACCOUNTING
-  LOGISTICS
-  SPREADSHEET
-  CSV
-  DATABASE
-  API
-  GOOGLE_SHEETS
-  MANUAL
-}
-
-enum IntegrationStatus {
-  PENDING
-  CONNECTED
-  SYNCING
-  ERROR
-  DISABLED
-  NOT_IMPLEMENTED
-}
-
-enum SyncMode {
-  FULL
-  INCREMENTAL
-  REPROCESS
-}
-
-enum SyncTrigger {
-  MANUAL
-  SCHEDULED
-  IMPORT
-}
-
-enum JobStatus {
-  PENDING
-  RUNNING
-  SUCCESS
-  PARTIAL
-  FAILED
-}
-
-enum DataSourceKind {
-  INTEGRATION
-  IMPORT
-  MANUAL
-  DEMO
-}
-
-enum ProductType {
-  PRODUCT
-  SERVICE
-}
-
-enum SaleStatus {
-  COMPLETED
-  CANCELLED
-}
-
-enum TitleStatus {
-  OPEN
-  PARTIAL
-  PAID
-  CANCELLED
-}
-
-enum PaymentDirection {
-  IN
-  OUT
-}
-
-enum DreGroup {
-  GROSS_REVENUE
-  DEDUCTIONS
-  COGS
-  OPERATING_EXPENSES
-  DEPRECIATION
-  FINANCIAL_INCOME
-  FINANCIAL_EXPENSES
-  NON_OPERATING
-  INCOME_TAXES
-}
-
-enum InventoryMovementType {
-  IN
-  OUT
-  ADJUSTMENT
-}
-
-enum InsightSeverity {
-  INFO
-  OPPORTUNITY
-  ATTENTION
-  CRITICAL
-}
-
-enum InsightStatus {
-  NEW
-  READ
-  DISMISSED
-}
-
-enum ForecastKind {
-  REVENUE
-  EXPENSES
-  RESULT
-  CASHFLOW
-}
-
-enum ScenarioKind {
-  CONSERVATIVE
-  BASE
-  OPTIMISTIC
-  CUSTOM
-}
-
-enum ReportFormat {
-  PDF
-  XLSX
-  CSV
-  JSON
-}
-
-enum MessageRole {
   USER
-  ASSISTANT
+  ADMIN
 }
 
-enum FeedbackRating {
-  UP
-  DOWN
-}
-
-enum KnowledgeType {
-  INDICATOR
-  ACCOUNTING_RULE
-  CHART_OF_ACCOUNTS
-  GOAL
-  DEFINITION
-  POLICY
-  SYSTEM
-  COMPANY_CONTEXT
-}
-
-enum AuditResult {
-  SUCCESS
-  DENIED
-  FAILURE
-}
-
-enum ImportTarget {
-  SALES
-  EXPENSES
-  REVENUES
-  CUSTOMERS
-  PRODUCTS
-  ACCOUNTS_PAYABLE
-  ACCOUNTS_RECEIVABLE
-  INVOICES
-  ORDERS
-}
-
-enum ImportStatus {
-  UPLOADED
-  MAPPED
-  PROCESSING
-  COMPLETED
-  PARTIAL
-  FAILED
-}
-
-// ───────────────────────── Plataforma / Identidade ─────────────────────────
-
-model Tenant {
-  id                      String       @id @default(cuid())
-  name                    String
-  kind                    TenantKind   @default(BUSINESS)
-  slug                    String       @unique
-  cnpj                    String?
-  logoUrl                 String?
-  segment                 String?
-  currency                String       @default("BRL")
-  timezone                String       @default("America/Sao_Paulo")
-  fiscalYearStartMonth    Int          @default(1)
-  revenueGoalMonthly      Decimal?     @db.Decimal(18, 2)
-  marginGoalPct           Decimal?     @db.Decimal(7, 2)
-  minCashBalance          Decimal?     @db.Decimal(18, 2)
-  plan                    Plan         @default(STARTER)
-  status                  TenantStatus @default(TRIAL)
-  isDemo                  Boolean      @default(false)
-  onboardingCompleted     Boolean      @default(false)
-  // LGPD / privacidade
-  dataRetentionDays       Int          @default(1825)
-  allowExternalAiTraining Boolean      @default(false)
-  aiProviderConsent       Boolean      @default(false)
-  createdAt               DateTime     @default(now())
-  updatedAt               DateTime     @updatedAt
-
-  users              User[]
-  roles              Role[]
-  subscription       Subscription?
-  integrations       Integration[]
-  credentials        IntegrationCredential[]
-  syncJobs           SyncJob[]
-  integrationTables  IntegrationTable[]
-  syncErrors         SyncError[]
-  invoices           Invoice[]
-  orders             Order[]
-  dataSources        DataSource[]
-  customers          Customer[]
-  suppliers          Supplier[]
-  products           Product[]
-  sellers            Seller[]
-  sales              Sale[]
-  saleItems          SaleItem[]
-  revenues           Revenue[]
-  expenses           Expense[]
-  payables           AccountPayable[]
-  receivables        AccountReceivable[]
-  payments           Payment[]
-  financialAccounts  FinancialAccount[]
-  costCenters        CostCenter[]
-  chartAccounts      ChartAccount[]
-  inventoryMovements InventoryMovement[]
-  kpis               KPI[]
-  goals              Goal[]
-  insights           Insight[]
-  forecasts          Forecast[]
-  scenarios          Scenario[]
-  reports            Report[]
-  conversations      Conversation[]
-  messages           Message[]
-  feedback           MessageFeedback[]
-  knowledgeItems     KnowledgeItem[]
-  auditLogs          AuditLog[]
-  importJobs         ImportJob[]
-  importedFiles      ImportedFile[]
-  aiUsage            AIUsage[]
-  supportGrants      SupportAccessGrant[]
-  sessions           Session[]
-}
-
-model Subscription {
-  id               String          @id @default(cuid())
-  tenantId         String          @unique
-  tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  plan             Plan
-  provider         BillingProvider @default(NONE)
-  externalId       String?
-  status           String          @default("trialing")
-  currentPeriodEnd DateTime?
-  seats            Int             @default(5)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
 }
 
 model User {
-  id           String    @id @default(cuid())
-  tenantId     String?
-  tenant       Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  email        String    @unique
-  name         String
-  firstName    String?
-  lastName     String?
-  userRole     UserRole  @default(COMPANY)
-  passwordHash String
-  roleId       String
-  role         Role      @relation(fields: [roleId], references: [id])
-  active       Boolean   @default(true)
-  lastLoginAt  DateTime?
-  failedLogins Int       @default(0)
-  lockedUntil  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id              String     @id @default(cuid())
+  email           String     @unique
+  name            String
+  passwordHash    String?
+  emailVerifiedAt DateTime?
+  avatarUrl       String?
+  role            UserRole   @default(USER)
+  status          UserStatus @default(ACTIVE)
 
-  sessions      Session[]
-  conversations Conversation[]
-  feedback      MessageFeedback[]
-  reports       Report[]
-  scenarios     Scenario[]
-  auditLogs     AuditLog[]
-  importJobs    ImportJob[]
-  knowledge     KnowledgeItem[]
+  // Preferências do explorador
+  homeCity            String?
+  homeLat             Float?
+  homeLng             Float?
+  favoriteCategories  String[]   @default([])
+  notifyEmail         Boolean    @default(true)
+  notifyPush          Boolean    @default(true)
+  marketingOptIn      Boolean    @default(false)
+  termsAcceptedAt     DateTime?
 
-  @@index([tenantId])
-  @@index([userRole, createdAt])
-}
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
-model Role {
-  id          String           @id @default(cuid())
-  tenantId    String?
-  tenant      Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  key         RoleKey
-  name        String
-  description String?
-  isSystem    Boolean          @default(true)
-  permissions RolePermission[]
-  users       User[]
+  sessions          Session[]
+  oauthAccounts     OAuthAccount[]
+  tokens            VerificationToken[]
+  memberships       Membership[]
+  saves             EventSave[]
+  rsvps             EventRsvp[]
+  follows           Follow[]
+  notifications     Notification[]
+  reports           Report[]           @relation("ReportReporter")
+  resolvedReports   Report[]           @relation("ReportResolver")
+  createdEvents     Event[]            @relation("EventCreator")
+  reviewedEvents    Event[]            @relation("EventReviewer")
+  uploads           Upload[]
+  pushSubscriptions PushSubscription[]
+  auditLogs         AuditLog[]
+  sentInvites       OrgInvite[]
 
-  @@unique([tenantId, key])
-}
-
-model Permission {
-  id          String           @id @default(cuid())
-  key         String           @unique
-  module      String
-  description String
-  roles       RolePermission[]
-}
-
-model RolePermission {
-  roleId       String
-  permissionId String
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@id([roleId, permissionId])
+  @@index([role])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Session {
   id             String   @id @default(cuid())
   tokenHash      String   @unique
   userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  activeTenantId String?
-  activeTenant   Tenant?  @relation(fields: [activeTenantId], references: [id], onDelete: Cascade)
   ip             String?
   userAgent      String?
   expiresAt      DateTime
   lastActivityAt DateTime @default(now())
   createdAt      DateTime @default(now())
 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
   @@index([userId])
 }
 
-// Acesso de suporte JR: somente com autorização explícita e temporária do cliente.
-model SupportAccessGrant {
-  id          String    @id @default(cuid())
-  tenantId    String
-  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  grantedById String
-  reason      String
-  expiresAt   DateTime
-  revokedAt   DateTime?
-  createdAt   DateTime  @default(now())
-
-  @@index([tenantId, expiresAt])
+enum TokenType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
 }
 
-// ───────────────────────── Integrações / Pipeline ─────────────────────────
-
-model Integration {
-  id                  String            @id @default(cuid())
-  tenantId            String
-  tenant              Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  name                String
-  type                ConnectorType
-  provider            String
-  status              IntegrationStatus @default(PENDING)
-  isMock              Boolean           @default(false)
-  config              Json              @default("{}")
-  syncIntervalMinutes Int?
-  lastSyncAt          DateTime?
-  nextSyncAt          DateTime?
-  syncCursor          String?
-  /// último erro amigável (sem credenciais) exibido ao cliente
-  lastError           String?
-  recordsSynced       Int               @default(0)
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-
-  credentials IntegrationCredential[]
-  syncJobs    SyncJob[]
-  tables      IntegrationTable[]
-  dataSource  DataSource?
-
-  @@index([tenantId])
-  @@index([nextSyncAt])
-}
-
-// Credentials Vault: valores cifrados com AES-256-GCM. Nunca em texto puro.
-model IntegrationCredential {
-  id            String      @id @default(cuid())
-  tenantId      String
-  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  integrationId String
-  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  key           String
-  ciphertext    String
-  iv            String
-  authTag       String
-  keyVersion    Int         @default(1)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  @@unique([integrationId, key])
-  @@index([tenantId])
-}
-
-model SyncJob {
-  id               String      @id @default(cuid())
-  tenantId         String
-  tenant           Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  integrationId    String
-  integration      Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  mode             SyncMode
-  trigger          SyncTrigger
-  status           JobStatus   @default(PENDING)
-  startedAt        DateTime?
-  finishedAt       DateTime?
-  recordsTotal     Int         @default(0)
-  recordsProcessed Int         @default(0)
-  recordsCreated   Int         @default(0)
-  recordsUpdated   Int         @default(0)
-  recordsRejected  Int         @default(0)
-  cursorFrom       String?
-  cursorTo         String?
-  durationMs       Int?
-  errorMessage     String?
-  errors           Json        @default("[]")
-  logs             Json        @default("[]")
-  createdAt        DateTime    @default(now())
-
-  syncErrors SyncError[]
-
-  @@index([tenantId, integrationId, createdAt])
-}
-
-/// Tabela/endpoint de uma fonte externa autorizada pelo cliente, com mapeamento para o modelo do Cortex.
-model IntegrationTable {
-  id                String        @id @default(cuid())
-  tenantId          String
-  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  integrationId     String
-  integration       Integration   @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  schemaName        String        @default("")
-  tableName         String
-  enabled           Boolean       @default(true)
-  /// entidade normalizada de destino (ImportTarget) ou null quando apenas descoberta
-  entity            ImportTarget?
-  /// campo canônico -> coluna de origem
-  mapping           Json          @default("{}")
-  /// metadados descobertos: [{ name, type }]
-  columns           Json          @default("[]")
-  incrementalColumn String?
-  lastCursor        String?
-  lastSyncedAt      DateTime?
-  rowsSynced        Int           @default(0)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-
-  @@unique([integrationId, schemaName, tableName])
-  @@index([tenantId])
-}
-
-model SyncError {
-  id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  syncJobId String
-  syncJob   SyncJob  @relation(fields: [syncJobId], references: [id], onDelete: Cascade)
-  message   String
-  metadata  Json     @default("{}")
-  createdAt DateTime @default(now())
-
-  @@index([syncJobId])
-  @@index([tenantId, createdAt])
-}
-
-model DataSource {
-  id            String         @id @default(cuid())
-  tenantId      String
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  name          String
-  kind          DataSourceKind
-  description   String?
-  integrationId String?        @unique
-  integration   Integration?   @relation(fields: [integrationId], references: [id], onDelete: SetNull)
-  lastUpdatedAt DateTime       @default(now())
-  createdAt     DateTime       @default(now())
-
-  customers          Customer[]
-  suppliers          Supplier[]
-  products           Product[]
-  sellers            Seller[]
-  sales              Sale[]
-  revenues           Revenue[]
-  expenses           Expense[]
-  payables           AccountPayable[]
-  receivables        AccountReceivable[]
-  payments           Payment[]
-  financialAccounts  FinancialAccount[]
-  costCenters        CostCenter[]
-  inventoryMovements InventoryMovement[]
-  invoices           Invoice[]
-  orders             Order[]
-  importJobs         ImportJob[]
-
-  @@unique([tenantId, name])
-  @@index([tenantId])
-}
-
-// ───────────────────────── Cortex: modelo normalizado ─────────────────────────
-// Idempotência: (tenantId, dataSourceId, externalId) é único em todas as entidades.
-
-model Customer {
-  id           String     @id @default(cuid())
-  tenantId     String
-  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId String
-  dataSource   DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId   String
-  name         String
-  document     String?
-  email        String?
-  segment      String?
-  region       String?
-  city         String?
-  state        String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  sales       Sale[]
-  receivables AccountReceivable[]
-  revenues    Revenue[]
-  invoices    Invoice[]
-  orders      Order[]
-
-  @@unique([tenantId, dataSourceId, externalId])
-  @@index([tenantId, name])
-}
-
-model Supplier {
-  id           String     @id @default(cuid())
-  tenantId     String
-  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId String
-  dataSource   DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId   String
-  name         String
-  document     String?
-  category     String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  expenses Expense[]
-  payables AccountPayable[]
-
-  @@unique([tenantId, dataSourceId, externalId])
-  @@index([tenantId, name])
-}
-
-model Product {
-  id           String      @id @default(cuid())
-  tenantId     String
-  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId String
-  dataSource   DataSource  @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId   String
-  sku          String?
-  name         String
-  category     String?
-  type         ProductType @default(PRODUCT)
-  unitPrice    Decimal?    @db.Decimal(18, 2)
-  unitCost     Decimal?    @db.Decimal(18, 2)
-  active       Boolean     @default(true)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  saleItems          SaleItem[]
-  inventoryMovements InventoryMovement[]
-
-  @@unique([tenantId, dataSourceId, externalId])
-  @@index([tenantId, category])
-}
-
-model Seller {
-  id           String     @id @default(cuid())
-  tenantId     String
-  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId String
-  dataSource   DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId   String
-  name         String
-  email        String?
-  region       String?
-  team         String?
-  createdAt    DateTime   @default(now())
-
-  sales Sale[]
-
-  @@unique([tenantId, dataSourceId, externalId])
-}
-
-model Sale {
-  id             String     @id @default(cuid())
-  tenantId       String
-  tenant         Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId   String
-  dataSource     DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId     String
-  number         String?
-  date           DateTime   @db.Date
-  customerId     String?
-  customer       Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  sellerId       String?
-  seller         Seller?    @relation(fields: [sellerId], references: [id], onDelete: SetNull)
-  status         SaleStatus @default(COMPLETED)
-  grossAmount    Decimal    @db.Decimal(18, 2)
-  discountAmount Decimal    @default(0) @db.Decimal(18, 2)
-  taxAmount      Decimal    @default(0) @db.Decimal(18, 2)
-  netAmount      Decimal    @db.Decimal(18, 2)
-  costAmount     Decimal    @default(0) @db.Decimal(18, 2)
-  region         String?
-  channel        String?
-  category       String?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-
-  items       SaleItem[]
-  receivables AccountReceivable[]
-
-  @@unique([tenantId, dataSourceId, externalId])
-  @@index([tenantId, date])
-  @@index([tenantId, customerId, date])
-  @@index([tenantId, sellerId, date])
-}
-
-/// Fatura/nota emitida (normalizada a partir de ERPs, bancos ou planilhas).
-model Invoice {
-  id           String      @id @default(cuid())
-  tenantId     String
-  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId String
-  dataSource   DataSource  @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId   String
-  number       String?
-  customerId   String?
-  customer     Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  issueDate    DateTime    @db.Date
-  dueDate      DateTime?   @db.Date
-  amount       Decimal     @db.Decimal(18, 2)
-  paidAmount   Decimal     @default(0) @db.Decimal(18, 2)
-  status       TitleStatus @default(OPEN)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  @@unique([tenantId, dataSourceId, externalId])
-  @@index([tenantId, issueDate])
-}
-
-/// Pedido (independente de faturamento).
-model Order {
-  id           String     @id @default(cuid())
-  tenantId     String
-  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId String
-  dataSource   DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId   String
-  number       String?
-  date         DateTime   @db.Date
-  customerId   String?
-  customer     Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  sellerName   String?
-  status       String?
-  amount       Decimal    @db.Decimal(18, 2)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  @@unique([tenantId, dataSourceId, externalId])
-  @@index([tenantId, date])
-}
-
-model SaleItem {
-  id         String   @id @default(cuid())
-  tenantId   String
-  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  saleId     String
-  sale       Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  productId  String?
-  product    Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  lineNumber Int      @default(1)
-  quantity   Decimal  @db.Decimal(18, 4)
-  unitPrice  Decimal  @db.Decimal(18, 2)
-  discount   Decimal  @default(0) @db.Decimal(18, 2)
-  total      Decimal  @db.Decimal(18, 2)
-  totalCost  Decimal  @default(0) @db.Decimal(18, 2)
-
-  @@unique([saleId, lineNumber])
-  @@index([tenantId, productId])
-}
-
-// Receitas não originadas de vendas (serviços avulsos, receitas financeiras etc.)
-model Revenue {
-  id           String      @id @default(cuid())
-  tenantId     String
-  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId String
-  dataSource   DataSource  @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId   String
-  date         DateTime    @db.Date
-  description  String
-  category     String
-  amount       Decimal     @db.Decimal(18, 2)
-  customerId   String?
-  customer     Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  costCenterId String?
-  costCenter   CostCenter? @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
-  createdAt    DateTime    @default(now())
-
-  @@unique([tenantId, dataSourceId, externalId])
-  @@index([tenantId, date])
-}
-
-// Despesas e custos por competência
-model Expense {
-  id           String      @id @default(cuid())
-  tenantId     String
-  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId String
-  dataSource   DataSource  @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId   String
-  date         DateTime    @db.Date
-  description  String
-  category     String
-  amount       Decimal     @db.Decimal(18, 2)
-  supplierId   String?
-  supplier     Supplier?   @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  costCenterId String?
-  costCenter   CostCenter? @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
-  department   String?
-  createdAt    DateTime    @default(now())
-
-  @@unique([tenantId, dataSourceId, externalId])
-  @@index([tenantId, date])
-  @@index([tenantId, category, date])
-}
-
-model AccountPayable {
-  id           String      @id @default(cuid())
-  tenantId     String
-  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId String
-  dataSource   DataSource  @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId   String
-  description  String
-  category     String?
-  supplierId   String?
-  supplier     Supplier?   @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  costCenterId String?
-  costCenter   CostCenter? @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
-  department   String?
-  companyUnit  String?
-  issueDate    DateTime    @db.Date
-  dueDate      DateTime    @db.Date
-  amount       Decimal     @db.Decimal(18, 2)
-  paidAmount   Decimal     @default(0) @db.Decimal(18, 2)
-  paidAt       DateTime?   @db.Date
-  status       TitleStatus @default(OPEN)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  payments Payment[]
-
-  @@unique([tenantId, dataSourceId, externalId])
-  @@index([tenantId, status, dueDate])
-}
-
-model AccountReceivable {
-  id             String      @id @default(cuid())
-  tenantId       String
-  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId   String
-  dataSource     DataSource  @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId     String
-  description    String
-  customerId     String?
-  customer       Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  saleId         String?
-  sale           Sale?       @relation(fields: [saleId], references: [id], onDelete: SetNull)
-  issueDate      DateTime    @db.Date
-  dueDate        DateTime    @db.Date
-  amount         Decimal     @db.Decimal(18, 2)
-  receivedAmount Decimal     @default(0) @db.Decimal(18, 2)
-  receivedAt     DateTime?   @db.Date
-  status         TitleStatus @default(OPEN)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-
-  payments Payment[]
-
-  @@unique([tenantId, dataSourceId, externalId])
-  @@index([tenantId, status, dueDate])
-}
-
-// Movimentação financeira efetiva (entradas e saídas de caixa)
-model Payment {
-  id                 String             @id @default(cuid())
-  tenantId           String
-  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId       String
-  dataSource         DataSource         @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId         String
-  direction          PaymentDirection
-  date               DateTime           @db.Date
-  amount             Decimal            @db.Decimal(18, 2)
-  description        String?
-  category           String?
-  financialAccountId String?
-  financialAccount   FinancialAccount?  @relation(fields: [financialAccountId], references: [id], onDelete: SetNull)
-  payableId          String?
-  payable            AccountPayable?    @relation(fields: [payableId], references: [id], onDelete: SetNull)
-  receivableId       String?
-  receivable         AccountReceivable? @relation(fields: [receivableId], references: [id], onDelete: SetNull)
-  createdAt          DateTime           @default(now())
-
-  @@unique([tenantId, dataSourceId, externalId])
-  @@index([tenantId, date])
-}
-
-model FinancialAccount {
-  id             String     @id @default(cuid())
-  tenantId       String
-  tenant         Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId   String
-  dataSource     DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId     String
-  name           String
-  bank           String?
-  type           String     @default("CHECKING")
-  openingBalance Decimal    @default(0) @db.Decimal(18, 2)
-  openingDate    DateTime   @db.Date
-  active         Boolean    @default(true)
-  createdAt      DateTime   @default(now())
-
-  payments Payment[]
-
-  @@unique([tenantId, dataSourceId, externalId])
-}
-
-model CostCenter {
-  id           String     @id @default(cuid())
-  tenantId     String
-  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId String
-  dataSource   DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId   String
-  code         String
-  name         String
-  department   String?
-  createdAt    DateTime   @default(now())
-
-  expenses Expense[]
-  revenues Revenue[]
-  payables AccountPayable[]
-
-  @@unique([tenantId, dataSourceId, externalId])
-}
-
-// Plano de contas configurável por cliente: mapeia categorias para grupos do DRE.
-model ChartAccount {
-  id              String   @id @default(cuid())
-  tenantId        String
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  code            String
-  name            String
-  dreGroup        DreGroup
-  categoryAliases String[]
-  isSensitive     Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@unique([tenantId, code])
-}
-
-model InventoryMovement {
-  id           String                @id @default(cuid())
-  tenantId     String
-  tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dataSourceId String
-  dataSource   DataSource            @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  externalId   String
-  productId    String
-  product      Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
-  date         DateTime              @db.Date
-  type         InventoryMovementType
-  quantity     Decimal               @db.Decimal(18, 4)
-  unitCost     Decimal?              @db.Decimal(18, 2)
-  warehouse    String?
-  createdAt    DateTime              @default(now())
-
-  @@unique([tenantId, dataSourceId, externalId])
-  @@index([tenantId, productId, date])
-}
-
-// ───────────────────────── Camada analítica ─────────────────────────
-
-model KPI {
-  id          String   @id @default(cuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  key         String
-  name        String
-  description String
-  formula     String
-  unit        String
-  createdAt   DateTime @default(now())
-
-  @@unique([tenantId, key])
-}
-
-model Goal {
-  id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  kpiKey    String
-  period    String
-  target    Decimal  @db.Decimal(18, 2)
-  createdAt DateTime @default(now())
-
-  @@unique([tenantId, kpiKey, period])
-}
-
-model Insight {
-  id          String          @id @default(cuid())
-  tenantId    String
-  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  fingerprint String
-  periodKey   String
-  type        String
-  severity    InsightSeverity
-  title       String
-  description String
-  metric      String?
-  value       Decimal?        @db.Decimal(18, 4)
-  evidence    Json            @default("{}")
-  status      InsightStatus   @default(NEW)
-  createdAt   DateTime        @default(now())
-
-  @@unique([tenantId, fingerprint])
-  @@index([tenantId, createdAt])
-}
-
-model Forecast {
-  id          String       @id @default(cuid())
-  tenantId    String
-  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  kind        ForecastKind
-  method      String
-  horizon     Int
-  parameters  Json         @default("{}")
-  result      Json
-  generatedAt DateTime     @default(now())
-
-  @@index([tenantId, kind, generatedAt])
-}
-
-model Scenario {
-  id          String       @id @default(cuid())
-  tenantId    String
-  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  name        String
-  kind        ScenarioKind
-  assumptions Json
-  result      Json
-  createdById String?
-  createdBy   User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt   DateTime     @default(now())
-
-  @@index([tenantId])
-}
-
-model Report {
-  id          String       @id @default(cuid())
-  tenantId    String
-  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  type        String
-  title       String
-  periodStart DateTime     @db.Date
-  periodEnd   DateTime     @db.Date
-  format      ReportFormat
-  content     Json?
-  createdById String?
-  createdBy   User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt   DateTime     @default(now())
-
-  @@index([tenantId, createdAt])
-}
-
-// ───────────────────────── IA / Conhecimento ─────────────────────────
-
-model Conversation {
-  id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+model VerificationToken {
+  id        String    @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String
+  type      TokenType
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([expiresAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Organizações (clientes B2B do SaaS)
+// ─────────────────────────────────────────────────────────────
+
+enum PlanTier {
+  FREE
+  PRO
+  BUSINESS
+}
+
+enum OrgStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model Organization {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  bio         String?
+  logoUrl     String?
+  coverUrl    String?
+  website     String?
+  instagram   String?
+  whatsapp    String?
+  contactEmail String?
+  city        String?
+  state       String?
+  status      OrgStatus @default(ACTIVE)
+
+  /// Selo "verificado" concedido pela equipe Mixtour.
+  verified         Boolean @default(false)
+  /// Publica sem análise prévia (concedido pela moderação).
+  trustedPublisher Boolean @default(false)
+
+  plan             PlanTier @default(FREE)
+  stripeCustomerId String?  @unique
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  messages Message[]
+  members       Membership[]
+  invites       OrgInvite[]
+  venues        Venue[]
+  events        Event[]
+  followers     Follow[]
+  subscription  Subscription?
+  boosts        EventBoost[]
+  reports       Report[]
+  uploads       Upload[]
 
-  @@index([tenantId, userId, updatedAt])
+  @@index([status])
+  @@index([plan])
 }
 
-model Message {
+enum OrgRole {
+  OWNER
+  ADMIN
+  EDITOR
+}
+
+model Membership {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrgRole  @default(EDITOR)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model OrgInvite {
+  id             String    @id @default(cuid())
+  organizationId String
+  email          String
+  role           OrgRole   @default(EDITOR)
+  tokenHash      String    @unique
+  invitedById    String?
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User?        @relation(fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([email])
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  UNPAID
+  PAUSED
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  organizationId       String             @unique
+  stripeSubscriptionId String             @unique
+  stripePriceId        String
+  tier                 PlanTier
+  status               SubscriptionStatus
+  interval             String             @default("month")
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+/// Configuração comercial de cada plano (editável no /admin).
+model Plan {
+  tier                 PlanTier @id
+  name                 String
+  tagline              String
+  priceMonthlyCents    Int
+  priceYearlyCents     Int?
+  stripePriceMonthly   String?
+  stripePriceYearly    String?
+  /// null = ilimitado
+  maxActiveEvents      Int?
+  maxMembers           Int
+  maxVenues            Int?
+  boostsPerMonth       Int
+  fullAnalytics        Boolean
+  csvExport            Boolean
+  highlightBadge       Boolean
+  active               Boolean  @default(true)
+  updatedAt            DateTime @updatedAt
+}
+
+/// Eventos de webhook do Stripe já processados (idempotência).
+model StripeEvent {
+  id          String   @id
+  type        String
+  processedAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────────────────────────────
+// Locais e eventos
+// ─────────────────────────────────────────────────────────────
+
+model Venue {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  address        String
+  neighborhood   String?
+  city           String
+  state          String?
+  postalCode     String?
+  country        String   @default("BR")
+  lat            Float
+  lng            Float
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  events       Event[]
+
+  @@index([organizationId])
+}
+
+model Category {
+  id        String  @id @default(cuid())
+  slug      String  @unique
+  name      String
+  /// Nome do ícone (lucide) — mapeado no cliente.
+  icon      String
+  /// Cor da categoria em hexadecimal (#RRGGBB).
+  color     String
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  events Event[]
+}
+
+enum EventStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+  CANCELED
+  ARCHIVED
+}
+
+enum AgeRating {
+  LIVRE
+  A10
+  A12
+  A14
+  A16
+  A18
+}
+
+model Event {
+  id             String      @id @default(cuid())
+  slug           String      @unique
+  organizationId String
+  createdById    String?
+  categoryId     String
+  title          String
+  summary        String?
+  description    String?
+  coverUrl       String?
+  coverThumbUrl  String?
+  coverColor     String?
+  status         EventStatus @default(DRAFT)
+  rejectionReason String?
+  reviewedById   String?
+  reviewedAt     DateTime?
+  submittedAt    DateTime?
+  publishedAt    DateTime?
+  canceledAt     DateTime?
+
+  startsAt DateTime
+  endsAt   DateTime
+  timezone String   @default("America/Sao_Paulo")
+
+  venueId      String?
+  venueName    String
+  address      String
+  neighborhood String?
+  city         String
+  state        String?
+  postalCode   String?
+  lat          Float
+  lng          Float
+
+  isFree         Boolean   @default(false)
+  priceMinCents  Int?
+  priceMaxCents  Int?
+  currency       String    @default("BRL")
+  ticketUrl      String?
+  ticketProvider String?
+  ageRating      AgeRating @default(LIVRE)
+  accessibility  String[]  @default([])
+  tags           String[]  @default([])
+
+  featuredUntil DateTime?
+
+  viewsCount   Int @default(0)
+  savesCount   Int @default(0)
+  goingCount   Int @default(0)
+  ticketClicks Int @default(0)
+  sharesCount  Int @default(0)
+
+  /// Mantido pelo banco (coluna gerada): busca textual sem acentos.
+  searchVector Unsupported("tsvector")?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User?               @relation("EventCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  reviewedBy   User?               @relation("EventReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  category     Category            @relation(fields: [categoryId], references: [id])
+  venue        Venue?              @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  saves        EventSave[]
+  rsvps        EventRsvp[]
+  metrics      EventMetricDaily[]
+  viewMarks    EventViewMark[]
+  boosts       EventBoost[]
+  reports      Report[]
+
+  @@index([status, startsAt])
+  @@index([status, endsAt])
+  @@index([lat, lng])
+  @@index([organizationId, startsAt])
+  @@index([categoryId])
+  @@index([city])
+  @@index([featuredUntil])
+  @@index([searchVector], type: Gin)
+}
+
+model EventSave {
+  userId    String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([userId, eventId])
+  @@index([eventId])
+}
+
+enum RsvpStatus {
+  GOING
+  INTERESTED
+}
+
+model EventRsvp {
+  userId         String
+  eventId        String
+  status         RsvpStatus @default(GOING)
+  reminderSentAt DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([userId, eventId])
+  @@index([eventId])
+}
+
+model Follow {
+  userId         String
+  organizationId String
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, organizationId])
+  @@index([organizationId])
+}
+
+/// Métricas diárias agregadas por evento (painel do organizador).
+model EventMetricDaily {
+  eventId      String
+  day          DateTime @db.Date
+  views        Int      @default(0)
+  uniqueViews  Int      @default(0)
+  saves        Int      @default(0)
+  going        Int      @default(0)
+  ticketClicks Int      @default(0)
+  shares       Int      @default(0)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, day])
+}
+
+/// Marca de visualização única (visitante anônimo por hash diário). Limpa pela rotina de manutenção.
+model EventViewMark {
+  eventId     String
+  visitorHash String
+  day         DateTime @db.Date
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, visitorHash, day])
+  @@index([day])
+}
+
+/// Destaque pago/incluído no plano: aumenta a visibilidade no mapa e na lista.
+model EventBoost {
+  id             String   @id @default(cuid())
+  eventId        String
+  organizationId String
+  startsAt       DateTime
+  endsAt         DateTime
+  createdById    String?
+  createdAt      DateTime @default(now())
+
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([eventId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Moderação, notificações e operação
+// ─────────────────────────────────────────────────────────────
+
+enum ReportReason {
+  SPAM
+  FRAUD
+  INAPPROPRIATE
+  WRONG_INFO
+  CANCELED_EVENT
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+model Report {
   id             String       @id @default(cuid())
-  tenantId       String
-  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  role           MessageRole
-  content        String
-  blocks         Json?
-  trace          Json?
-  provider       String?
+  eventId        String?
+  organizationId String?
+  reporterId     String?
+  reporterIpHash String?
+  reason         ReportReason
+  details        String?
+  status         ReportStatus @default(OPEN)
+  resolution     String?
+  resolvedById   String?
+  resolvedAt     DateTime?
   createdAt      DateTime     @default(now())
 
-  feedback MessageFeedback[]
+  event        Event?        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reporter     User?         @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  resolvedBy   User?         @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
 
-  @@index([conversationId, createdAt])
+  @@index([status, createdAt])
+  @@index([eventId])
 }
 
-model MessageFeedback {
-  id         String         @id @default(cuid())
-  tenantId   String
-  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  messageId  String
-  message    Message        @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  userId     String
-  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rating     FeedbackRating
-  correction String?
-  createdAt  DateTime       @default(now())
-
-  @@unique([messageId, userId])
-  @@index([tenantId])
+enum NotificationType {
+  EVENT_REMINDER
+  EVENT_UPDATED
+  EVENT_CANCELED
+  NEW_EVENT_FROM_FOLLOWED
+  EVENT_APPROVED
+  EVENT_REJECTED
+  ORG_INVITE
+  BILLING
+  SYSTEM
 }
 
-model KnowledgeItem {
-  id          String        @id @default(cuid())
-  tenantId    String
-  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  type        KnowledgeType
-  title       String
-  content     String
-  tags        String[]
-  active      Boolean       @default(true)
-  version     Int           @default(1)
-  updatedById String?
-  updatedBy   User?         @relation(fields: [updatedById], references: [id], onDelete: SetNull)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String?
+  url       String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
 
-  @@index([tenantId, type])
-}
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-model AIUsage {
-  id           String   @id @default(cuid())
-  tenantId     String
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  provider     String
-  model        String?
-  feature      String
-  inputTokens  Int      @default(0)
-  outputTokens Int      @default(0)
-  createdAt    DateTime @default(now())
-
-  @@index([tenantId, createdAt])
-}
-
-// ───────────────────────── Auditoria / Importação ─────────────────────────
-
-model AuditLog {
-  id         String      @id @default(cuid())
-  tenantId   String?
-  tenant     Tenant?     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  userId     String?
-  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userEmail  String?
-  action     String
-  resource   String
-  resourceId String?
-  ip         String?
-  userAgent  String?
-  result     AuditResult
-  metadata   Json        @default("{}")
-  createdAt  DateTime    @default(now())
-
-  @@index([tenantId, createdAt])
+  @@index([userId, readAt])
   @@index([userId, createdAt])
 }
 
-model ImportedFile {
+model PushSubscription {
   id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  fileName  String
-  mimeType  String
-  size      Int
-  sha256    String
-  content   Bytes
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
   createdAt DateTime @default(now())
 
-  importJobs ImportJob[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId, sha256])
+  @@index([userId])
 }
 
-model ImportJob {
-  id               String       @id @default(cuid())
-  tenantId         String
-  tenant           Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  fileId           String
-  file             ImportedFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
-  dataSourceId     String?
-  dataSource       DataSource?  @relation(fields: [dataSourceId], references: [id], onDelete: SetNull)
-  target           ImportTarget
-  status           ImportStatus @default(UPLOADED)
-  sheetName        String?
-  headers          Json         @default("[]")
-  sampleRows       Json         @default("[]")
-  suggestedMapping Json         @default("{}")
-  confirmedMapping Json?
-  totalRows        Int          @default(0)
-  processedRows    Int          @default(0)
-  createdRows      Int          @default(0)
-  updatedRows      Int          @default(0)
-  rejectedRows     Int          @default(0)
-  errors           Json         @default("[]")
-  createdById      String?
-  createdBy        User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt        DateTime     @default(now())
-  finishedAt       DateTime?
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
 
-  @@index([tenantId, createdAt])
+/// Todo e-mail enviado passa por aqui (auditoria e reenvio). Sem provedor configurado: status SKIPPED.
+model EmailOutbox {
+  id                String      @id @default(cuid())
+  to                String
+  subject           String
+  template          String
+  html              String
+  text              String
+  status            EmailStatus @default(PENDING)
+  provider          String?
+  providerMessageId String?
+  error             String?
+  attempts          Int         @default(0)
+  createdAt         DateTime    @default(now())
+  sentAt            DateTime?
+
+  @@index([status, createdAt])
+  @@index([to])
+}
+
+model Upload {
+  id             String   @id @default(cuid())
+  key            String   @unique
+  url            String
+  thumbUrl       String?
+  mimeType       String
+  width          Int
+  height         Int
+  bytes          Int
+  dominantColor  String?
+  purpose        String
+  uploadedById   String?
+  organizationId String?
+  createdAt      DateTime @default(now())
+
+  uploadedBy   User?         @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([actorId])
+  @@index([targetType, targetId])
+}
+
+/// Limitador de taxa compartilhado entre instâncias (janela fixa).
+model RateLimitBucket {
+  key       String   @id
+  count     Int
+  resetAt   DateTime
+
+  @@index([resetAt])
+}
+
+model GeocodeCache {
+  id        String   @id @default(cuid())
+  queryHash String   @unique
+  kind      String
+  query     String
+  result    Json
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+/// Configurações da plataforma (ex.: modo de moderação), editáveis no /admin.
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+/// Execuções das rotinas agendadas (observabilidade).
+model JobRun {
+  id         String    @id @default(cuid())
+  job        String
+  status     String
+  detail     Json?
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@index([job, startedAt])
 }
