@@ -8,7 +8,10 @@ import { startTransition, useActionState, type FormEvent } from "react";
  * Use: <form onSubmit={onSubmit}> e <SubmitButton pending={pending}>.
  */
 export function useActionForm<S>(action: (prev: S, fd: FormData) => Promise<S>, initial: S) {
-  const [state, dispatch, pending] = useActionState(action, initial);
+  const [state, dispatch, pending] = useActionState<S, FormData>(
+    action as (prev: Awaited<S>, fd: FormData) => Promise<S>,
+    initial as Awaited<S>,
+  );
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
