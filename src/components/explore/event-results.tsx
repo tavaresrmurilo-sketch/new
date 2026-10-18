@@ -31,6 +31,8 @@ interface EventResultsProps {
   onClearFilters: () => void;
   /** Rola automaticamente até o card selecionado (desktop). */
   scrollToSelected?: boolean;
+  /** Versão compacta do estado vazio (sheet do celular). */
+  compact?: boolean;
   className?: string;
 }
 
@@ -74,6 +76,7 @@ export function EventResults({
   onZoomOut,
   onClearFilters,
   scrollToSelected,
+  compact = false,
   className,
 }: EventResultsProps) {
   const sentinel = useRef<HTMLDivElement>(null);
@@ -127,7 +130,7 @@ export function EventResults({
     return (
       <div className={cn("pb-6", className)}>
         <EmptyState
-          icon={<SearchX />}
+          icon={compact ? undefined : <SearchX />}
           title={query ? `Nada encontrado para “${query}”` : "Nada por aqui ainda"}
           description={
             query
@@ -150,7 +153,11 @@ export function EventResults({
               )}
             </div>
           }
-          className="py-8"
+          className={
+            compact
+              ? "py-3 [&>div:last-child]:mt-4 [&>p]:text-sm"
+              : "py-8"
+          }
         />
         <OrganizerCta className="mx-2" />
       </div>

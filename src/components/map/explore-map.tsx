@@ -278,9 +278,9 @@ export function ExploreMap({
   );
 
   return (
-    <div className={cn("relative overflow-hidden bg-[var(--map-bg)]", className)}>
+    <div className={cn("relative isolate overflow-hidden bg-[var(--map-bg)]", className)}>
       {/* estilo inline: o CSS do MapLibre (fora das camadas do Tailwind) força position: relative em .maplibregl-map */}
-      <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
+      <div ref={containerRef} style={{ position: "absolute", inset: 0, isolation: "isolate" }} />
       {overlay?.({ degraded, ready })}
       {popupEl && popup ? createPortal(popup.content, popupEl) : null}
     </div>

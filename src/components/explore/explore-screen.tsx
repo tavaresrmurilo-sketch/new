@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, Info, List, LoaderCircle, LocateFixed, Map as MapIcon, Minus, Plus, RefreshCw, Search, X } from "lucide-react";
+import { ArrowDownUp, Check, ChevronDown, Info, List, LoaderCircle, LocateFixed, Map as MapIcon, Minus, Plus, RefreshCw, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { LogoMark } from "@/components/brand/logo";
@@ -88,19 +88,30 @@ function filtersSummary(filters: ExploreFilters, categories: CategoryDTO[]): str
   return parts.join(" · ");
 }
 
-function SortMenu({ value, onChange }: { value: ExploreSort; onChange: (v: ExploreSort) => void }) {
+function SortMenu({ value, onChange, compact }: { value: ExploreSort; onChange: (v: ExploreSort) => void; compact?: boolean }) {
   const current = SORT_OPTIONS.find((o) => o.value === value) ?? SORT_OPTIONS[0];
   return (
     <DropdownMenu>
       <DropdownTrigger asChild>
-        <button
-          type="button"
-          className="inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-semibold text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
-          aria-label={`Ordenar por: ${current.label}`}
-        >
-          <span className="text-subtle-foreground">Ordenar:</span> <span className="text-foreground">{current.label}</span>
-          <ChevronDown className="size-4" />
-        </button>
+        {compact ? (
+          <button
+            type="button"
+            className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 text-[13px] font-semibold text-foreground transition hover:bg-surface-2"
+            aria-label={`Ordenar por: ${current.label}`}
+          >
+            <ArrowDownUp className="size-4 text-muted-foreground" />
+            {current.label}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="inline-flex h-11 items-center gap-1 rounded-full px-3 text-sm font-semibold text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
+            aria-label={`Ordenar por: ${current.label}`}
+          >
+            <span className="text-subtle-foreground">Ordenar:</span> <span className="text-foreground">{current.label}</span>
+            <ChevronDown className="size-4" />
+          </button>
+        )}
       </DropdownTrigger>
       <DropdownContent className="w-72">
         {SORT_OPTIONS.map((o) => (
@@ -281,7 +292,8 @@ export function ExploreScreen(props: ExploreScreenProps) {
     if (q) addRecentSearch(q);
     const next = { ...filters, q };
     updateFilters(next);
-    if (!desktop) setSnap((s) => (s === "full" ? s : "half"));
+    // celular: mostra os resultados no mapa (o sheet recolhido traz a contagem)
+    if (!desktop) setSnap((s) => (s === "full" ? s : "peek"));
     fitToQuery(q, next);
   };
 
@@ -324,10 +336,14 @@ export function ExploreScreen(props: ExploreScreenProps) {
     if (p) requestAnimationFrame(() => mapRef.current?.ensureVisible(p, desktop ? { top: 380, left: 170, right: 170 } : { bottom: sheetCover + 140 }));
   };
 
-  const openSpot = (ids: string[]) => {
+  const openSpot = (ids: string[], center: LatLng) => {
     setSelectedId(null);
     setSpot(ids);
-    if (!desktop) setSnap("peek");
+    if (!desktop) {
+      setSnap("peek");
+      // depois que o sheet cresce, garante que o local continue visível acima dele
+      setTimeout(() => mapRef.current?.ensureVisible(center), 520);
+    }
   };
 
   const clearSelection = () => {
@@ -351,7 +367,7 @@ export function ExploreScreen(props: ExploreScreenProps) {
   const noGlobalResults = Boolean(globalSearch && globalSearch.q === q && globalSearch.total === 0);
   const filterCount = activeFilterCount(filters);
 
-  const peekHeight = Math.max(selectedId || spot ? 0 : MOBILE_PEEK_MIN, 24 + headerHeight + (selectedId || spot ? 10 : 34));
+  const peekHeight = Math.max(selectedId || spot ? 0 : MOBILE_PEEK_MIN, 28 + headerHeight + (selectedId || spot ? 10 : 34));
 
   const headerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -363,7 +379,7 @@ export function ExploreScreen(props: ExploreScreenProps) {
   }, [isDesktop]);
 
   const insets: MapInsets = useMemo(
-    () => (desktop ? { top: 0, right: 0, bottom: 0, left: 0 } : { top: MOBILE_TOP + 8, right: 0, bottom: sheetCover, left: 0 }),
+    () => (desktop ? { top: 16, right: 72, bottom: 16, left: 16 } : { top: MOBILE_TOP + 8, right: 0, bottom: sheetCover, left: 0 }),
     [desktop, sheetCover],
   );
 
@@ -377,7 +393,7 @@ export function ExploreScreen(props: ExploreScreenProps) {
         }
       : null;
 
-  const results = (opts: { scrollToSelected: boolean }) => (
+  const results = (opts: { scrollToSelected: boolean; compact?: boolean }) => (
     <EventResults
       items={list.items}
       initialLoading={firstLoad}
@@ -396,11 +412,13 @@ export function ExploreScreen(props: ExploreScreenProps) {
       onZoomOut={() => mapRef.current?.zoomBy(-2)}
       onClearFilters={clearAll}
       scrollToSelected={opts.scrollToSelected}
+      compact={opts.compact}
     />
   );
 
-  const spotSection = spot ? (
-    <SpotList cards={spotCards.cards} count={spot.length} loading={spotCards.loading} error={spotCards.error} onRetry={spotCards.retry} onClose={clearSelection} />
+  const spotSection = (compact: boolean) =>
+    spot ? (
+    <SpotList compact={compact} cards={spotCards.cards} count={spot.length} loading={spotCards.loading} error={spotCards.error} onRetry={spotCards.retry} onClose={clearSelection} />
   ) : null;
 
   const searchPillLabel = q ? `Busca: ${q}. Toque para alterar` : "Buscar eventos, lugares e organizadores";
@@ -459,7 +477,7 @@ export function ExploreScreen(props: ExploreScreenProps) {
             </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-6">
-            {spotSection && <div className="mb-3">{spotSection}</div>}
+            {spot && <div className="mb-3">{spotSection(false)}</div>}
             {results({ scrollToSelected: true })}
           </div>
         </aside>
@@ -547,13 +565,13 @@ export function ExploreScreen(props: ExploreScreenProps) {
                 onClick={() => setSearchOpen(true)}
                 aria-label={searchPillLabel}
                 aria-haspopup="dialog"
-                className="glass flex h-12 min-w-0 flex-1 items-center gap-3 rounded-full border border-border pr-2 pl-3 text-left shadow-float transition active:scale-[0.99]"
+                className="glass flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-full border border-border pr-2.5 pl-2.5 text-left shadow-float transition active:scale-[0.99]"
               >
                 <LogoMark className="size-7 shrink-0" title="" />
                 <span className={cn("min-w-0 flex-1 truncate text-[15px]", q ? "font-semibold text-foreground" : "text-muted-foreground")}>
                   {q ? `“${q}”` : "Buscar eventos e lugares"}
                 </span>
-                <Search aria-hidden className="mr-1.5 size-5 shrink-0 text-subtle-foreground" />
+                {!q && <Search aria-hidden className="mr-1 size-5 shrink-0 text-subtle-foreground" />}
               </button>
               {q && (
                 <button
@@ -572,7 +590,7 @@ export function ExploreScreen(props: ExploreScreenProps) {
               ) : (
                 <Link
                   href="/entrar"
-                  className="glass inline-flex h-12 shrink-0 items-center rounded-full border border-border px-4 text-sm font-bold shadow-float"
+                  className="glass inline-flex h-12 shrink-0 items-center rounded-full border border-border px-3.5 text-sm font-bold shadow-float"
                 >
                   Entrar
                 </Link>
@@ -635,23 +653,23 @@ export function ExploreScreen(props: ExploreScreenProps) {
                     </p>
                     <p className="truncate text-[13px] text-muted-foreground">{filtersSummary(filters, categories)}</p>
                   </div>
-                  {snap !== "peek" && (
-                    <SortMenu value={filters.sort} onChange={(sort) => updateFilters({ ...filters, sort })} />
+                  {snap !== "peek" && !selectedId && !spot && (
+                    <SortMenu compact value={filters.sort} onChange={(sort) => updateFilters({ ...filters, sort })} />
                   )}
                 </div>
                 {selectedId && (
                   <SelectedEventSheetCard className="mt-3" event={selectedCard} point={selectedPoint} error={selectedFetch.error} onClose={clearSelection} />
                 )}
-                {spotSection && <div className="mt-3">{spotSection}</div>}
+                {spot && <div className="mt-3">{spotSection(true)}</div>}
               </div>
             }
           >
-            <div className="px-2 pb-6">{results({ scrollToSelected: false })}</div>
+            <div className="px-2 pb-6">{results({ scrollToSelected: false, compact: true })}</div>
           </BottomSheet>
         )}
 
         {/* Celular: alternar para o mapa quando a lista está aberta */}
-        {isDesktop !== true && snap !== "peek" && (
+        {isDesktop !== true && snap === "full" && (
           <div className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--nav-height)+env(safe-area-inset-bottom)+16px)] z-40 flex justify-center lg:hidden">
             <Button
               variant="solid"

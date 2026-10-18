@@ -201,8 +201,11 @@ export function SpotList({
   error,
   onRetry,
   onClose,
+  compact = false,
   className,
 }: {
+  /** Celular: lista mais baixa (o mapa continua visível) e rolável dentro do sheet. */
+  compact?: boolean;
   cards: EventCardData[] | null;
   count: number;
   loading: boolean;
@@ -241,7 +244,10 @@ export function SpotList({
           </Button>
         </div>
       ) : (
-        <ul className="max-h-[50vh] space-y-0.5 overflow-y-auto overscroll-contain">
+        <ul
+          data-sheet-scroll
+          className={cn("space-y-0.5 overflow-y-auto overscroll-contain", compact ? "max-h-[min(30dvh,280px)] touch-pan-y" : "max-h-[50vh]")}
+        >
           {(cards ?? []).map((c) => (
             <li key={c.id}>
               <EventCard event={c} />

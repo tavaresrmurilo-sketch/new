@@ -118,6 +118,9 @@ export function BottomSheet({
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const inContent = contentRef.current?.contains(e.target as Node);
     if (inContent && snap === "full") return; // rolagem nativa
+    // listas roláveis dentro do cabeçalho (ex.: eventos do mesmo local) rolam sem arrastar o sheet
+    const scroller = (e.target as Element | null)?.closest?.("[data-sheet-scroll]");
+    if (scroller && scroller.scrollHeight > scroller.clientHeight) return;
     const el = sheetRef.current;
     if (!el) return;
     drag.current = { pointerId: e.pointerId, startY: e.clientY, startT: currentTranslate(el), samples: [{ y: e.clientY, t: e.timeStamp }], active: false };
@@ -268,9 +271,9 @@ export function BottomSheet({
             onKeyDown={onHandleKey}
             aria-expanded={snap !== "peek"}
             aria-label={handleLabel(snap)}
-            className="group mx-auto flex h-6 w-24 items-center justify-center rounded-full focus-visible:outline-offset-0"
+            className="group relative z-10 mx-auto -mb-4 flex h-11 w-28 items-center justify-center rounded-full focus-visible:outline-offset-[-4px]"
           >
-            <span aria-hidden className="h-1.5 w-10 rounded-full bg-border-strong transition-colors group-hover:bg-subtle-foreground" />
+            <span aria-hidden className="-mt-4 h-1.5 w-10 rounded-full bg-border-strong transition-colors group-hover:bg-subtle-foreground" />
           </button>
           {header}
         </div>
@@ -278,7 +281,9 @@ export function BottomSheet({
           ref={contentRef}
           inert={snap === "peek"}
           className={cn(
-            "min-h-0 flex-1 overscroll-contain",
+            "min-h-0 flex-1 overscroll-contain transition-opacity duration-300",
+            // recolhido: o conteúdo some (sem cards cortados pela barra inferior); reaparece ao arrastar
+            snap === "peek" && dragY == null && "opacity-0",
             snap === "full" ? "touch-pan-y overflow-y-auto" : "touch-none overflow-hidden",
           )}
         >

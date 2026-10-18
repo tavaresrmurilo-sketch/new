@@ -81,7 +81,7 @@ const CSS = `
 .mx-me__accuracy{position:absolute;left:50%;top:50%;border-radius:999px;background:rgb(59 130 246/.14);border:1px solid rgb(59 130 246/.35);transform:translate(-50%,-50%);transition:width .2s,height .2s}
 .mx-me__pulse{position:absolute;inset:0;border-radius:999px;background:rgb(59 130 246/.55);animation:mx-pulse 2s ease-out infinite}
 .mx-me__dot{position:absolute;inset:3px;border-radius:999px;background:#3b82f6;border:3px solid #fff;box-shadow:0 2px 8px rgb(0 0 0/.45)}
-.mx-popup{z-index:5}
+.mx-popup{z-index:2000000}
 .mx-popup .maplibregl-popup-content{padding:0;background:transparent;box-shadow:none;border-radius:24px}
 .mx-popup .maplibregl-popup-tip{display:none}
 .maplibregl-map{font-family:var(--font-sans);background:var(--map-bg)}

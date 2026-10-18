@@ -107,7 +107,7 @@ function FiltersForm({ filters, onApply, onClearAll, onClose }: Omit<FiltersDial
         </div>
       </section>
 
-      <div className="sticky bottom-0 -mx-6 flex gap-3 border-t border-border bg-elevated px-6 pt-4">
+      <div className="sticky -bottom-[max(1.5rem,env(safe-area-inset-bottom))] -mx-6 -mb-[max(1.5rem,env(safe-area-inset-bottom))] flex gap-3 border-t border-border bg-elevated px-6 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <Button
           type="button"
           variant="ghost"
