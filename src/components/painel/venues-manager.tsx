@@ -50,11 +50,14 @@ export function VenuesManager({
   const [value, setValue] = useState<LocationValue>(EMPTY);
   const [state, setState] = useState<ActionState<unknown>>({ status: "idle" });
   const [confirm, setConfirm] = useState<Venue | null>(null);
+  // Campos alterados desde o último envio: o erro deles some assim que a pessoa corrige.
+  const [touched, setTouched] = useState<ReadonlySet<string>>(new Set());
   const [pending, start] = useTransition();
   const atLimit = limit != null && venues.length >= limit;
 
   function open(v: Venue | "new") {
     setState({ status: "idle" });
+    setTouched(new Set());
     setValue(v === "new" ? { ...EMPTY, city: defaults.city, state: defaults.state } : toValue(v));
     setEditing(v);
   }
@@ -71,6 +74,7 @@ export function VenuesManager({
       lat: value.lat ?? undefined,
       lng: value.lng ?? undefined,
     };
+    setTouched(new Set());
     start(async () => {
       const res = editing === "new" ? await createVenueAction({ organizationId, values }) : await updateVenueAction((editing as Venue).id, values);
       if (res.status === "success") {
@@ -93,7 +97,21 @@ export function VenuesManager({
   }
 
   const fe = state.status === "error" ? state.fieldErrors ?? {} : {};
-  const errors = { venueName: fe.name, address: fe.address, neighborhood: fe.neighborhood, city: fe.city, state: fe.state, postalCode: fe.postalCode, location: fe.lat ?? fe.lng };
+  const err = (key: string, msg: string | undefined) => (touched.has(key) ? undefined : msg);
+  const errors = {
+    venueName: err("venueName", fe.name),
+    address: err("address", fe.address),
+    neighborhood: err("neighborhood", fe.neighborhood),
+    city: err("city", fe.city),
+    state: err("state", fe.state),
+    postalCode: err("postalCode", fe.postalCode),
+    location: err("lat", fe.lat ?? fe.lng),
+  };
+
+  function onPickerChange(patch: Partial<LocationValue>) {
+    setValue((v) => ({ ...v, ...patch }));
+    setTouched((t) => new Set([...t, ...Object.keys(patch)]));
+  }
 
   return (
     <>
@@ -179,7 +197,7 @@ export function VenuesManager({
         <DialogContent title={editing === "new" ? "Novo local" : "Editar local"} className="sm:max-w-2xl">
           <form onSubmit={submit} noValidate className="flex flex-col gap-5">
             <FormMessage state={state} />
-            {editing != null && <LocationPicker idPrefix="venue" value={value} onChange={(p) => setValue((v) => ({ ...v, ...p }))} errors={errors} />}
+            {editing != null && <LocationPicker idPrefix="venue" value={value} onChange={onPickerChange} errors={errors} />}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
                 Cancelar

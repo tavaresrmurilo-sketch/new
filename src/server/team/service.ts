@@ -58,7 +58,8 @@ export async function listTeam(organizationId: string) {
   ]);
   const rank: Record<OrgRole, number> = { OWNER: 0, ADMIN: 1, EDITOR: 2 };
   members.sort((a, b) => rank[a.role] - rank[b.role] || a.createdAt.getTime() - b.createdAt.getTime());
-  return { members, invites };
+  const now = Date.now();
+  return { members, invites: invites.map((i) => ({ ...i, expired: i.expiresAt.getTime() <= now })) };
 }
 
 // ─────────────────────────────────────────────────────────────

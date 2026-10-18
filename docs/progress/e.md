@@ -2,15 +2,16 @@
 
 Legenda: [x] feito · [ ] pendente · [~] em andamento
 
-1. [x] Stripe: src/server/billing/{stripe,sync,service,actions,webhook}.ts + /api/billing/webhook (testes 31 ok)
-2. [ ] /painel/plano (page + componentes em src/components/pricing)
-3. [~] /painel/equipe — serviço/ações prontos (src/server/team); falta página + testes
-4. [ ] /convite/[token]
-5. [ ] /para-organizadores + (marketing)/layout.tsx + components/marketing, components/pricing
-6. [ ] /termos e /privacidade
-7. [~] Testes: billing-sync unit + billing-webhook ok; faltam team-* integração
-8. [ ] QA visual
+1. [x] Stripe: src/server/billing/{stripe,sync,service,actions,webhook}.ts + /api/billing/webhook
+2. [x] /painel/plano — page + src/components/pricing/{pricing.ts,pricing-table.tsx,portal-button.tsx}; QA ok (sem Stripe, editor só leitura, assinatura em atraso/cancelando simuladas)
+3. [x] /painel/equipe — page + team-manager.tsx (convite, reenviar, cancelar, papéis, transferência, remover, sair); QA ok
+4. [x] /convite/[token] — page + accept-form + switchAccountForInviteAction; fluxo real testado (convite pela UI → e-mail no outbox → aceitar → /painel)
+5. [x] /para-organizadores + (marketing)/layout.tsx + components/marketing (map-mock, faq, legal, marketing-header); QA ok
+6. [x] /termos e /privacidade — LegalDocument; QA ok
+7. [x] Testes: billing-sync (unit), billing-webhook, billing-checkout, team-invites, team-roles — 60 passando
+8. [x] QA visual (celular/desktop, escuro/claro)
 
 ## Observações
-- 2026-10-18: início (nenhum arquivo da área existia).
-- 2026-10-18 (retomada): server de billing/team revisado e ok; testes billing passando.
+- Dados de QA só no banco de dev (mixtour_dev_e): qa-e-owner@teste.dev, qa-e-guest@teste.dev, organização id qa_e_org.
+- Fluxos do Stripe testados com cliente falso (sem rede/chaves); checkout real não foi exercitado.
+- Textos legais têm campos [a completar] (razão social, CNPJ, DPO, provedor de hospedagem, foro).

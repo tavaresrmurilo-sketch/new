@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { AuthError, assertUser } from "@/server/auth/guards";
+import { destroySession } from "@/server/auth/session";
 import { PlanLimitError } from "@/server/billing/plans";
 import { setCurrentOrg } from "@/server/organizations/current";
 import { requestMeta } from "@/server/request";
@@ -21,6 +22,7 @@ const inviteSchema = z.object({
   email: emailSchema,
   role: z.enum(["ADMIN", "EDITOR"], { error: "Escolha um papel." }),
 });
+const tokenSchema = z.string().trim().regex(/^[A-Za-z0-9_-]{10,200}$/);
 const memberSchema = z.object({ organizationId: id, userId: id });
 const roleSchema = memberSchema.extend({ role: z.enum(["ADMIN", "EDITOR"], { error: "Escolha um papel." }) });
 
@@ -138,7 +140,7 @@ export async function leaveOrganizationAction(organizationId: string): Promise<A
 
 /** Aceita o convite, define a organização atual e leva ao painel. */
 export async function acceptInviteAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  const token = z.string().trim().min(10).max(200).safeParse(fd.get("token"));
+  const token = tokenSchema.safeParse(fd.get("token"));
   if (!token.success) return INVALID;
   try {
     const { user, ctx } = await actor("invite");
@@ -149,4 +151,11 @@ export async function acceptInviteAction(_prev: ActionState, fd: FormData): Prom
   }
   revalidatePath("/painel", "layout");
   redirect("/painel?bem-vindo=equipe");
+}
+
+/** Logado com outro e-mail: encerra a sessão e volta ao convite pelo login. */
+export async function switchAccountForInviteAction(fd: FormData): Promise<void> {
+  const token = tokenSchema.safeParse(fd.get("token"));
+  await destroySession();
+  redirect(token.success ? `/entrar?next=${encodeURIComponent(`/convite/${token.data}`)}` : "/entrar");
 }

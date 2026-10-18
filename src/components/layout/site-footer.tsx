@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { SUPPORT_EMAIL } from "@/lib/constants";
 
 export function SiteFooter() {
   return (
@@ -32,7 +33,7 @@ export function SiteFooter() {
           links={[
             ["/termos", "Termos de uso"],
             ["/privacidade", "Privacidade"],
-            ["mailto:contato@mixtour.app", "Fale com a gente"],
+            [`mailto:${SUPPORT_EMAIL}`, "Fale com a gente"],
           ]}
         />
       </div>

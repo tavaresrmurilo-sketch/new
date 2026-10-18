@@ -80,15 +80,7 @@ export function Field({ label, htmlFor, hint, error, optional, className, childr
 }
 
 export function Checkbox({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      type="checkbox"
-      className={cn(
-        "size-5 shrink-0 appearance-none rounded-md border border-border-strong bg-surface transition checked:border-primary checked:bg-primary focus-visible:ring-4 focus-visible:ring-ring/20",
-        "bg-center bg-no-repeat checked:bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='white' stroke-width='3'%3E%3Cpath d='m5 10.5 3.2 3L15 6.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")] bg-[length:14px]",
-        className,
-      )}
-      {...props}
-    />
-  );
+  // Estilo em CSS (.mx-checkbox, globals.css): o tailwind-merge descartaria a cor de fundo
+  // marcada ao combinar com a imagem do "check".
+  return <input type="checkbox" className={cn("mx-checkbox", className)} {...props} />;
 }

@@ -81,6 +81,14 @@ export async function startCheckout(
   if (!stripe) throw new BillingError("Pagamentos online ainda não estão configurados nesta instalação.", "NOT_CONFIGURED");
   if (tier === "FREE") throw new BillingError("O plano Gratuito não precisa de assinatura.");
 
+  const [org, subscription] = await Promise.all([
+    prisma.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { id: true, name: true, contactEmail: true, stripeCustomerId: true } }),
+    prisma.subscription.findUnique({ where: { organizationId }, select: { status: true } }),
+  ]);
+  if (subscription && isEntitled(subscription.status)) {
+    throw new BillingError("Sua organização já tem uma assinatura ativa. Para trocar de plano ou de forma de pagamento, use o portal de cobrança.", "USE_PORTAL");
+  }
+
   const plan = await prisma.plan.findUnique({ where: { tier } });
   if (!plan || !plan.active) throw new BillingError("Este plano não está disponível no momento.");
   const priceId = interval === "year" ? plan.stripePriceYearly : plan.stripePriceMonthly;
@@ -90,13 +98,6 @@ export async function startCheckout(
     );
   }
 
-  const [org, subscription] = await Promise.all([
-    prisma.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { id: true, name: true, contactEmail: true, stripeCustomerId: true } }),
-    prisma.subscription.findUnique({ where: { organizationId }, select: { status: true } }),
-  ]);
-  if (subscription && isEntitled(subscription.status)) {
-    throw new BillingError("Sua organização já tem uma assinatura ativa. Para trocar de plano ou de forma de pagamento, use o portal de cobrança.", "USE_PORTAL");
-  }
 
   try {
     const customer = await ensureCustomer(stripe, org, actor.email);

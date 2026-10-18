@@ -36,7 +36,7 @@ function invalid(state: ActionState<unknown>, name: string, id: string) {
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <section className="grid gap-5 border-t border-border py-7 first:border-t-0 first:pt-0 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-10">
+    <section className="grid gap-5 border-t border-border py-7 first-of-type:border-t-0 first-of-type:pt-0 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-10">
       <div>
         <h2 className="font-bold tracking-tight">{title}</h2>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}

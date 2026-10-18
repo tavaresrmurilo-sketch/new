@@ -61,3 +61,41 @@ export function displayPrice(plan: Pick<PlanPriceInfo, "priceMonthlyCents" | "pr
   }
   return { amount: formatMoney(plan.priceMonthlyCents), suffix: "/mês", note: interval === "year" ? "Somente cobrança mensal" : "Cobrança mensal, cancele quando quiser" };
 }
+
+const dayMonth = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
+const fullDate = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+
+/** "18/10" */
+export function formatDayMonth(d: Date): string {
+  return dayMonth.format(d);
+}
+
+/** "18/10/2026" */
+export function formatFullDate(d: Date): string {
+  return fullDate.format(d);
+}
+
+/** Plano pago que atende o próximo degrau de equipe (para a chamada de upgrade). */
+export function nextTierFor<T extends Pick<PlanPriceInfo, "tier" | "maxMembers" | "priceMonthlyCents">>(plans: T[], current: PlanPriceInfo["tier"], need: (p: T) => boolean): T | null {
+  const sorted = [...plans].sort((a, b) => a.priceMonthlyCents - b.priceMonthlyCents);
+  const idx = sorted.findIndex((p) => p.tier === current);
+  return sorted.slice(idx + 1).find(need) ?? null;
+}
+
+/** Linha da tabela Plan → dados serializáveis para os cards (sem ids de preço do Stripe). */
+export function toPriceInfo(p: PlanPriceInfo): PlanPriceInfo {
+  return {
+    tier: p.tier,
+    name: p.name,
+    tagline: p.tagline,
+    priceMonthlyCents: p.priceMonthlyCents,
+    priceYearlyCents: p.priceYearlyCents,
+    maxActiveEvents: p.maxActiveEvents,
+    maxMembers: p.maxMembers,
+    maxVenues: p.maxVenues,
+    boostsPerMonth: p.boostsPerMonth,
+    fullAnalytics: p.fullAnalytics,
+    csvExport: p.csvExport,
+    highlightBadge: p.highlightBadge,
+  };
+}

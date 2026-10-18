@@ -183,6 +183,7 @@ export function ImageUpload({ purpose, organizationId, value, onChange, aspect =
         className={cn(
           "relative w-full overflow-hidden rounded-3xl border-2 border-dashed border-border-strong bg-surface-2 transition",
           ASPECTS[aspect],
+          !preview && "min-h-40",
           dragging && "border-primary bg-primary-soft",
           preview && "border-solid border-border",
         )}
@@ -212,8 +213,10 @@ export function ImageUpload({ purpose, organizationId, value, onChange, aspect =
               <ImagePlus className="size-7" />
             </span>
             <span className="text-[15px] font-semibold text-foreground">
-              <span className="hidden sm:inline">Arraste uma imagem ou </span>
-              <span className="text-primary">escolha um arquivo</span>
+              <span className="text-primary sm:hidden">Escolher imagem</span>
+              <span className="hidden sm:inline">
+                Arraste uma imagem ou <span className="text-primary">escolha um arquivo</span>
+              </span>
             </span>
             {hint && <span className="max-w-xs text-[13px]">{hint}</span>}
           </button>
