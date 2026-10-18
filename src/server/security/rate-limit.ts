@@ -12,8 +12,11 @@ export interface RateLimitResult {
 }
 
 export const LIMITS = {
+  /** Por e-mail: a proteção principal contra força bruta. */
   login: { limit: 10, windowSec: 5 * 60 },
-  register: { limit: 5, windowSec: 60 * 60 },
+  /** Por IP: folgado porque redes móveis (CGNAT) e Wi-Fi de eventos compartilham IPs. */
+  loginIp: { limit: 60, windowSec: 5 * 60 },
+  register: { limit: 30, windowSec: 60 * 60 },
   passwordReset: { limit: 5, windowSec: 60 * 60 },
   verifyResend: { limit: 5, windowSec: 60 * 60 },
   geocode: { limit: 30, windowSec: 60 },

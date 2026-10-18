@@ -54,7 +54,7 @@ export async function loginAction(_prev: ActionState, fd: FormData): Promise<Act
   if (!parsed.success) return { status: "error", message: "Informe e-mail e senha.", fieldErrors: fieldErrors(parsed.error) };
   const { email, password } = parsed.data;
 
-  const [byIp, byEmail] = await Promise.all([rateLimit("login", `ip:${meta.ip ?? "unknown"}`), rateLimit("login", `email:${email}`)]);
+  const [byIp, byEmail] = await Promise.all([rateLimit("loginIp", meta.ip ?? "unknown"), rateLimit("login", `email:${email}`)]);
   if (!byIp.allowed || !byEmail.allowed) {
     return { status: "error", message: retryMessage(Math.max(byIp.retryAfterSeconds, byEmail.retryAfterSeconds)) };
   }

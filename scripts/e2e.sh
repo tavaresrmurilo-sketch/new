@@ -25,6 +25,10 @@ npx tsx prisma/seed.ts
 rm -rf ./storage/e2e-uploads
 
 if [ "${E2E_SKIP_BUILD:-}" != "1" ]; then
+  # o next build acrescenta a pasta .next-e2e ao tsconfig.json; restauramos o original depois
+  cp tsconfig.json /tmp/mixtour-tsconfig.backup.json
+  trap 'cp /tmp/mixtour-tsconfig.backup.json tsconfig.json' EXIT
   npx next build
+  cp /tmp/mixtour-tsconfig.backup.json tsconfig.json
 fi
 npx playwright test "$@"

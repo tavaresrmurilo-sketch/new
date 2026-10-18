@@ -42,14 +42,14 @@ describe("senhas", () => {
 
 describe("rate limit compartilhado (PostgreSQL)", () => {
   it("bloqueia após o limite e informa a espera", async () => {
-    for (let i = 0; i < 5; i++) expect((await rateLimit("register", "1.2.3.4")).allowed).toBe(true);
+    for (let i = 0; i < 30; i++) expect((await rateLimit("register", "1.2.3.4")).allowed).toBe(true);
     const blocked = await rateLimit("register", "1.2.3.4");
     expect(blocked.allowed).toBe(false);
     expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
     expect((await rateLimit("register", "5.6.7.8")).allowed).toBe(true);
   });
   it("reinicia a janela vencida", async () => {
-    for (let i = 0; i < 6; i++) await rateLimit("register", "9.9.9.9");
+    for (let i = 0; i < 31; i++) await rateLimit("register", "9.9.9.9");
     await prisma.rateLimitBucket.updateMany({ data: { resetAt: new Date(Date.now() - 1000) } });
     expect((await rateLimit("register", "9.9.9.9")).allowed).toBe(true);
   });

@@ -33,7 +33,7 @@ export async function GET(req: Request) {
   if (!code || !saved.state || !safeEqual(state, saved.state)) return fail("google-sessao");
 
   const meta = requestMetaFrom(req);
-  const rl = await rateLimit("login", `ip:${meta.ip ?? "unknown"}`);
+  const rl = await rateLimit("loginIp", meta.ip ?? "unknown");
   if (!rl.allowed) return fail("muitas-tentativas");
 
   let profile;

@@ -41,3 +41,9 @@ export async function verifyEmail(page: Page, email: string) {
   await page.goto(link);
   await expect(page.getByRole("heading", { name: "E-mail confirmado!" })).toBeVisible();
 }
+
+/** Login que espera a sessão ser criada (sai da página /entrar). */
+export async function loginOk(page: Page, email: string, password = PASSWORD) {
+  await login(page, email, password);
+  await page.waitForURL((u) => !u.pathname.startsWith("/entrar"), { timeout: 15_000 });
+}
