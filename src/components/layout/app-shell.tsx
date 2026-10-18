@@ -1,6 +1,7 @@
 import { getSessionUser } from "@/server/auth/session";
 import { prisma } from "@/server/db";
 import { unreadCount } from "@/server/notifications";
+import { NativePushSync } from "@/components/native/native-bridge";
 import { BottomNav } from "./bottom-nav";
 import type { NavUser } from "./nav-items";
 import { SiteHeader } from "./site-header";
@@ -33,6 +34,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       <SiteHeader user={user} unread={unread} />
       {children}
       <BottomNav loggedIn={Boolean(user)} unread={unread} />
+      <NativePushSync loggedIn={Boolean(user)} />
     </>
   );
 }

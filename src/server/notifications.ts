@@ -4,6 +4,7 @@ import type { NotificationType } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { sendEmail, type EmailMessage } from "@/server/email";
 import { env, integrations } from "@/server/env";
+import { sendNativePush } from "@/server/push/native";
 
 export interface NotifyInput {
   type: NotificationType;
@@ -40,9 +41,11 @@ export async function notify(userId: string, input: NotifyInput, opts: { email?:
     await sendEmail(user.email, opts.email).catch((err) => console.error("[notify] e-mail", err));
   }
   if (opts.push !== false && user.notifyPush) {
-    await sendPush(userId, { title: input.title, body: input.body ?? "", url: input.url ?? "/notificacoes" }).catch((err) =>
-      console.error("[notify] push", err),
-    );
+    const payload = { title: input.title, body: input.body ?? "", url: input.url ?? "/notificacoes" };
+    await Promise.all([
+      sendPush(userId, payload).catch((err) => console.error("[notify] web push", err)),
+      sendNativePush(userId, payload).catch((err) => console.error("[notify] push nativo", err)),
+    ]);
   }
   return notification;
 }

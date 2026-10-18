@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { HIDE_BOTTOM_NAV } from "@/components/layout/nav-items";
 import { Button } from "@/components/ui/button";
+import { isNativeApp } from "@/lib/native";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -53,7 +54,7 @@ export function InstallPrompt() {
   const [mode, setMode] = useState<"native" | "ios" | null>(null);
 
   useEffect(() => {
-    if (isStandalone() || dismissedRecently()) return;
+    if (isNativeApp() || isStandalone() || dismissedRecently()) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const onPrompt = (e: Event) => {
       e.preventDefault();

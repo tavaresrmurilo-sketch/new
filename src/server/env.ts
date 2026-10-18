@@ -67,6 +67,20 @@ const schema = z.object({
   VAPID_PRIVATE_KEY: optional,
   VAPID_SUBJECT: optional,
 
+  // Push do app nativo — Android via Firebase Cloud Messaging (conta de serviço)
+  FCM_PROJECT_ID: optional,
+  FCM_CLIENT_EMAIL: optional,
+  FCM_PRIVATE_KEY: optional,
+  // Push do app nativo — iOS via APNs (chave .p8)
+  APNS_KEY_ID: optional,
+  APPLE_TEAM_ID: optional,
+  APNS_PRIVATE_KEY: optional,
+  IOS_BUNDLE_ID: optional,
+  APNS_PRODUCTION: bool,
+  // App Links / Universal Links (abrir links do Mixtour direto no app)
+  ANDROID_APP_ID: optional,
+  ANDROID_SHA256_CERT_FINGERPRINTS: optional,
+
   // Rotinas agendadas
   CRON_SECRET: optional,
 
@@ -105,6 +119,8 @@ export function integrations() {
     stripe: Boolean(e.STRIPE_SECRET_KEY),
     stripeWebhook: Boolean(e.STRIPE_SECRET_KEY && e.STRIPE_WEBHOOK_SECRET),
     push: Boolean(e.VAPID_PUBLIC_KEY && e.VAPID_PRIVATE_KEY),
+    fcm: Boolean(e.FCM_PROJECT_ID && e.FCM_CLIENT_EMAIL && e.FCM_PRIVATE_KEY),
+    apns: Boolean(e.APNS_KEY_ID && e.APPLE_TEAM_ID && e.APNS_PRIVATE_KEY && e.IOS_BUNDLE_ID),
     geocoder: e.GEOCODER !== "none",
     cron: Boolean(e.CRON_SECRET),
   };

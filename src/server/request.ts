@@ -23,6 +23,12 @@ export async function requestMeta(): Promise<RequestMeta> {
   return { ip: pickIp(h), userAgent: h.get("user-agent")?.slice(0, 400) ?? null };
 }
 
+/** Requisição vinda do app nativo (o WebView acrescenta "MixtourApp" ao user-agent). */
+export async function isNativeAppRequest(): Promise<boolean> {
+  const h = await headers();
+  return /\bMixtourApp\b/.test(h.get("user-agent") ?? "");
+}
+
 export function requestMetaFrom(req: Request): RequestMeta {
   return { ip: pickIp(req.headers), userAgent: req.headers.get("user-agent")?.slice(0, 400) ?? null };
 }

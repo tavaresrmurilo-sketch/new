@@ -1,5 +1,6 @@
 "use client";
 
+import { getCurrentPosition } from "@/lib/native";
 import { LocateFixed, MapPin, Search, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -85,16 +86,11 @@ export function CitySearch({ initial, inputId }: { initial: CityValue | null; in
   };
 
   const useMyLocation = () => {
-    if (!("geolocation" in navigator)) {
-      setError("Seu navegador não informa a localização.");
-      return;
-    }
     setLoading(true);
     setError(null);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+    getCurrentPosition({ timeoutMs: 10_000, highAccuracy: false }).then(
+      async ({ lat, lng }) => {
         try {
-          const { latitude: lat, longitude: lng } = pos.coords;
           const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`);
           const data = (await res.json().catch(() => ({}))) as { result?: GeoResult | null; error?: string };
           if (res.ok && data.result) choose({ ...data.result, lat, lng });
@@ -109,7 +105,6 @@ export function CitySearch({ initial, inputId }: { initial: CityValue | null; in
         setLoading(false);
         setError("Não foi possível acessar sua localização. Busque pelo nome da cidade.");
       },
-      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 600_000 },
     );
   };
 

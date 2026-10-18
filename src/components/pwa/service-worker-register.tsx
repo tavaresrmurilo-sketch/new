@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { isNativeApp } from "@/lib/native";
 
 /**
  * Registra o service worker (/sw.js) somente em produção — em desenvolvimento
@@ -8,7 +9,8 @@ import { useEffect } from "react";
  */
 export function ServiceWorkerRegister() {
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
+    // No app nativo o WebView carrega o site direto; o cache offline é do próprio app.
+    if (process.env.NODE_ENV !== "production" || isNativeApp() || !("serviceWorker" in navigator)) return;
     const register = () => {
       navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch((err) => console.warn("[sw] registro falhou", err));
     };

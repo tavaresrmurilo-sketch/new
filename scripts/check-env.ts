@@ -26,6 +26,9 @@ const checks: Check[] = [
   { name: "Assinaturas (Stripe)", ok: has("STRIPE_SECRET_KEY") && has("STRIPE_WEBHOOK_SECRET"), hint: "STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET e STRIPE_PRICE_* (depois rode o seed)." },
   { name: "Login com Google", ok: has("GOOGLE_CLIENT_ID") && has("GOOGLE_CLIENT_SECRET"), hint: "Redirect URI: {APP_URL}/api/auth/google/callback" },
   { name: "Web Push (VAPID)", ok: has("VAPID_PUBLIC_KEY") && has("VAPID_PRIVATE_KEY") && has("NEXT_PUBLIC_VAPID_PUBLIC_KEY"), hint: "npx web-push generate-vapid-keys" },
+  { name: "Push no app Android (FCM)", ok: ["FCM_PROJECT_ID", "FCM_CLIENT_EMAIL", "FCM_PRIVATE_KEY"].every(has), hint: "Conta de serviço do Firebase — docs/MOBILE.md." },
+  { name: "Push no app iOS (APNs)", ok: ["APNS_KEY_ID", "APPLE_TEAM_ID", "APNS_PRIVATE_KEY", "IOS_BUNDLE_ID"].every(has), hint: "Chave .p8 do APNs — docs/MOBILE.md." },
+  { name: "Links abrindo no app (App Links / Universal Links)", ok: (has("ANDROID_APP_ID") && has("ANDROID_SHA256_CERT_FINGERPRINTS")) || (has("APPLE_TEAM_ID") && has("IOS_BUNDLE_ID")), hint: "ANDROID_* e/ou APPLE_TEAM_ID + IOS_BUNDLE_ID — docs/MOBILE.md." },
   { name: "Rotinas agendadas (CRON_SECRET)", ok: has("CRON_SECRET"), hint: "A Vercel envia Authorization: Bearer $CRON_SECRET." },
   { name: "Geocodificação", ok: env.GEOCODER !== "none", hint: "Nominatim exige GEOCODER_CONTACT_EMAIL; para volume alto, use um provedor dedicado." },
 ];

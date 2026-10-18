@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 
 /**
@@ -5,7 +6,9 @@ import { defineConfig, devices } from "@playwright/test";
  * próprio e mapa base "blank" (sem dependência de tiles externos).
  */
 const PORT = Number(process.env.E2E_PORT ?? 3100);
-const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH ?? "/opt/pw-browsers/chromium";
+// Usa o Chromium pré-instalado do ambiente quando existir; senão, o do Playwright (npx playwright install).
+const preinstalled = process.env.PLAYWRIGHT_CHROMIUM_PATH ?? "/opt/pw-browsers/chromium";
+const executablePath = existsSync(preinstalled) ? preinstalled : undefined;
 
 export default defineConfig({
   testDir: "./e2e",

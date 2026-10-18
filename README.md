@@ -1,6 +1,6 @@
 # Mixtour
 
-**Descubra o que está rolando perto de você.**
+**Descubra o que está rolando perto de você.** · App para Android e iOS + web app instalável
 
 O Mixtour é um mapa vivo de eventos — shows, festas, festivais, teatro, feiras, exposições,
 gastronomia e passeios — feito para o celular. Para quem sai, é o jeito mais rápido de achar
@@ -22,6 +22,7 @@ modelo SaaS com planos Gratuito, Pro e Business.
 - Página do evento com mapa, "como chegar" (Google Maps, Waze, Apple Maps, Uber), adicionar à agenda (.ics / Google Agenda), compartilhar, ingressos, denúncia
 - Salvar, "Vou"/"Tenho interesse", seguir organizadores; agenda pessoal; lembretes (in-app, e-mail, push)
 - Conta com e-mail/senha ou Google, preferências, sessões ativas, exportação e exclusão de dados (LGPD)
+- **App nativo Android e iOS** (Capacitor): GPS do aparelho, push nativo (FCM/APNs), folha de compartilhar, vibração, links que abrem no app — ver [docs/MOBILE.md](docs/MOBILE.md)
 - PWA instalável, tema escuro/claro
 
 **Organizador (SaaS)**
@@ -67,6 +68,8 @@ Sem provedor de e-mail, os links de confirmação/redefinição aparecem no term
 | `npm run db:deploy` / `npm run db:seed` | Migrations / seed idempotente |
 | `npm run jobs:run -- daily` | Executa uma rotina agendada pela linha de comando |
 | `npm run check:env` | Diagnóstico das integrações configuradas |
+| `npm run mobile:sync` | Atualiza os projetos `android/` e `ios/` (use `CAPACITOR_SERVER_URL`) |
+| `npm run mobile:android` / `mobile:ios` | Abre o projeto nativo no Android Studio / Xcode |
 
 ## Integrações e o que falta configurar
 
@@ -77,6 +80,7 @@ Sem provedor de e-mail, os links de confirmação/redefinição aparecem no term
 | Stripe | página de plano informa; admin altera plano manualmente | `STRIPE_*` + webhook — [DEPLOY §5](docs/DEPLOY.md#5-assinaturas-stripe) |
 | Google OAuth | botão oculto | `GOOGLE_CLIENT_*` — [DEPLOY §6](docs/DEPLOY.md#6-login-com-google-opcional) |
 | Web Push | opção desativada no perfil | chaves VAPID — [DEPLOY §8](docs/DEPLOY.md#8-notificações-push-opcional) |
+| Push no app nativo | avisos ficam in-app e por e-mail | FCM (Android) e APNs (iOS) — [MOBILE](docs/MOBILE.md#notificações-push-nativas) |
 | Mapa base | OpenFreeMap (sem chave); fallback liso se indisponível | `NEXT_PUBLIC_MAP_STYLE_*` |
 | Geocodificação | Nominatim público (1 req/s) | `GEOCODER_CONTACT_EMAIL`; `GEOCODER=none` desliga |
 

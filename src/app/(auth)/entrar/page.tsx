@@ -5,6 +5,7 @@ import { LoginForm } from "@/components/auth/forms";
 import { Alert } from "@/components/ui/misc";
 import { googleEnabled } from "@/server/auth/google";
 import { getSessionUser } from "@/server/auth/session";
+import { isNativeAppRequest } from "@/server/request";
 import { safeNextPath } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Entrar" };
@@ -28,7 +29,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/entrar">) 
       <h1 className="text-3xl font-extrabold tracking-tight">Que bom te ver!</h1>
       <p className="mt-2 mb-8 text-[15px] text-muted-foreground">Entre para salvar eventos, montar sua agenda e receber lembretes.</p>
       {erro && <Alert tone="warning" className="mb-6">{erro}</Alert>}
-      <LoginForm next={next || undefined} google={googleEnabled()} />
+      <LoginForm next={next || undefined} google={googleEnabled() && !(await isNativeAppRequest())} />
       <p className="mt-8 text-center text-sm text-muted-foreground">
         Ainda não tem conta?{" "}
         <Link href={`/cadastrar${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-bold text-primary hover:underline">

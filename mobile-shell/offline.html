@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Sem conexão · Mixtour</title>
+    <style>
+      :root { color-scheme: dark; }
+      html, body { margin: 0; height: 100%; background: #08080d; color: #f3f3f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+      main { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 32px 24px calc(32px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+      .mark { width: 72px; height: 72px; }
+      h1 { font-size: 24px; margin: 24px 0 8px; letter-spacing: -0.02em; }
+      p { color: #a3a3b8; font-size: 16px; line-height: 1.5; max-width: 300px; margin: 0; }
+      button { margin-top: 28px; border: 0; border-radius: 999px; padding: 14px 28px; font-size: 16px; font-weight: 700; color: #fff; background: linear-gradient(120deg, #7c5cff, #b04dff 40%, #ff4d8d 72%, #ff8a3d); min-height: 48px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg class="mark" viewBox="0 0 48 48" aria-hidden="true">
+        <defs><linearGradient id="g" x1="6" y1="4" x2="42" y2="44" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7C5CFF"/><stop offset=".45" stop-color="#B04DFF"/><stop offset=".75" stop-color="#FF4D8D"/><stop offset="1" stop-color="#FF8A3D"/></linearGradient></defs>
+        <path d="M24 3C14.6 3 7 10.4 7 19.6c0 11.4 13.6 23.3 15.6 25a2.2 2.2 0 0 0 2.8 0C27.4 42.9 41 31 41 19.6 41 10.4 33.4 3 24 3Z" fill="url(#g)"/>
+        <g fill="#fff"><rect x="15.5" y="16" width="3.2" height="7" rx="1.6"/><rect x="20.1" y="13" width="3.2" height="13" rx="1.6"/><rect x="24.7" y="14.5" width="3.2" height="10" rx="1.6"/><rect x="29.3" y="17" width="3.2" height="5" rx="1.6"/></g>
+      </svg>
+      <h1>Você está sem conexão</h1>
+      <p>O Mixtour precisa de internet para mostrar o que está rolando perto de você.</p>
+      <button type="button" onclick="location.href = '__MIXTOUR_SERVER_URL__'.startsWith('http') ? '__MIXTOUR_SERVER_URL__' : '/'">Tentar de novo</button>
+    </main>
+  </body>
+</html>

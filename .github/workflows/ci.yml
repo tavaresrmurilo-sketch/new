@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Lint, tipos, testes e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mixtour?schema=public
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mixtour_test?schema=public
+      E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mixtour_e2e?schema=public
+      AUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret-0123456789
+      APP_URL: http://localhost:3000
+      NEXT_PUBLIC_MAP_STYLE_DARK: blank
+      NEXT_PUBLIC_MAP_STYLE_LIGHT: blank
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Bancos de dados
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE mixtour" -c "CREATE DATABASE mixtour_test"
+          npx prisma migrate deploy
+      - run: npx next typegen
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - name: E2E (celular e desktop)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7

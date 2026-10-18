@@ -1,5 +1,7 @@
 "use client";
 
+import { NativePushToggle } from "@/components/native/native-push-toggle";
+import { isNativeApp } from "@/lib/native";
 import { BellOff, BellRing, Info, Smartphone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -51,6 +53,12 @@ async function detect(): Promise<PushState> {
  * não está configurado (nunca simula). Inscrição enviada a /api/push/subscribe.
  */
 export function PushToggle() {
+  const mounted = useIsClient();
+  if (mounted && isNativeApp()) return <NativePushToggle />;
+  return <WebPushToggle />;
+}
+
+function WebPushToggle() {
   const mounted = useIsClient();
   const [state, setState] = useState<PushState>("checking");
   const [busy, setBusy] = useState(false);

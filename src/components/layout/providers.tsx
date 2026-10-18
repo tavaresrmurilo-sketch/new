@@ -2,12 +2,14 @@
 
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
+import { NativeBridge } from "@/components/native/native-bridge";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
       <TooltipProvider>
+        <NativeBridge />
         {children}
         <Toaster
           position="top-center"

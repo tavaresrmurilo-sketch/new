@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#08080D</color>
+    <color name="colorPrimaryDark">#08080D</color>
+    <color name="colorAccent">#7C5CFF</color>
+    <color name="mxBackground">#08080D</color>
+</resources>

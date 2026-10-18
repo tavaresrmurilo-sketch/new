@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createContext, startTransition, useContext, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { setRsvpAction, toggleSaveAction } from "@/server/engagement/actions";
+import { haptic } from "@/lib/native";
 import { isAuthRequired, useLoginPrompt } from "./login-prompt";
 
 export interface EngagementSnapshot {
@@ -63,6 +64,7 @@ export function useEventEngagement(opts: EngagementOptions): EngagementApi {
       return;
     }
     if (loggedIn === false) return login.prompt("save");
+    void haptic(next ? "success" : "light");
     startAction(async () => {
       patchOptimistic({ saved: next, savesCount: Math.max(0, optimistic.savesCount + (next ? 1 : -1)) });
       const res = await toggleSaveAction(eventId, next);
@@ -91,6 +93,7 @@ export function useEventEngagement(opts: EngagementOptions): EngagementApi {
     const prev = optimistic.rsvp;
     if (prev === status) return;
     const delta = (status === "GOING" ? 1 : 0) - (prev === "GOING" ? 1 : 0);
+    void haptic(status ? "success" : "light");
     startAction(async () => {
       patchOptimistic({ rsvp: status, goingCount: Math.max(0, optimistic.goingCount + delta) });
       const res = await setRsvpAction(eventId, status);

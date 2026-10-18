@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { toggleFollowAction } from "@/server/engagement/actions";
 import { formatNumber } from "@/lib/format";
+import { haptic } from "@/lib/native";
 import { cn } from "@/lib/utils";
 import { isAuthRequired, useLoginPrompt } from "./login-prompt";
 
@@ -33,6 +34,7 @@ export function useFollow({ organizationId, initialFollowing, followers, organiz
     const next = !optimistic.following;
     start(async () => {
       patch({ following: next, followers: Math.max(0, optimistic.followers + (next ? 1 : -1)) });
+      void haptic(next ? "success" : "light");
       const res = await toggleFollowAction(organizationId, next);
       if (res.status === "success" && res.data) {
         const data = res.data;

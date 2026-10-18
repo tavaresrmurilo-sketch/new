@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Notificações push (o Xcode troca para "production" ao exportar para a App Store) -->
+	<key>aps-environment</key>
+	<string>development</string>
+	<!-- Universal Links: troque MIXTOUR_HOST nas Build Settings do target App pelo seu domínio -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:$(MIXTOUR_HOST)</string>
+	</array>
+</dict>
+</plist>

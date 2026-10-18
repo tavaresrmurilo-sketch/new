@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { WhatsAppIcon } from "@/components/brand/social-icons";
 import { Button } from "@/components/ui/button";
+import { isNativeApp, openExternal, shareLink } from "@/lib/native";
 import { cn } from "@/lib/utils";
 
 interface ShareButtonProps {
@@ -62,6 +63,11 @@ export function ShareButton({ path, title, text, eventId, variant = "icon", labe
 
   const onClick = async () => {
     const url = absoluteUrl();
+    // App nativo: folha de compartilhamento do sistema (WhatsApp, Instagram, etc.).
+    if (isNativeApp()) {
+      if ((await shareLink({ title, text: message, url })) === "shared") trackShare(eventId);
+      return;
+    }
     const touch = window.matchMedia?.("(pointer: coarse)").matches;
     if (touch && typeof navigator.share === "function") {
       try {
@@ -89,7 +95,7 @@ export function ShareButton({ path, title, text, eventId, variant = "icon", labe
   const external = (href: string) => () => {
     trackShare(eventId);
     setOpen(false);
-    window.open(href, "_blank", "noopener,noreferrer");
+    void openExternal(href);
   };
 
   const trigger =

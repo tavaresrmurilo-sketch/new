@@ -1,5 +1,6 @@
 "use client";
 
+import { getCurrentPosition, isNativeApp, LocationError } from "@/lib/native";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Marker } from "maplibre-gl";
 import { BookmarkPlus, Check, Crosshair, Loader2, LocateFixed, MapPin, Search, TriangleAlert, X } from "lucide-react";
@@ -274,22 +275,21 @@ export function LocationPicker({ value, onChange, errors = {}, venues, organizat
   }
 
   function useMyLocation() {
-    if (!("geolocation" in navigator)) {
-      toast.error("Seu navegador não informa a localização.");
-      return;
-    }
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocating(false);
-        placePin(pos.coords.latitude, pos.coords.longitude, { reverse: true, fly: true });
-      },
-      (err) => {
-        setLocating(false);
-        toast.error(err.code === err.PERMISSION_DENIED ? "Permita o acesso à localização nas configurações do navegador." : "Não foi possível obter sua localização agora.");
-      },
-      { enableHighAccuracy: true, timeout: 12_000, maximumAge: 60_000 },
-    );
+    getCurrentPosition({ timeoutMs: 12_000, highAccuracy: true })
+      .then((pos) => placePin(pos.lat, pos.lng, { reverse: true, fly: true }))
+      .catch((err: unknown) => {
+        toast.error(
+          err instanceof LocationError && err.code === "denied"
+            ? isNativeApp()
+              ? "Permita o acesso à localização nos ajustes do aparelho."
+              : "Permita o acesso à localização nas configurações do navegador."
+            : err instanceof Error
+              ? err.message
+              : "Não foi possível obter sua localização agora.",
+        );
+      })
+      .finally(() => setLocating(false));
   }
 
   function applyVenue(v: SavedVenue) {

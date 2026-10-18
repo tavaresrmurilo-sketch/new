@@ -3,6 +3,7 @@ import Link from "next/link";
 import { RsvpButton, RsvpMenuButton } from "@/components/engagement/rsvp-button";
 import { SaveButton } from "@/components/engagement/save-button";
 import { ShareButton } from "@/components/engagement/share-button";
+import { ExternalLink } from "@/components/native/external-link";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -34,7 +35,7 @@ export interface CtaModel {
 function TicketLink({ m, size = "md", block, compact, className }: { m: CtaModel; size?: "md" | "lg"; block?: boolean; compact?: boolean; className?: string }) {
   return (
     <Button asChild variant="primary" size={size} block={block} className={className}>
-      <a href={m.ticketHref ?? "#"} target="_blank" rel={m.preview ? "noopener noreferrer" : "noopener"}>
+      <ExternalLink href={m.ticketHref ?? "#"} rel={m.preview ? "noopener noreferrer" : "noopener"}>
         <Ticket className={cn(compact && "max-[379px]:hidden")} />
         {compact ? (
           <>
@@ -44,7 +45,7 @@ function TicketLink({ m, size = "md", block, compact, className }: { m: CtaModel
         ) : (
           "Comprar ingresso"
         )}
-      </a>
+      </ExternalLink>
     </Button>
   );
 }

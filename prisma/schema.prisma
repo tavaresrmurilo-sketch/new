@@ -64,6 +64,7 @@ model User {
   reviewedEvents    Event[]            @relation("EventReviewer")
   uploads           Upload[]
   pushSubscriptions PushSubscription[]
+  deviceTokens      DeviceToken[]
   auditLogs         AuditLog[]
   sentInvites       OrgInvite[]
 
@@ -574,6 +575,26 @@ model PushSubscription {
   auth      String
   userAgent String?
   createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum DevicePlatform {
+  ANDROID
+  IOS
+}
+
+/// Token de push do app nativo (FCM no Android, APNs no iOS).
+model DeviceToken {
+  id         String         @id @default(cuid())
+  userId     String
+  platform   DevicePlatform
+  token      String         @unique
+  appVersion String?
+  createdAt  DateTime       @default(now())
+  lastSeenAt DateTime       @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

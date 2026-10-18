@@ -3,18 +3,21 @@
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { UserPosition } from "@/components/map/user-location";
+import { getCurrentPosition, isNativeApp, LocationError } from "@/lib/native";
 
 export type GeoStatus = "idle" | "locating" | "active";
 
-function friendlyError(err: GeolocationPositionError | null): { title: string; description: string } {
+function friendlyError(err: LocationError | null): { title: string; description: string } {
   if (!err) return { title: "Seu navegador não informa a localização", description: "Use a busca para encontrar sua cidade ou bairro." };
-  if (err.code === err.PERMISSION_DENIED) {
+  if (err.code === "denied") {
     return {
       title: "Sem permissão para ver sua localização",
-      description: "Libere o acesso à localização para o Mixtour nas configurações do navegador e tente de novo — ou busque sua cidade.",
+      description: isNativeApp()
+        ? "Libere a localização para o Mixtour nos ajustes do aparelho e tente de novo — ou busque sua cidade."
+        : "Libere o acesso à localização para o Mixtour nas configurações do navegador e tente de novo — ou busque sua cidade.",
     };
   }
-  if (err.code === err.TIMEOUT) return { title: "Demorou demais para encontrar você", description: "Confira o GPS ou a conexão e tente de novo." };
+  if (err.code === "timeout") return { title: "Demorou demais para encontrar você", description: "Confira o GPS ou a conexão e tente de novo." };
   return { title: "Não conseguimos encontrar sua localização agora", description: "Tente de novo em instantes ou busque sua cidade." };
 }
 
@@ -29,31 +32,29 @@ export function useGeolocation() {
 
   const locate = useCallback((): Promise<UserPosition | null> => {
     if (pending.current) return pending.current;
-    if (typeof navigator === "undefined" || !("geolocation" in navigator) || !window.isSecureContext) {
+    if (!isNativeApp() && (typeof navigator === "undefined" || !("geolocation" in navigator) || !window.isSecureContext)) {
       const e = friendlyError(null);
       toast.error(e.title, { description: e.description });
       return Promise.resolve(null);
     }
     setStatus("locating");
-    pending.current = new Promise<UserPosition | null>((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const p: UserPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
-          setPosition(p);
-          setStatus("active");
-          pending.current = null;
-          resolve(p);
-        },
-        (err) => {
-          const e = friendlyError(err);
-          toast.error(e.title, { description: e.description });
-          setStatus((s) => (s === "locating" ? (position ? "active" : "idle") : s));
-          pending.current = null;
-          resolve(null);
-        },
-        { enableHighAccuracy: true, timeout: 12_000, maximumAge: 60_000 },
-      );
-    });
+    // No app nativo usa o GPS do aparelho (plugin); no navegador, a API de geolocalização.
+    pending.current = getCurrentPosition({ timeoutMs: 12_000, highAccuracy: true }).then(
+      (pos) => {
+        const p: UserPosition = { lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy };
+        setPosition(p);
+        setStatus("active");
+        pending.current = null;
+        return p;
+      },
+      (err: unknown) => {
+        const e = friendlyError(err instanceof LocationError ? err : new LocationError("indisponível", "unavailable"));
+        toast.error(e.title, { description: e.description });
+        setStatus((s) => (s === "locating" ? (position ? "active" : "idle") : s));
+        pending.current = null;
+        return null;
+      },
+    );
     return pending.current;
   }, [position]);
 
