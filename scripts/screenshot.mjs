@@ -12,7 +12,8 @@ const ctx = await browser.newContext(
 );
 if (process.env.SHOT_COOKIE) {
   const [name, ...rest] = process.env.SHOT_COOKIE.split("=");
-  await ctx.addCookies([{ name, value: rest.join("="), url: new URL(url).origin }]);
+  const secure = name.startsWith("__Host-") || name.startsWith("__Secure-");
+  await ctx.addCookies([{ name, value: rest.join("="), domain: new URL(url).hostname, path: "/", secure, httpOnly: true, sameSite: "Lax" }]);
 }
 await ctx.addInitScript((t) => {
   try {

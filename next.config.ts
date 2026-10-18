@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV === "development";
+// HTTPS forçado (HSTS e upgrade-insecure-requests) só quando o app é servido em https.
+const httpsApp = (process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "").startsWith("https://");
 
 function origin(url: string | undefined): string | null {
   if (!url) return null;
@@ -33,7 +35,7 @@ const csp = [
   "base-uri 'self'",
   "object-src 'none'",
   "form-action 'self' https://accounts.google.com https://checkout.stripe.com https://billing.stripe.com",
-  ...(isDev ? [] : ["upgrade-insecure-requests"]),
+  ...(httpsApp ? ["upgrade-insecure-requests"] : []),
 ].join("; ");
 
 const securityHeaders = [
@@ -43,7 +45,7 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "geolocation=(self), camera=(), microphone=(), payment=(), usb=()" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-  ...(isDev ? [] : [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]),
+  ...(httpsApp ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }] : []),
 ];
 
 const nextConfig: NextConfig = {
