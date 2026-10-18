@@ -11,7 +11,11 @@ export function clamp(n: number, min: number, max: number) {
 
 /** Iniciais para avatares ("Ana Paula Souza" → "AS"). */
 export function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w.replace(/[^\p{L}\p{N}]/gu, ""))
+    .filter(Boolean);
   if (!parts.length) return "?";
   const first = parts[0][0] ?? "";
   const last = parts.length > 1 ? parts[parts.length - 1][0] ?? "" : "";

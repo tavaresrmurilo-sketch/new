@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.json({ error: "Entre na sua conta para baixar seus dados." }, { status: 401 });
 
   // Mesmo limite de "recuperar senha" (5/h), em balde próprio.
-  const rl = await rateLimit("passwordReset", `export:${user.id}`);
+  const rl = await rateLimit("accountExport", user.id);
   if (!rl.allowed) {
     return NextResponse.json({ error: retryMessage(rl.retryAfterSeconds) }, { status: 429, headers: { "retry-after": String(rl.retryAfterSeconds) } });
   }

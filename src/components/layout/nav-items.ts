@@ -8,7 +8,7 @@ export interface NavUser {
 }
 
 /** Rotas em que a barra inferior móvel não aparece (têm navegação própria ou CTA fixo). */
-export const HIDE_BOTTOM_NAV = [/^\/evento\//, /^\/painel/, /^\/admin/, /^\/entrar/, /^\/cadastrar/, /^\/recuperar-senha/, /^\/redefinir-senha/, /^\/verificar-email/, /^\/convite/];
+export const HIDE_BOTTOM_NAV = [/^\/evento\//, /^\/painel/, /^\/admin/, /^\/entrar/, /^\/cadastrar/, /^\/recuperar-senha/, /^\/redefinir-senha/, /^\/verificar-email/, /^\/convite/, /^\/offline/];
 
 export function isActivePath(pathname: string, href: string) {
   if (href === "/") return pathname === "/";

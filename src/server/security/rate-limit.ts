@@ -24,6 +24,8 @@ export const LIMITS = {
   mutation: { limit: 60, windowSec: 60 },
   invite: { limit: 20, windowSec: 60 * 60 },
   checkout: { limit: 10, windowSec: 10 * 60 },
+  accountExport: { limit: 5, windowSec: 60 * 60 },
+  accountDelete: { limit: 10, windowSec: 5 * 60 },
 } as const;
 
 export type LimitName = keyof typeof LIMITS;

@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ status: "error", message: "Entre na sua conta para continuar." }, { status: 401 });
 
   // Mesmo limite do login (tentativas de senha), em balde próprio.
-  const rl = await rateLimit("login", `delete:${user.id}`);
+  const rl = await rateLimit("accountDelete", user.id);
   if (!rl.allowed) return NextResponse.json({ status: "error", message: retryMessage(rl.retryAfterSeconds) }, { status: 429 });
 
   let body: unknown;

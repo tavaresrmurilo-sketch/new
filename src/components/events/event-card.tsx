@@ -51,10 +51,14 @@ interface EventCardProps {
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   now?: Date;
+  /** Oculta o nome do organizador (ex.: na própria página do organizador). */
+  hideOrganizer?: boolean;
+  /** Selo extra na linha de informações do card "row" (ex.: "Vou", "Cancelado"). */
+  badge?: React.ReactNode;
 }
 
 /** Card de evento. "row" para listas compactas; "tile" para grades e carrosséis. */
-export function EventCard({ event, variant = "row", actions, className, selected, onMouseEnter, onMouseLeave, now }: EventCardProps) {
+export function EventCard({ event, variant = "row", actions, className, selected, onMouseEnter, onMouseLeave, now, hideOrganizer, badge }: EventCardProps) {
   const when = eventWhenLabel(new Date(event.startsAt), new Date(event.endsAt), now, event.timezone);
   const live = when === "Acontecendo agora";
   const place = [event.venueName, event.neighborhood ?? event.city].filter(Boolean).join(" · ");
@@ -140,11 +144,18 @@ export function EventCard({ event, variant = "row", actions, className, selected
           </span>
           <span className={cn("ml-auto shrink-0 font-bold", event.isFree && "text-success")}>{price}</span>
         </div>
-        <div className="flex items-center gap-1.5 pt-1 text-[11px] text-subtle-foreground">
-          <span className="truncate">{event.organizer.name}</span>
-          {event.organizer.verified && <BadgeCheck className="size-3.5 shrink-0 text-primary" aria-label="Organizador verificado" />}
-          {event.distanceKm != null && <span className="ml-auto shrink-0 font-medium">{formatDistance(event.distanceKm)}</span>}
-        </div>
+        {(!hideOrganizer || badge || event.distanceKm != null) && (
+          <div className="flex items-center gap-1.5 pt-1 text-[11px] text-subtle-foreground">
+            {badge}
+            {!hideOrganizer && (
+              <>
+                <span className="truncate">{event.organizer.name}</span>
+                {event.organizer.verified && <BadgeCheck className="size-3.5 shrink-0 text-primary" aria-label="Organizador verificado" />}
+              </>
+            )}
+            {event.distanceKm != null && <span className="ml-auto shrink-0 font-medium">{formatDistance(event.distanceKm)}</span>}
+          </div>
+        )}
       </div>
       {actions && <div className="relative z-10 flex shrink-0 flex-col justify-start">{actions}</div>}
     </article>

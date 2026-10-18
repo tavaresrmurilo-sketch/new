@@ -236,7 +236,7 @@ export default async function OrganizerPage({ params, searchParams }: PageProps<
             <ul className="grid gap-1 lg:grid-cols-2 lg:gap-x-6">
               {events.past.map((ev) => (
                 <li key={ev.id}>
-                  <EventCard event={ev} variant="row" className="-mx-2.5 opacity-90 hover:opacity-100" />
+                  <EventCard event={ev} variant="row" hideOrganizer className="-mx-2.5 opacity-90 hover:opacity-100" />
                 </li>
               ))}
             </ul>
