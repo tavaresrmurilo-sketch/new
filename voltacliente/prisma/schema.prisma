@@ -1,0 +1,466 @@
+// VoltaCliente — modelo de dados
+//
+// Convenções:
+// - Toda entidade de negócio pertence a uma empresa (companyId). O isolamento
+//   multi-tenant é garantido em dois níveis: (1) todas as consultas da camada
+//   de serviços filtram por companyId obtido da sessão; (2) as relações entre
+//   entidades de negócio usam chaves estrangeiras compostas (id, companyId),
+//   de modo que o banco rejeita, por exemplo, um atendimento que aponte para o
+//   cliente de outra empresa.
+// - Valores monetários são armazenados em centavos (Int).
+// - Datas de calendário (atendimento, retorno) usam @db.Date.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Autenticação (tabelas exigidas pelo Better Auth)
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions       Session[]
+  accounts       Account[]
+  memberships    Membership[]
+  contactLogs    ContactLog[]
+  reminderEvents ReminderEvent[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+model RateLimit {
+  id          String @id
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@map("rate_limits")
+}
+
+// ---------------------------------------------------------------------------
+// Empresas e membros
+// ---------------------------------------------------------------------------
+
+enum Segment {
+  AR_CONDICIONADO
+  OFICINA_MECANICA
+  BARBEARIA_SALAO
+  MANUTENCAO
+  OUTRO
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Company {
+  id                        String   @id @default(cuid())
+  name                      String
+  segment                   Segment
+  phone                     String?
+  timezone                  String   @default("America/Sao_Paulo")
+  defaultReturnIntervalDays Int      @default(90)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  memberships  Membership[]
+  customers    Customer[]
+  services     Service[]
+  appointments Appointment[]
+  reminders    ReturnReminder[]
+  contactLogs  ContactLog[]
+  templates    MessageTemplate[]
+  subscription Subscription?
+
+  @@map("companies")
+}
+
+model Membership {
+  id        String     @id @default(cuid())
+  userId    String
+  companyId String
+  role      MemberRole @default(OWNER)
+  createdAt DateTime   @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, companyId])
+  @@index([companyId])
+  @@map("memberships")
+}
+
+// ---------------------------------------------------------------------------
+// Clientes
+// ---------------------------------------------------------------------------
+
+enum ContactPreference {
+  WHATSAPP
+  PHONE
+  EMAIL
+  ANY
+}
+
+model Customer {
+  id                String            @id @default(cuid())
+  companyId         String
+  name              String
+  phone             String
+  /// Somente dígitos, com código do país (ex.: 5511987654321). Usado para deduplicação e links do WhatsApp.
+  phoneNormalized   String
+  email             String?
+  notes             String?
+  /// Data de cadastro do cliente na empresa (pode ser anterior ao uso do sistema).
+  registeredAt      DateTime          @default(now()) @db.Date
+  contactPreference ContactPreference @default(WHATSAPP)
+  /// Consentimento para receber mensagens promocionais/lembretes.
+  marketingConsent  Boolean           @default(false)
+  consentUpdatedAt  DateTime?
+  /// Cliente pediu para não receber mensagens (opt-out). Bloqueia qualquer envio.
+  doNotContact      Boolean           @default(false)
+  doNotContactAt    DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  reminders    ReturnReminder[]
+  contactLogs  ContactLog[]
+
+  @@unique([id, companyId])
+  @@unique([companyId, phoneNormalized])
+  @@index([companyId, name])
+  @@index([companyId, createdAt])
+  @@map("customers")
+}
+
+// ---------------------------------------------------------------------------
+// Serviços oferecidos
+// ---------------------------------------------------------------------------
+
+model Service {
+  id                 String   @id @default(cuid())
+  companyId          String
+  name               String
+  description        String?
+  defaultPriceCents  Int?
+  /// Intervalo recomendado de retorno em dias. Nulo = usar o padrão da empresa.
+  returnIntervalDays Int?
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  company      Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  reminders    ReturnReminder[]
+  templates    MessageTemplate[]
+
+  @@unique([id, companyId])
+  @@unique([companyId, name])
+  @@index([companyId, active])
+  @@map("services")
+}
+
+// ---------------------------------------------------------------------------
+// Atendimentos
+// ---------------------------------------------------------------------------
+
+model Appointment {
+  id                 String    @id @default(cuid())
+  companyId          String
+  customerId         String
+  serviceId          String
+  date               DateTime  @db.Date
+  amountCents        Int?
+  notes              String?
+  /// Próxima data recomendada de retorno (calculada ou ajustada manualmente). Nulo = sem retorno.
+  nextReturnDate     DateTime? @db.Date
+  nextReturnManual   Boolean   @default(false)
+  /// Lembrete de retorno que este atendimento converteu (atendimento de retorno).
+  returnOfReminderId String?   @unique
+  createdById        String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  company  Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer        @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Cascade)
+  service  Service         @relation(fields: [serviceId, companyId], references: [id, companyId], onDelete: NoAction)
+  reminder ReturnReminder? @relation("ReminderSource")
+  returnOf ReturnReminder? @relation("ReminderConversion", fields: [returnOfReminderId], references: [id], onDelete: SetNull)
+
+  @@unique([id, companyId])
+  @@index([companyId, date])
+  @@index([companyId, customerId, date])
+  @@index([companyId, serviceId, date])
+  @@map("appointments")
+}
+
+// ---------------------------------------------------------------------------
+// Lembretes de retorno
+// ---------------------------------------------------------------------------
+
+enum ReminderStatus {
+  /// Aguardando contato.
+  PENDING
+  /// Contato registrado, aguardando retorno do cliente.
+  CONTACTED
+  /// Cliente retornou (novo atendimento registrado).
+  CONVERTED
+  /// Encerrado sem retorno (recusou, pediu para não receber, substituído etc.).
+  DISMISSED
+}
+
+model ReturnReminder {
+  id            String         @id @default(cuid())
+  companyId     String
+  customerId    String
+  serviceId     String
+  /// Atendimento que originou o lembrete (um lembrete por atendimento).
+  appointmentId String
+  /// Data recomendada original.
+  dueDate       DateTime       @db.Date
+  /// Data em que o lembrete deve aparecer (muda quando adiado).
+  remindAt      DateTime       @db.Date
+  status        ReminderStatus @default(PENDING)
+  contactCount  Int            @default(0)
+  contactedAt   DateTime?
+  convertedAt   DateTime?
+  closedAt      DateTime?
+  closedReason  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  company     Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer    Customer        @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Cascade)
+  service     Service         @relation(fields: [serviceId, companyId], references: [id, companyId], onDelete: NoAction)
+  appointment Appointment     @relation("ReminderSource", fields: [appointmentId, companyId], references: [id, companyId], onDelete: Cascade)
+  conversion  Appointment?    @relation("ReminderConversion")
+  events      ReminderEvent[]
+  contactLogs ContactLog[]
+
+  @@unique([id, companyId])
+  @@unique([appointmentId, companyId])
+  @@index([companyId, status, remindAt])
+  @@index([companyId, customerId, status])
+  @@index([companyId, convertedAt])
+  @@index([companyId, contactedAt])
+  @@map("return_reminders")
+}
+
+enum ReminderEventType {
+  CREATED
+  WHATSAPP_OPENED
+  CONTACTED
+  SNOOZED
+  CONVERTED
+  DISMISSED
+  REOPENED
+  RESCHEDULED
+  SUPERSEDED
+}
+
+/// Histórico de ações sobre um lembrete.
+model ReminderEvent {
+  id         String            @id @default(cuid())
+  companyId  String
+  reminderId String
+  type       ReminderEventType
+  note       String?
+  userId     String?
+  createdAt  DateTime          @default(now())
+
+  reminder ReturnReminder @relation(fields: [reminderId, companyId], references: [id, companyId], onDelete: Cascade)
+  user     User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, reminderId, createdAt])
+  @@map("reminder_events")
+}
+
+// ---------------------------------------------------------------------------
+// Histórico de contatos
+// ---------------------------------------------------------------------------
+
+enum ContactChannel {
+  WHATSAPP
+  PHONE
+  EMAIL
+  IN_PERSON
+  OTHER
+}
+
+enum ContactOutcome {
+  MESSAGE_SENT
+  TALKED
+  SCHEDULED
+  NO_ANSWER
+  DECLINED
+  OPTED_OUT
+}
+
+model ContactLog {
+  id         String         @id @default(cuid())
+  companyId  String
+  customerId String
+  reminderId String?
+  userId     String?
+  channel    ContactChannel
+  outcome    ContactOutcome
+  /// Texto da mensagem preparada (quando houver).
+  message    String?
+  note       String?
+  createdAt  DateTime       @default(now())
+
+  company  Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer        @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Cascade)
+  reminder ReturnReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+  user     User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, createdAt])
+  @@index([companyId, customerId, createdAt])
+  @@index([reminderId])
+  @@map("contact_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Modelos de mensagem
+// ---------------------------------------------------------------------------
+
+model MessageTemplate {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  body      String
+  /// Modelo usado quando não houver um específico para o serviço.
+  isDefault Boolean  @default(false)
+  /// Opcional: modelo específico de um serviço.
+  serviceId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, name])
+  @@index([companyId, serviceId])
+  @@map("message_templates")
+}
+
+// ---------------------------------------------------------------------------
+// Planos e assinaturas (sem cobrança real nesta fase)
+// ---------------------------------------------------------------------------
+
+enum PlanCode {
+  INICIAL
+  PROFISSIONAL
+  BUSINESS
+}
+
+enum SubscriptionStatus {
+  /// Período de avaliação, sem cobrança.
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum BillingProvider {
+  NONE
+  MERCADO_PAGO
+}
+
+model Plan {
+  code            PlanCode @id
+  name            String
+  priceCents      Int
+  /// Limite de clientes. Nulo = ilimitado.
+  customerLimit   Int?
+  advancedReports Boolean  @default(false)
+  sortOrder       Int      @default(0)
+  active          Boolean  @default(true)
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  companyId              String             @unique
+  planCode               PlanCode
+  status                 SubscriptionStatus @default(TRIAL)
+  provider               BillingProvider    @default(NONE)
+  providerCustomerId     String?
+  providerSubscriptionId String?            @unique
+  trialEndsAt            DateTime?
+  currentPeriodEnd       DateTime?
+  canceledAt             DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  plan    Plan    @relation(fields: [planCode], references: [code], onDelete: Restrict)
+
+  @@map("subscriptions")
+}
