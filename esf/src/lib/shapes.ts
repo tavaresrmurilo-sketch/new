@@ -62,16 +62,6 @@ export const cubeShape: Shape = [
 /** Colaboração — dois anéis entrelaçados. */
 export const ringsShape: Shape = [circle([37, 50], 25), circle([63, 50], 25)];
 
-/** Crescimento — broto. */
-export const sproutShape: Shape = [
-  cubic([50, 90], [50, 74], [49, 60], [50, 46]),
-  cubic([50, 56], [57, 38], [72, 31], [88, 30]),
-  cubic([88, 30], [84, 47], [68, 57], [50, 56]),
-  cubic([50, 46], [43, 30], [29, 22], [13, 22]),
-  cubic([13, 22], [16, 38], [31, 47], [50, 46]),
-  line([30, 90], [70, 90]),
-];
-
 /** Inclusão — círculo aberto que acolhe. */
 export const inclusionShape: Shape = [
   arc([50, 52], 36, 36, -58, 238),
@@ -90,8 +80,8 @@ export const LOGO_MERIDIAN: Segment = arc([50, 50], 16, 40, 90, 270);
 export const LOGO_SUN: Segment = disc([79, 21], 8.5);
 export const logoShape: Shape = [LOGO_RING, LOGO_MERIDIAN, LOGO_SUN];
 
-/** Ordem igual a `introSymbols` em src/content/site.ts. */
-export const introGlyphShapes: readonly Shape[] = [bookShape, cubeShape, ringsShape, sproutShape];
+/** Ordem igual a `introSymbols` em src/content/site.ts: educação, empreendedorismo, inclusão, colaboração. */
+export const introGlyphShapes: readonly Shape[] = [bookShape, cubeShape, inclusionShape, ringsShape];
 
 /* ------------------------------------------------------------------ */
 /* SVG                                                                 */

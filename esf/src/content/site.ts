@@ -69,14 +69,14 @@ export const nav = [
 /** Cada frase é dividida em linhas; trechos entre * são destacados em serifa itálica. */
 export const introScenes = [
   { id: "mundo", label: "Mundo", lines: ["Toda história", "merece um", "*novo começo.*"] },
-  { id: "fronteiras", label: "Fronteiras", lines: ["Às vezes, recomeçar", "significa *atravessar*", "*fronteiras.*"] },
-  { id: "recomeco", label: "Recomeço", lines: ["Oportunidades transformam", "novos começos em", "*futuros possíveis.*"] },
-  { id: "transformacao", label: "Transformação", lines: ["Empreender também é", "construir *pertencimento.*"] },
+  { id: "fronteiras", label: "Fronteiras", lines: ["Oportunidades", "não deveriam conhecer", "*fronteiras.*"] },
+  { id: "recomeco", label: "Recomeço", lines: ["Recomeçar é encontrar", "*novos caminhos.*"] },
+  { id: "transformacao", label: "Transformação", lines: ["Conectando pessoas.", "*Criando oportunidades.*"] },
   { id: "esf", label: "ESF", lines: [] },
 ] as const;
 
-/** Símbolos da cena 4 — a mesma ordem usada pelo renderizador WebGL. */
-export const introSymbols = ["Educação", "Empreendedorismo", "Colaboração", "Crescimento"] as const;
+/** Elementos que surgem da passagem na cena 4 — a mesma ordem usada pelo renderizador WebGL. */
+export const introSymbols = ["Educação", "Empreendedorismo", "Inclusão", "Colaboração"] as const;
 
 /* ------------------------------------------------------------------ */
 /* Seção A — Quem somos                                                */

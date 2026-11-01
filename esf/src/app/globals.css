@@ -594,9 +594,9 @@
 [data-gl-fallback="true"] .intro-fallback-globe {
   display: block;
   position: absolute;
-  left: 66.5%;
-  top: 53%;
-  height: 67%;
+  left: 62.5%;
+  top: 50%;
+  height: 46%;
   aspect-ratio: 1;
   translate: -50% -50%;
   border-radius: 50%;
@@ -613,9 +613,9 @@
   [data-webgl="off"] .intro-fallback-globe,
   [data-gl-fallback="true"] .intro-fallback-globe {
     left: 50%;
-    top: 35%;
+    top: 41%;
     height: auto;
-    width: 86%;
+    width: 52%;
   }
 }
 
@@ -636,12 +636,18 @@
   display: none;
 }
 
-.intro-scrim {
+.intro-scrim,
+.intro-scrim-bottom {
   position: absolute;
   inset: 0;
   z-index: 2;
   pointer-events: none;
   background: linear-gradient(90deg, rgb(3 10 18 / 0.62) 0%, rgb(3 10 18 / 0.28) 38%, rgb(3 10 18 / 0) 60%);
+}
+/* legibilidade do texto sobre o mapa (cena 2) */
+.intro-scrim-bottom {
+  opacity: 0;
+  background: linear-gradient(0deg, rgb(3 10 18 / 0.78) 0%, rgb(3 10 18 / 0.38) 30%, rgb(3 10 18 / 0) 55%);
 }
 
 /* marcador de Brasília */
@@ -665,13 +671,13 @@
   background: var(--color-paper);
   box-shadow: 0 0 0 3px rgb(242 140 69 / 0.55);
 }
+/* anel fixo: nada na cena se move sem a rolagem */
 .intro-marker-dot::after {
   content: "";
   position: absolute;
-  inset: -10px;
+  inset: -9px;
   border-radius: 50%;
-  border: 1px solid rgb(247 245 240 / 0.7);
-  animation: marker-pulse 2.4s var(--ease-out-quart) infinite;
+  border: 1px solid rgb(247 245 240 / 0.45);
 }
 .intro-marker-label {
   position: absolute;
@@ -683,9 +689,7 @@
   padding: 0.45rem 0.75rem 0.45rem 0.85rem;
   border-left: 1px solid rgb(247 245 240 / 0.6);
   border-radius: 0 10px 10px 0;
-  background: rgb(5 14 25 / 0.62);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgb(5 14 25 / 0.74);
   white-space: nowrap;
   font-size: 0.7rem;
   letter-spacing: 0.16em;
@@ -696,35 +700,8 @@
   font-weight: 700;
   color: var(--color-paper);
 }
-@keyframes marker-pulse {
-  0% {
-    transform: scale(0.4);
-    opacity: 0.9;
-  }
-  100% {
-    transform: scale(2.2);
-    opacity: 0;
-  }
-}
 
-/* constelação da cena 4 */
-.intro-constellation {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  visibility: hidden;
-}
-.intro-constellation path {
-  fill: none;
-  stroke: rgb(255 226 200 / 0.55);
-  stroke-width: 1;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  vector-effect: non-scaling-stroke;
-}
+/* rótulos dos elementos que surgem da passagem (cena 4) */
 .intro-symbols {
   position: absolute;
   inset: 0;
@@ -809,9 +786,6 @@
   font-size: 1.04em;
   color: var(--color-ember-ink);
   padding-right: 0.06em;
-}
-.intro-title-dot {
-  color: var(--color-ember);
 }
 .intro-sub {
   max-width: 36rem;
@@ -1017,8 +991,8 @@ html:not([data-motion="full"]) .intro-bg {
   mask-image: linear-gradient(180deg, #000 70%, transparent);
 }
 html:not([data-motion="full"]) .intro-scrim,
+html:not([data-motion="full"]) .intro-scrim-bottom,
 html:not([data-motion="full"]) .intro-marker,
-html:not([data-motion="full"]) .intro-constellation,
 html:not([data-motion="full"]) .intro-symbols,
 html:not([data-motion="full"]) .intro-cue,
 html:not([data-motion="full"]) .intro-progress,
@@ -1060,8 +1034,9 @@ html:not([data-motion="full"]) .intro-reveal {
 
 /* ---------------- modo cinematográfico ---------------- */
 
+/* ~560vh de rolagem: tempo para observar cada transformação sem cansar */
 [data-motion="full"] .intro {
-  height: 460vh;
+  height: 560vh;
 }
 [data-motion="full"] .intro-stage {
   position: sticky;
@@ -1080,37 +1055,29 @@ html:not([data-motion="full"]) .intro-reveal {
 [data-motion="full"] .intro-frame button {
   pointer-events: auto;
 }
-[data-motion="full"] .intro-constellation {
-  visibility: visible;
-}
-
 [data-motion="full"] .intro-phrase {
   position: absolute;
   left: var(--gutter);
-  max-width: min(50rem, 52vw);
+  max-width: min(46rem, 48vw);
+  font-size: clamp(2rem, 3.5vw, 4.25rem);
 }
+/* cena 1: ao lado do planeta */
 [data-motion="full"] .intro-phrase[data-scene="0"] {
   top: 50%;
   translate: 0 -50%;
-  font-size: clamp(2.7rem, 5.5vw, 6.6rem);
+  font-size: clamp(2.4rem, 4.8vw, 5.8rem);
 }
+/* cena 2: rodapé, sobre o mapa */
 [data-motion="full"] .intro-phrase[data-scene="1"] {
-  top: 20%;
-  font-size: clamp(2.2rem, 4.1vw, 5rem);
+  bottom: 12%;
 }
+/* cena 3: no céu, acima do horizonte */
 [data-motion="full"] .intro-phrase[data-scene="2"] {
   top: 13%;
-  max-width: min(56rem, 58vw);
-  font-size: clamp(2.1rem, 3.9vw, 4.7rem);
 }
+/* cena 4: no céu, à esquerda da passagem */
 [data-motion="full"] .intro-phrase[data-scene="3"] {
-  left: 50%;
-  top: 14%;
-  translate: -50% 0;
-  width: max-content;
-  max-width: calc(100vw - 2 * var(--gutter));
-  text-align: center;
-  font-size: clamp(2.1rem, 4vw, 4.8rem);
+  top: 13%;
 }
 [data-motion="full"] .intro-phrase:not([data-scene="0"]) .w {
   transform: translate3d(0, 115%, 0);
@@ -1164,7 +1131,7 @@ html:not([data-motion="full"]) .intro-reveal {
 
 @media (max-width: 767px) {
   [data-motion="full"] .intro {
-    height: 360vh;
+    height: 480vh;
   }
   .intro-scrim {
     background: linear-gradient(180deg, rgb(3 10 18 / 0.5) 0%, rgb(3 10 18 / 0) 30%, rgb(3 10 18 / 0) 55%, rgb(3 10 18 / 0.55) 100%);
@@ -1174,28 +1141,23 @@ html:not([data-motion="full"]) .intro-reveal {
     right: var(--gutter);
     max-width: none;
   }
+  [data-motion="full"] .intro-phrase {
+    font-size: clamp(1.8rem, 7.6vw, 2.7rem);
+  }
   [data-motion="full"] .intro-phrase[data-scene="0"] {
     top: auto;
-    bottom: 17%;
+    bottom: 15%;
     translate: none;
-    font-size: clamp(2.35rem, 11vw, 3.6rem);
+    font-size: clamp(2.2rem, 10vw, 3.3rem);
   }
   [data-motion="full"] .intro-phrase[data-scene="1"] {
-    top: auto;
-    bottom: 13%;
-    font-size: clamp(1.95rem, 8.6vw, 3rem);
+    bottom: 11%;
   }
   [data-motion="full"] .intro-phrase[data-scene="2"] {
-    top: 12%;
-    max-width: none;
-    font-size: clamp(1.9rem, 8.2vw, 2.9rem);
+    top: 11%;
   }
   [data-motion="full"] .intro-phrase[data-scene="3"] {
-    left: var(--gutter);
-    top: 13%;
-    translate: none;
-    width: auto;
-    font-size: clamp(1.9rem, 8.2vw, 2.9rem);
+    top: 11%;
   }
   .intro-title {
     font-size: clamp(2rem, 9.6vw, 3.4rem);

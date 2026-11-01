@@ -3,10 +3,10 @@
 import { useEffect, useRef } from "react";
 import { introScenes, introSymbols, site } from "@/content/site";
 import { wordsOf } from "@/lib/emphasis";
+import { yieldToMain } from "@/lib/yield";
 import { LogoMark } from "@/components/brand/Logo";
 import { computeLayout, HEADER_LIGHT_AT, SCENE_STARTS, SCENE_TARGETS, T, type Layout, type Range } from "./globe/scene";
-import type { GlobeRenderer } from "./globe/renderer";
-import { yieldToMain } from "@/lib/yield";
+import type { FrameInfo, GlobeRenderer } from "./globe/renderer";
 
 const phraseScenes = introScenes.slice(0, 4);
 
@@ -42,17 +42,11 @@ function offsetWithin(el: HTMLElement, ancestor: HTMLElement) {
 
 const dur = (r: Range) => r[1] - r[0];
 
-/** Pares de símbolos ligados por linhas delicadas na cena 4. */
-const LINKS_LANDSCAPE: [number, number][] = [
-  [0, 1],
-  [1, 2],
-  [2, 3],
-];
-const LINKS_PORTRAIT: [number, number][] = [
-  [0, 1],
-  [2, 3],
-];
-
+/**
+ * Abertura "Uma jornada sem fronteiras": cinco cenas controladas exclusivamente pela rolagem.
+ * O palco fica fixo (sticky) enquanto a seção alta rola; o progresso da rolagem (suavizado pelo
+ * scrub do GSAP) alimenta tanto os textos quanto o renderizador WebGL. Nada se move sozinho.
+ */
 export function Intro() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -76,52 +70,19 @@ export function Intro() {
     const state = { p: 0 };
     let renderer: GlobeRenderer | null = null;
     let layout: Layout = computeLayout(canvas.clientWidth || 1, canvas.clientHeight || 1);
-    let raf = 0;
-    let visible = true;
-    let lastP = -1;
-    let lastDraw = 0;
-    let firstFrame = true;
     let pendingDraw = 0;
-    // O movimento ambiente (cintilar, pulsos, grão) só começa após a primeira interação.
-    // Até lá, o globo é desenhado sob demanda: nenhum custo contínuo de CPU/GPU em repouso.
-    let engaged = false;
+    let visible = true;
+    let firstFrame = true;
     const cleanups: (() => void)[] = [];
-
     const symbols = Array.from(stage.querySelectorAll<HTMLElement>("[data-symbol]"));
-    const linkPaths = Array.from(stage.querySelectorAll<SVGPathElement>("[data-link]"));
-    const constellation = stage.querySelector<SVGSVGElement>("[data-constellation]");
 
     /* ---------------- layout ---------------- */
 
-    const positionConstellation = () => {
+    const positionLabels = () => {
       symbols.forEach((el, i) => {
         const [x, y] = layout.glyphs[i];
         el.style.left = `${x}px`;
-        el.style.top = `${y + layout.glyphR + (layout.portrait ? 10 : 18)}px`;
-      });
-      if (constellation) constellation.setAttribute("viewBox", `0 0 ${layout.w} ${layout.h}`);
-      const pairs = layout.portrait ? LINKS_PORTRAIT : LINKS_LANDSCAPE;
-      linkPaths.forEach((path, i) => {
-        const pair = pairs[i];
-        if (!pair) {
-          path.setAttribute("d", "");
-          return;
-        }
-        const [a, b] = pair.map((k) => layout.glyphs[k]);
-        const dx = b[0] - a[0];
-        const dy = b[1] - a[1];
-        const len = Math.hypot(dx, dy) || 1;
-        const ux = dx / len;
-        const uy = dy / len;
-        const pad = layout.glyphR * 1.3;
-        const x1 = a[0] + ux * pad;
-        const y1 = a[1] + uy * pad;
-        const x2 = b[0] - ux * pad;
-        const y2 = b[1] - uy * pad;
-        const bend = (i % 2 ? -1 : 1) * Math.min(28, len * 0.08);
-        const mx = (x1 + x2) / 2 - uy * bend;
-        const my = (y1 + y2) / 2 + ux * bend;
-        path.setAttribute("d", `M${x1.toFixed(1)} ${y1.toFixed(1)}Q${mx.toFixed(1)} ${my.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`);
+        el.style.top = `${y + layout.glyphR + (layout.portrait ? 8 : 14)}px`;
       });
     };
 
@@ -135,12 +96,11 @@ export function Intro() {
         logo = { x: pos.x + logoEl.offsetWidth / 2, y: pos.y + logoEl.offsetHeight / 2, half: logoEl.offsetWidth / 2 };
       }
       layout = computeLayout(w, h, logo);
-      positionConstellation();
+      positionLabels();
       if (renderer) {
         renderer.resize(w, h, window.devicePixelRatio || 1);
         renderer.setLayout(layout);
       }
-      lastP = -1;
       requestDraw();
     };
 
@@ -150,75 +110,49 @@ export function Intro() {
       section.dataset.webgl = value;
     };
 
-    const updateMarker = (info: NonNullable<ReturnType<GlobeRenderer["render"]>>) => {
+    const updateMarker = (info: FrameInfo) => {
       const marker = markerRef.current;
       if (!marker) return;
-      const facing = Math.max(0, Math.min(1, (info.marker.facing - 0.15) / 0.25));
-      const alpha = info.params.marker * facing;
+      const alpha = info.marker.visible ? info.params.marker : 0;
       marker.style.opacity = alpha.toFixed(3);
       marker.style.visibility = alpha > 0.01 ? "visible" : "hidden";
       if (alpha > 0.01) marker.style.transform = `translate3d(${info.marker.x.toFixed(1)}px, ${info.marker.y.toFixed(1)}px, 0)`;
     };
 
-    const draw = (time: number) => {
+    const draw = () => {
       if (!renderer) return;
       if (renderer.isLost) {
         setWebgl("off");
-        stopLoop();
         return;
       }
-      const info = renderer.render(state.p, time / 1000);
-      if (info) updateMarker(info);
-      if (firstFrame && info) {
+      const info = renderer.render(state.p);
+      if (!info) return;
+      updateMarker(info);
+      if (firstFrame) {
         firstFrame = false;
         setWebgl("on");
       }
     };
 
-    function drawOnce() {
-      if (renderer) draw(full ? performance.now() : 0);
-    }
-
-    /** Agenda um único quadro quando o loop contínuo não está ativo. */
+    /** Desenha um quadro no próximo frame — só quando algo mudou (rolagem ou tamanho). */
     function requestDraw() {
-      if (raf || pendingDraw || !renderer) return;
+      if (pendingDraw || !renderer || !visible || document.hidden) return;
       pendingDraw = requestAnimationFrame(() => {
         pendingDraw = 0;
-        drawOnce();
+        draw();
       });
     }
 
-    const loop = (now: number) => {
-      raf = requestAnimationFrame(loop);
-      const p = state.p;
-      const changed = Math.abs(p - lastP) > 1e-5;
-      // movimento ambiente (cintilar, pulsos) a ~30 fps quando o scroll está parado
-      if (!changed && now - lastDraw < (lite ? 48 : 32)) return;
-      lastP = p;
-      lastDraw = now;
-      draw(now);
-    };
-
-    function startLoop() {
-      if (!raf && renderer && full && engaged && visible && !document.hidden) raf = requestAnimationFrame(loop);
-    }
-
+    // Sem aceleração por GPU, o WebGL só começa quando o visitante interage.
     const engageEvents = ["pointermove", "pointerdown", "wheel", "touchstart", "keydown", "scroll"] as const;
     let onEngaged: () => void = () => {};
     const engagedOnce = new Promise<void>((resolve) => (onEngaged = resolve));
     const engage = () => {
-      if (engaged) return;
-      engaged = true;
       engageEvents.forEach((ev) => window.removeEventListener(ev, engage));
       onEngaged();
-      startLoop();
     };
     engageEvents.forEach((ev) => window.addEventListener(ev, engage, { passive: true }));
     cleanups.push(() => engageEvents.forEach((ev) => window.removeEventListener(ev, engage)));
-    function stopLoop() {
-      if (raf) cancelAnimationFrame(raf);
-      raf = 0;
-    }
 
     const initRenderer = async () => {
       setWebgl("loading");
@@ -231,8 +165,6 @@ export function Intro() {
           return;
         }
         if (support === "software") {
-          // Sem aceleração por GPU: mostramos o globo em CSS e só iniciamos o WebGL
-          // (em modo econômico) quando o visitante começa a interagir.
           section.dataset.glFallback = "true";
           if (full) {
             setWebgl("deferred");
@@ -243,18 +175,11 @@ export function Intro() {
         }
         renderer = await GlobeRenderer.create(
           canvas,
-          {
-            lite: lite || support === "software",
-            economy: support === "software",
-            onContextLost: () => {
-              setWebgl("off");
-              stopLoop();
-            },
-          },
+          { lite: lite || support === "software", economy: support === "software", onContextLost: () => setWebgl("off") },
           () => disposed,
         );
       } catch (error) {
-        if (process.env.NODE_ENV !== "production") console.warn("[ESF] Falha ao iniciar o globo:", error);
+        if (process.env.NODE_ENV !== "production") console.warn("[ESF] Falha ao iniciar a abertura:", error);
         renderer = null;
       }
       if (disposed) return;
@@ -263,8 +188,7 @@ export function Intro() {
         return;
       }
       measure();
-      if (full) startLoop();
-      drawOnce();
+      draw();
     };
 
     const idle = (cb: () => void) => {
@@ -288,15 +212,14 @@ export function Intro() {
     const io = new IntersectionObserver(
       ([entry]) => {
         visible = entry.isIntersecting;
-        if (visible) startLoop();
-        else stopLoop();
+        if (visible) requestDraw();
       },
       { rootMargin: "80px 0px" },
     );
     io.observe(section);
     cleanups.push(() => io.disconnect());
 
-    const onVisibility = () => (document.hidden ? stopLoop() : startLoop());
+    const onVisibility = () => !document.hidden && requestDraw();
     document.addEventListener("visibilitychange", onVisibility);
     cleanups.push(() => document.removeEventListener("visibilitychange", onVisibility));
 
@@ -340,7 +263,7 @@ export function Intro() {
           );
         };
         const exit = (el: Element, r: Range) => {
-          tl.to(el, { opacity: 0, y: -48, duration: dur(r), ease: "power1.in" }, r[0]);
+          tl.to(el, { opacity: 0, y: -40, duration: dur(r), ease: "power1.in" }, r[0]);
         };
 
         const ok =
@@ -350,7 +273,7 @@ export function Intro() {
               defaults: { ease: "none" },
               onUpdate: () => {
                 const p = state.p;
-                if (!raf) requestDraw();
+                requestDraw();
                 if (fill) fill.style.transform = `scaleY(${p.toFixed(4)})`;
                 let idx = 0;
                 for (let i = 0; i < SCENE_STARTS.length; i++) if (p >= SCENE_STARTS[i]) idx = i;
@@ -371,31 +294,31 @@ export function Intro() {
             // progresso bruto para o WebGL (já suavizado pelo scrub)
             tl.to(state, { p: 1, duration: 1 }, 0);
             tl.to("[data-cue]", { autoAlpha: 0, y: 12, duration: dur(T.cueOut) }, T.cueOut[0]);
-            exit(phrases[0], T.s1Out);
-            enter(phrases[1], T.s2In);
-            exit(phrases[1], T.s2Out);
+            exit(phrases[0], T.t1Out);
+            enter(phrases[1], T.t2In);
+            exit(phrases[1], T.t2Out);
           })) &&
           (await step(() => {
-            enter(phrases[2], T.s3In);
-            exit(phrases[2], T.s3Out);
-            enter(phrases[3], T.s4In);
-            exit(phrases[3], T.s4Out);
-            tl.to("[data-scrim]", { opacity: 0, duration: dur(T.s3Out) }, T.s3Out[0]);
+            enter(phrases[2], T.t3In);
+            exit(phrases[2], T.t3Out);
+            enter(phrases[3], T.t4In);
+            exit(phrases[3], T.t4Out);
+            tl.to("[data-scrim]", { opacity: 0, duration: dur(T.t1Out) }, T.t1Out[0]);
+            tl.fromTo("[data-scrim-bottom]", { opacity: 0 }, { opacity: 1, duration: 0.05 }, T.t2In[0] - 0.03);
+            tl.to("[data-scrim-bottom]", { opacity: 0, duration: 0.04 }, T.t2Out[1]);
           })) &&
           (await step(() => {
-            // constelação de símbolos
-            tl.fromTo("[data-link]", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: dur(T.constellation), stagger: 0.012 }, T.constellation[0]);
             tl.fromTo(
               "[data-symbol]",
-              { autoAlpha: 0, x: 0, y: 12, xPercent: -50 },
-              { autoAlpha: 1, x: 0, y: 0, xPercent: -50, duration: dur(T.constellation) * 0.6, stagger: dur(T.constellation) * 0.1, ease: "power2.out" },
-              T.constellation[0] + 0.01,
+              { autoAlpha: 0, x: 0, y: 10, xPercent: -50 },
+              { autoAlpha: 1, x: 0, y: 0, xPercent: -50, duration: dur(T.labels) * 0.6, stagger: dur(T.labels) * 0.12, ease: "power2.out" },
+              T.labels[0],
             );
-            tl.to(["[data-constellation]", "[data-symbol]"], { autoAlpha: 0, duration: dur(T.constellationOut) }, T.constellationOut[0]);
+            tl.to("[data-symbol]", { autoAlpha: 0, duration: dur(T.labelsOut) }, T.labelsOut[0]);
             // camadas de fundo (usadas apenas quando o WebGL não está disponível)
-            tl.fromTo("[data-bg-warm]", { opacity: 0 }, { opacity: 1, duration: dur(T.warm) }, T.warm[0]);
+            tl.fromTo("[data-bg-warm]", { opacity: 0 }, { opacity: 1, duration: dur(T.dawn) }, T.dawn[0]);
             tl.fromTo("[data-bg-day]", { opacity: 0 }, { opacity: 1, duration: dur(T.day) }, T.day[0]);
-            tl.to("[data-fallback-globe]", { opacity: 0, scale: 0.8, duration: dur(T.globeOut) }, T.globeOut[0]);
+            tl.to("[data-fallback-globe]", { opacity: 0, scale: 1.6, duration: dur(T.morph) }, T.morph[0]);
           })) &&
           (await step(() => {
             // revelação da ESF
@@ -407,7 +330,7 @@ export function Intro() {
               T.titleIn[0],
             );
             tl.fromTo("[data-reveal-sub]", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: dur(T.subIn), ease: "power2.out" }, T.subIn[0]);
-            tl.fromTo("[data-reveal-cta]", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: dur(T.ctaIn), stagger: 0.01, ease: "power2.out" }, T.ctaIn[0]);
+            tl.fromTo("[data-reveal-cta]", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: dur(T.ctaIn), ease: "power2.out" }, T.ctaIn[0]);
             tl.to(["[data-progress]", "[data-skip]"], { autoAlpha: 0, duration: dur(T.uiOut) }, T.uiOut[0]);
           }));
         if (!ok) return;
@@ -419,7 +342,7 @@ export function Intro() {
             trigger: section,
             start: "top top",
             end: "bottom bottom",
-            scrub: lite ? 0.6 : 0.9,
+            scrub: lite ? 0.7 : 1,
           });
           const scrollToProgress = (target: number, behavior: ScrollBehavior) => {
             window.scrollTo({ top: st.start + (st.end - st.start) * target, behavior });
@@ -449,7 +372,6 @@ export function Intro() {
 
     return () => {
       disposed = true;
-      stopLoop();
       if (pendingDraw) cancelAnimationFrame(pendingDraw);
       cleanups.forEach((fn) => fn());
       renderer?.dispose();
@@ -474,21 +396,19 @@ export function Intro() {
         </div>
         <canvas ref={canvasRef} className="intro-canvas" aria-hidden="true" />
         <div className="intro-scrim" data-scrim aria-hidden="true" />
+        <div className="intro-scrim-bottom" data-scrim-bottom aria-hidden="true" />
 
         <div ref={markerRef} className="intro-marker" aria-hidden="true">
           <span className="intro-marker-dot" />
           <span className="intro-marker-label">
-            <strong>{site.location.city} — {site.location.region}</strong>
-            <span>{site.location.coordinates}</span>
+            <strong>
+              {site.location.city} — {site.location.region}
+            </strong>
+            <span>Onde a ESF está</span>
           </span>
         </div>
 
-        <svg className="intro-constellation" data-constellation aria-hidden="true" preserveAspectRatio="none">
-          {[0, 1, 2, 3].map((i) => (
-            <path key={i} data-link pathLength={1} />
-          ))}
-        </svg>
-        <ul className="intro-symbols" aria-label="O que a ESF constrói">
+        <ul className="intro-symbols" aria-label="O que surge da passagem">
           {introSymbols.map((label, i) => (
             <li key={label} data-symbol={i}>
               {label}
@@ -505,16 +425,14 @@ export function Intro() {
 
           <div className="intro-reveal">
             <div ref={logoRef} className="intro-reveal-logo" data-reveal-logo>
-              <LogoMark className="h-full w-full" />
+              <LogoMark className="h-full w-full" title="ESF — Empreendendo Sem Fronteiras" />
             </div>
             <h1 ref={titleRef} id="intro-title" className="intro-title" data-reveal-title tabIndex={-1}>
               <span className="ln">
                 <span className="w">Empreendendo</span>
               </span>
               <span className="ln">
-                <span className="w em">sem</span> <span className="w">
-                  fronteiras<span className="intro-title-dot">.</span>
-                </span>
+                <span className="w em">sem</span> <span className="w">fronteiras</span>
               </span>
             </h1>
             <p className="intro-sub" data-reveal-sub>
@@ -523,10 +441,9 @@ export function Intro() {
             <div className="intro-ctas">
               <a href="#quem-somos" className="btn btn-primary" data-reveal-cta>
                 Conheça nossa missão
-                <span className="btn-arrow" aria-hidden="true">→</span>
-              </a>
-              <a href="#faca-parte" className="btn btn-outline" data-reveal-cta>
-                Faça parte da transformação
+                <span className="btn-arrow" aria-hidden="true">
+                  →
+                </span>
               </a>
             </div>
           </div>
