@@ -3,9 +3,21 @@
 Site institucional da ESF, projeto que apoia a integração de refugiados e imigrantes no Brasil por meio do
 empreendedorismo, da educação, do voluntariado, da conscientização e da colaboração.
 
-O destaque é a **abertura cinematográfica controlada pelo scroll**: um globo em WebGL que gira, aproxima-se do
-Brasil ao amanhecer, transforma-se em símbolos (educação, empreendedorismo, colaboração, crescimento) e converge
-na marca da ESF — avançando e retrocedendo exatamente com o movimento de quem visita.
+O destaque é a **abertura "Uma jornada sem fronteiras"**, uma história em cinco cenas controlada exclusivamente
+pela rolagem (mouse, trackpad, barra de rolagem ou toque):
+
+1. **O mundo** — um planeta pontilhado gira enquanto a câmera se aproxima da superfície.
+2. **As fronteiras** — o planeta se desdobra em um mapa; as fronteiras surgem como linhas luminosas e se
+   dissolvem trecho a trecho, enquanto conexões atravessam o mapa.
+3. **O recomeço** — a câmera acompanha um caminho de luz que parte de Brasília; o mapa se reorganiza em um campo
+   de luz e, no horizonte, uma passagem se abre e deixa a luz atravessar.
+4. **A transformação** — da passagem surgem educação, empreendedorismo, inclusão e colaboração, e uma rede de
+   conexões é construída ligação por ligação.
+5. **A ESF** — a câmera atravessa a luz, a rede converge na marca da ESF e surgem título, subtítulo e o botão
+   "Conheça nossa missão".
+
+Quando a rolagem para, a cena para; ao voltar, tudo acontece ao contrário — o mesmo progresso sempre gera o mesmo
+quadro.
 
 > Este app vive na pasta `esf/` de um repositório que também contém outro projeto. Ele é **totalmente
 > independente** (dependências, configuração e build próprios).
@@ -19,22 +31,23 @@ na marca da ESF — avançando e retrocedendo exatamente com o movimento de quem
 | Framework | Next.js 16 (App Router, Turbopack), React 19, TypeScript | Página 100% estática (SSG), metadata e imagens otimizadas |
 | Estilo | Tailwind CSS 4 + CSS de componentes (`src/app/globals.css`) | Tokens da identidade em `@theme`; componentes em `@layer components` |
 | Scroll | GSAP 3 + ScrollTrigger (carregados sob demanda) | Scrub suave, reversível, uma única timeline para toda a abertura |
-| Globo | **WebGL puro** (~10 kB de código próprio) | Ver "Decisões técnicas" |
+| Cena 3D | **WebGL puro** (código próprio, carregado sob demanda) | Ver "Decisões técnicas" |
 | Fontes | Manrope (variável) + Instrument Serif, auto-hospedadas | Sem requisições a terceiros; licença OFL (`src/app/fonts/LICENSE-fonts.txt`) |
 
 ### Decisões técnicas
 
-- **WebGL próprio em vez de Three.js/React Three Fiber.** O briefing pedia R3F "somente se o resultado justificar
-  o custo". O globo precisa de pontos, arcos, uma esfera com atmosfera e partículas que mudam de forma — tudo
-  cabe em 6 shaders pequenos. Isso evita ~150 kB de JavaScript e mantém a página leve no celular.
+- **WebGL próprio em vez de Three.js/React Three Fiber.** A cena usa uma câmera em perspectiva (matrizes próprias
+  em `globe/math.ts`) e 11 shaders pequenos: céu/planeta/chão traçados por raio, pontos que passam de planeta a
+  mapa e a campo de luz, linhas (fronteiras e conexões), o caminho, a passagem, raios de luz e a camada 2D da rede.
+  Isso evita ~150 kB de JavaScript de uma biblioteca 3D e mantém a página leve no celular.
 - **Sem Framer Motion.** As microinterações usam CSS (transições/`@keyframes`) e GSAP, que já está na página.
   Uma segunda biblioteca de animação só aumentaria o bundle.
-- **Sticky em vez de `pin`.** A cena fica presa com `position: sticky` (seção de 460vh no desktop, 360vh no
+- **Sticky em vez de `pin`.** A cena fica presa com `position: sticky` (seção de 560vh no desktop, 480vh no
   celular). Não há espaçadores injetados nem saltos ao redimensionar; o scroll é sempre nativo
   (mouse, touchpad e toque), sem "scroll-jacking".
-- **Tudo é função do progresso.** `src/components/intro/globe/scene.ts` define as janelas de tempo (`T`) e as poses
-  do globo. O mesmo progresso alimenta o WebGL e a timeline dos textos; por isso a animação retrocede de forma
-  idêntica.
+- **Tudo é função do progresso — nada depende do tempo.** `src/components/intro/globe/scene.ts` define as janelas
+  (`T`), a trajetória da câmera e os parâmetros visuais. O mesmo progresso (suavizado pelo scrub do GSAP) alimenta
+  o WebGL e a timeline dos textos; um quadro só é desenhado quando o progresso muda.
 
 ---
 
@@ -127,18 +140,20 @@ Nenhum número, data, depoimento ou parceria foi inventado. A seção "Nossa his
 
 ## Abertura: como ajustar
 
-- **Duração:** altura da seção em `globals.css` (`[data-motion="full"] .intro { height: 460vh }` e `360vh` no
+- **Duração:** altura da seção em `globals.css` (`[data-motion="full"] .intro { height: 560vh }` e `480vh` no
   celular).
 - **Ritmo das cenas:** janelas em `T` (`scene.ts`) — valores de 0 a 1 do progresso.
-- **Enquadramento do globo:** keyframes `LANDSCAPE`/`PORTRAIT` em `scene.ts` (`[p, cx, cy, raio, lat, lon, roll]`).
-- **Símbolos da cena 4:** `src/lib/shapes.ts` (mesmos desenhos dos ícones da seção Propósito).
-- **Arcos de conexão:** são sorteados entre pontos de terra, nunca envolvem o Brasil e não representam rotas
-  migratórias reais (`buildArcs` em `globe/data.ts`).
+- **Câmera:** `cameraAt` em `scene.ts` — órbita sobre o planeta (`ORBIT_LANDSCAPE`/`ORBIT_PORTRAIT`), acompanhamento
+  do caminho (`follow`), aproximação da passagem e travessia da luz.
+- **Caminho e passagem:** `heroPath`, `DOOR_Z`, `DOOR_W`, `DOOR_H` em `scene.ts`.
+- **Elementos da cena 4 e rede:** desenhos em `src/lib/shapes.ts`; posições e rede em `computeLayout` (`scene.ts`).
+- **Conexões do mapa:** sorteadas entre pontos de terra; não representam rotas reais (`buildLinks` em `globe/data.ts`).
+- **Dados do mapa:** `npm run globe:data` regenera `land-mask.ts` e `borders.ts` (Natural Earth 1:50m).
 
 ### Desempenho e acessibilidade
 
 - O globo carrega depois da primeira pintura, em etapas curtas (compilação de shaders em paralelo quando suportado).
-- O movimento ambiente (cintilar, pulsos, grão) só roda após a primeira interação e apenas com a abertura visível.
+- Nenhuma animação roda sozinha: sem rolagem, nenhum quadro é desenhado (custo zero em repouso).
 - Em navegadores **sem aceleração de GPU** (WebGL emulado em software), um globo em CSS ocupa o lugar e o WebGL
   assume em modo econômico quando o visitante começa a rolar.
 - `prefers-reduced-motion`: composição estática (globo parado + frases em sequência), sem scroll longo.
@@ -150,7 +165,7 @@ Medições locais (Lighthouse 13, build de produção):
 
 | Perfil | Desempenho | Acessibilidade | Boas práticas | SEO |
 |---|---|---|---|---|
-| Mobile (simulado) | 97–99 | 100 | 100 | 100 |
+| Mobile (simulado) | 95–99 | 100 | 100 | 100 |
 | Desktop | 100 | 100 | 100 | 100 |
 
 CLS = 0 em ambos. Os valores variam conforme a máquina; meça novamente após mudanças relevantes.

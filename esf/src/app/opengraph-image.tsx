@@ -22,9 +22,11 @@ function globeDots() {
   const lon0 = (-48 * Math.PI) / 180;
   const out: { x: number; y: number; o: number; br: boolean }[] = [];
   for (let i = 0; i < dots.count; i++) {
-    let x = dots.positions[i * 3];
-    const y = dots.positions[i * 3 + 1];
-    let z = dots.positions[i * 3 + 2];
+    const lat = dots.ll[i * 2];
+    const lon = dots.ll[i * 2 + 1];
+    let x = Math.cos(lat) * Math.sin(lon);
+    const y = Math.sin(lat);
+    let z = Math.cos(lat) * Math.cos(lon);
     // Ry(-lon0)
     const cyR = Math.cos(-lon0);
     const syR = Math.sin(-lon0);
@@ -33,7 +35,7 @@ function globeDots() {
     const y2 = y * Math.cos(lat0) - z * Math.sin(lat0);
     const z2 = y * Math.sin(lat0) + z * Math.cos(lat0);
     if (z2 <= 0.05) continue;
-    out.push({ x: cx + x * r, y: cy - y2 * r, o: 0.25 + z2 * 0.6, br: dots.info[i * 3 + 1] === 1 });
+    out.push({ x: cx + x * r, y: cy - y2 * r, o: 0.25 + z2 * 0.6, br: dots.info[i * 2 + 1] === 1 });
   }
   return { cx, cy, r, dots: out };
 }

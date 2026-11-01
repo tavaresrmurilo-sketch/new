@@ -131,3 +131,82 @@ if (process.argv.includes("--preview")) {
     console.log(line);
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Fronteiras entre países (linhas internas), simplificadas            */
+/* ------------------------------------------------------------------ */
+import { mesh } from "topojson-client";
+
+/** Douglas–Peucker em graus (suficiente para linhas decorativas). */
+function simplify(points, tolerance) {
+  if (points.length < 3) return points;
+  const keep = new Uint8Array(points.length);
+  keep[0] = keep[points.length - 1] = 1;
+  const stack = [[0, points.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop();
+    const [ax, ay] = points[a];
+    const [bx, by] = points[b];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len = Math.hypot(dx, dy) || 1e-9;
+    let worst = -1;
+    let idx = -1;
+    for (let i = a + 1; i < b; i++) {
+      const d = Math.abs(dy * points[i][0] - dx * points[i][1] + bx * ay - by * ax) / len;
+      if (d > worst) {
+        worst = d;
+        idx = i;
+      }
+    }
+    if (worst > tolerance) {
+      keep[idx] = 1;
+      stack.push([a, idx], [idx, b]);
+    }
+  }
+  return points.filter((_, i) => keep[i]);
+}
+
+const borderMesh = mesh(topo, topo.objects.countries, (a, b) => a !== b);
+const Q = 20; // quantização: 1/20 de grau
+const zig = (n) => (n << 1) ^ (n >> 31);
+const bOut = [];
+let bPoints = 0;
+let bLines = 0;
+for (const line of borderMesh.coordinates) {
+  // evita saltos no antimeridiano
+  const pieces = [[]];
+  for (let i = 0; i < line.length; i++) {
+    if (i > 0 && Math.abs(line[i][0] - line[i - 1][0]) > 180) pieces.push([]);
+    pieces[pieces.length - 1].push(line[i]);
+  }
+  for (const piece of pieces) {
+    const s = simplify(piece, 0.07);
+    if (s.length < 2) continue;
+    encodeVarint(s.length, bOut);
+    let px = 0;
+    let py = 0;
+    for (const [lon, lat] of s) {
+      const qx = Math.round(lon * Q);
+      const qy = Math.round(lat * Q);
+      encodeVarint(zig(qx - px), bOut);
+      encodeVarint(zig(qy - py), bOut);
+      px = qx;
+      py = qy;
+    }
+    bPoints += s.length;
+    bLines++;
+  }
+}
+const bordersFile = `// Arquivo gerado por scripts/build-globe-data.mjs — não edite à mão.
+// Fonte: Natural Earth 1:50m via world-atlas@2 (domínio público): fronteiras internas entre países,
+// simplificadas (Douglas–Peucker, 0,07°). Codificação: para cada linha, N e depois N pares
+// (Δlon, Δlat) quantizados em 1/${Q}° (zigzag + varint base 32, mesmo alfabeto da máscara).
+
+export const BORDERS_Q = ${Q};
+export const BORDERS_LINES = ${bLines};
+export const BORDERS_RLE =
+  "${bOut.join("")}";
+`;
+writeFileSync(resolve(root, "src/components/intro/globe/borders.ts"), bordersFile);
+console.log({ borderLines: bLines, borderPoints: bPoints, borderChars: bOut.length });
