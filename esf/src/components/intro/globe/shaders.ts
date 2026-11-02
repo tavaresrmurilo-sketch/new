@@ -5,6 +5,7 @@
  * fica exatamente parada quando a rolagem para.
  */
 import { DOOR_Z } from "./scene";
+import { sceneColors as C, v3 } from "./colors";
 
 const DOOR = DOOR_Z.toFixed(3);
 
@@ -68,6 +69,7 @@ uniform float u_floor;
 uniform float u_dawn;
 uniform float u_doorLight;
 uniform vec3 u_rim;
+uniform vec3 u_halo;
 uniform vec3 u_light;
 
 float hash(vec2 p) {
@@ -91,19 +93,19 @@ void main() {
   vec2 ndc = vec2(gl_FragCoord.x / (u_res.x * u_dpr), gl_FragCoord.y / (u_res.y * u_dpr)) * 2.0 - 1.0;
   vec3 dir = normalize(u_fwd + ndc.x * u_tanHalf * u_aspect * u_right + ndc.y * u_tanHalf * u_up);
 
-  vec3 ember = vec3(0.949, 0.549, 0.271);
-  vec3 deep = vec3(0.010, 0.030, 0.058);
-  vec3 navy = vec3(0.040, 0.098, 0.160);
+  vec3 horizon = ${v3(C.horizon)};
+  vec3 deep = ${v3(C.space)};
+  vec3 navy = ${v3(C.spaceHigh)};
 
   // --- espaço / céu
   float vign = 1.0 - 0.38 * dot(ndc * vec2(0.75, 1.0), ndc * vec2(0.75, 1.0));
   vec3 col = mix(deep, navy, 0.45 + 0.35 * ndc.y) * vign;
   float elev = dir.y;
-  // amanhecer: o horizonte aquece e uma luz difusa nasce atrás da passagem
-  col += u_dawn * (ember * 0.55 * exp(-abs(elev) * 9.0) + vec3(0.30, 0.13, 0.10) * exp(-max(elev, 0.0) * 2.4) * 0.65);
+  // amanhecer: o horizonte acende em magenta e um céu violeta nasce atrás da passagem
+  col += u_dawn * (horizon * 0.55 * exp(-abs(elev) * 9.0) + ${v3(C.dusk)} * exp(-max(elev, 0.0) * 2.4) * 0.65);
   vec3 doorDir = normalize(vec3(0.0, 0.55, -${DOOR}) - u_eye);
   float toward = max(dot(dir, doorDir), 0.0);
-  col += (ember * pow(toward, 26.0) * 0.9 + vec3(1.0, 0.85, 0.7) * pow(toward, 160.0) * 1.3) * u_doorLight;
+  col += (${v3(C.portalHalo)} * pow(toward, 26.0) * 0.9 + ${v3(C.portalCore)} * pow(toward, 160.0) * 1.3) * u_doorLight;
 
   // --- planeta (traçado por raio, esfera de raio 1 em (0,-1,0))
   vec3 oc = u_eye - vec3(0.0, -1.0, 0.0);
@@ -113,20 +115,20 @@ void main() {
   if (u_sphere > 0.001) {
     float closest = sqrt(max(dot(oc, oc) - b * b, 0.0));
     float halo = (b < 0.0) ? exp(-max(closest - 1.0, 0.0) * 7.5) * step(1.0, closest) : 0.0;
-    col += u_rim * halo * 0.32 * u_sphere;
+    col += u_halo * halo * 0.32 * u_sphere;
     if (h > 0.0) {
       float t = -b - sqrt(h);
       if (t > 0.0) {
         vec3 n = normalize(oc + t * dir);
         float diff = max(dot(n, u_light), 0.0);
         float fres = pow(1.0 - max(dot(n, -dir), 0.0), 3.0);
-        vec3 ocean = mix(vec3(0.016, 0.043, 0.082), vec3(0.06, 0.13, 0.20), diff);
+        vec3 ocean = mix(${v3(C.oceanDark)}, ${v3(C.oceanLit)}, diff);
         ocean += u_rim * fres * 0.55 * (0.5 + 0.5 * diff);
         vec3 w = u_rotInv * vec3(n.x, -n.z, n.y);
         float lat = asin(clamp(w.y, -1.0, 1.0));
         float lon = atan(w.x, w.z);
         float g = max(gridLine(lat, 0.2617994, 1.2), gridLine(lon, 0.2617994, 1.2) * smoothstep(0.985, 0.9, abs(w.y)));
-        ocean += vec3(0.55, 0.72, 0.82) * g * 0.1 * smoothstep(0.0, 0.4, dot(n, -dir));
+        ocean += ${v3(C.grid)} * g * 0.1 * smoothstep(0.0, 0.4, dot(n, -dir));
         col = mix(col, ocean, u_sphere);
       }
     }
@@ -138,18 +140,18 @@ void main() {
     vec3 p = u_eye + t * dir;
     float lat = u_lat0 + (-p.z);
     float lon = u_lon0 + p.x;
-    vec3 base = mix(vec3(0.020, 0.050, 0.090), vec3(0.018, 0.034, 0.058), u_floor);
+    vec3 base = mix(${v3(C.mapBase)}, ${v3(C.floorBase)}, u_floor);
     // mapa: paralelos e meridianos a cada 15°; chão: grade regular que some ao longe
     float onMap = smoothstep(1.62, 1.5, abs(lat));
     float grat = max(gridLine(lat, 0.2617994, 1.3), gridLine(lon, 0.2617994, 1.3)) * onMap;
     float grid = max(gridLine(p.x, 0.45, 1.4), gridLine(p.z, 0.45, 1.4));
     float lines = mix(grat * 0.09, grid * 0.11, u_floor);
-    vec3 plane = base + vec3(0.55, 0.72, 0.82) * lines * exp(-t * 0.12);
+    vec3 plane = base + ${v3(C.grid)} * lines * exp(-t * 0.12);
     // luz da passagem derramando sobre o chão
     float dd = length(p.xz - vec2(0.0, -${DOOR}));
-    plane += mix(ember, vec3(1.0, 0.85, 0.7), 0.3) * u_doorLight * exp(-dd * 1.1) * (p.z > -${DOOR} ? 0.5 : 0.12);
+    plane += mix(${v3(C.portalHalo)}, ${v3(C.portalCore)}, 0.3) * u_doorLight * exp(-dd * 1.1) * (p.z > -${DOOR} ? 0.5 : 0.12);
     // névoa até o horizonte
-    vec3 haze = mix(navy * 0.9, mix(navy, ember * 0.65, 0.55), u_dawn);
+    vec3 haze = mix(navy * 0.9, mix(navy, horizon * 0.65, 0.55), u_dawn);
     plane = mix(plane, haze, 1.0 - exp(-t * mix(0.05, 0.16, u_floor)));
     col = mix(col, plane, u_plane);
   }
@@ -201,9 +203,9 @@ void main() {
   float dd = length(pos.xz - vec2(0.0, -${DOOR}));
   float lit = u_doorLight * exp(-dd * 0.8) * (pos.z > -${DOOR} ? 1.0 : 0.35);
 
-  vec3 cool = vec3(0.80, 0.87, 0.92);
-  vec3 col = mix(cool, vec3(1.0, 0.88, 0.76), u_dawn * 0.45 * fe);
-  col = mix(col, vec3(1.0, 0.74, 0.46), clamp(lit * 1.3, 0.0, 1.0));
+  vec3 col = mix(${v3(C.dotCool)}, ${v3(C.dotHome)}, a_info.y * 0.6 * (1.0 - fe));
+  col = mix(col, ${v3(C.dotDawn)}, u_dawn * 0.45 * fe);
+  col = mix(col, ${v3(C.dotLit)}, clamp(lit * 1.3, 0.0, 1.0));
   float bright = mix(1.0, 0.5 + 0.5 * clamp(lit * 2.2, 0.0, 1.0), fe);
   float a = vis * u_alpha * nearFade * fog * bright;
   gl_PointSize = (clip.w > 0.0 && a > 0.003) ? clamp(px * u_dpr, 1.0, 46.0) : 0.0;
@@ -291,6 +293,9 @@ uniform float u_reveal;
 uniform float u_dissolve;
 uniform float u_alpha;
 uniform vec3 u_color;
+uniform vec3 u_mid;
+uniform vec3 u_end;
+uniform float u_grad;
 uniform vec3 u_hot;
 
 void main() {
@@ -311,7 +316,9 @@ void main() {
     if (v_t > head) discard;
     float headGlow = exp(-pow((head - v_t) * 26.0, 2.0)) * (1.0 - step(0.999, head));
     a = 0.5 + 0.3 * smoothstep(0.0, 0.08, v_t) * smoothstep(1.0, 0.92, v_t) + headGlow * 1.4;
-    col = mix(u_color, u_hot, clamp(headGlow, 0.0, 1.0));
+    // gradiente ao longo do trajeto (u_grad = 1): início → meio → fim
+    vec3 base = mix(mix(u_color, u_mid, smoothstep(0.0, 0.55, v_t)), u_end, smoothstep(0.5, 1.0, v_t));
+    col = mix(mix(u_color, base, u_grad), u_hot, clamp(headGlow, 0.0, 1.0));
   }
   a *= u_alpha * edge * v_vis;
   if (a < 0.003) discard;
@@ -353,7 +360,7 @@ void main() {
   float glow = exp(-across * across * 2.0) * 0.45;
   float headGlow = exp(-pow((u_head - v_uv.y) * 40.0, 2.0)) * step(u_head, 0.999);
   float a = (core + glow) * (0.75 + 1.2 * headGlow) * u_alpha * smoothstep(0.08, 0.5, v_depth);
-  vec3 col = mix(vec3(1.0, 0.70, 0.40), vec3(1.0, 0.93, 0.82), core * 0.6 + headGlow);
+  vec3 col = mix(${v3(C.pathGlow)}, ${v3(C.pathCore)}, core * 0.6 + headGlow);
   gl_FragColor = vec4(col * a, 0.0);
 }
 `;
@@ -381,10 +388,10 @@ uniform float u_in;
 void main() {
   vec2 uv = v_uvk.xy;
   float kind = v_uvk.z;
-  vec3 warm = vec3(1.0, 0.80, 0.58);
-  vec3 white = vec3(1.0, 0.96, 0.9);
+  vec3 warm = ${v3(C.doorEdge)};
+  vec3 white = ${v3(C.doorCore)};
   if (kind < 0.5) {
-    // abertura: luz quente, mais intensa no centro e embaixo
+    // abertura: halo rosado nas bordas, núcleo quente no centro e embaixo
     float cx = 1.0 - pow(abs(uv.x * 2.0 - 1.0), 2.0);
     float g = mix(0.55, 1.0, cx) * mix(1.0, 0.7, uv.y);
     vec3 col = mix(warm, white, g) * (0.15 + 1.25 * u_light) * g;
@@ -395,7 +402,7 @@ void main() {
     float rim = smoothstep(0.7, 1.0, uv.x) * u_light;
     float wash = (0.12 + 0.28 * uv.x) * u_light * mix(1.0, 0.6, uv.y);
     float shade = mix(0.8, 1.0, uv.y);
-    vec3 col = vec3(0.035, 0.07, 0.115) * shade + warm * (rim * 0.7 + wash);
+    vec3 col = ${v3(C.doorPanel)} * shade + warm * (rim * 0.7 + wash);
     gl_FragColor = vec4(col * u_in, u_in);
   } else {
     // luz derramada no chão, à frente da passagem
@@ -426,7 +433,7 @@ void main() {
   float fall = exp(-r * r * u_spread);
   float core = exp(-r * 9.0);
   float a = (fall * streaks * 0.55 + core * 0.6) * u_strength;
-  gl_FragColor = vec4(vec3(1.0, 0.82, 0.62) * a, 0.0);
+  gl_FragColor = vec4(${v3(C.rays)} * a, 0.0);
 }
 `;
 
@@ -490,8 +497,11 @@ void main() {
   s2 += vec2(cos(a_seed.x * 6.2832), sin(a_seed.x * 6.2832)) * arc2 * (0.3 + 0.4 * a_seed.y) * u_lift;
   gl_Position = toClip(s2);
   float born = smoothstep(0.0, 0.08, e1);
-  vec3 night = mix(vec3(1.0, 0.78, 0.52), vec3(1.0, 0.94, 0.86), smoothstep(0.5, 1.0, e1));
-  vec3 ink = vec3(0.035, 0.094, 0.153);
+  // cada partícula nasce roxa, rosa ou laranja e clareia ao formar os símbolos
+  float hue = fract(a_seed.x * 7.31 + a_seed.y * 3.17);
+  vec3 tri = hue < 0.4 ? ${v3(C.violetLight)} : (hue < 0.72 ? ${v3(C.roseLight)} : ${v3(C.orangeLight)});
+  vec3 night = mix(tri, ${v3(C.sparkWhite)}, smoothstep(0.5, 1.0, e1) * 0.45);
+  vec3 ink = ${v3(C.ink)};
   // ao convergir, cada partícula assume a cor do ponto correspondente do símbolo oficial
   vec3 col = mix(mix(night, ink, u_day), a_logoColor, e2);
   float a = born * u_alpha * (0.85 + 0.15 * a_seed.y);
@@ -568,8 +578,9 @@ void main() {
   if (v_t > head) discard;
   float edge = 1.0 - smoothstep(0.2, 1.0, abs(v_side));
   float headGlow = exp(-pow((head - v_t) * 18.0, 2.0)) * (1.0 - step(0.999, head));
-  vec3 night = mix(vec3(1.0, 0.78, 0.5), vec3(1.0, 0.95, 0.88), headGlow);
-  vec3 col = mix(night, vec3(0.035, 0.094, 0.153), u_day);
+  // conexões em violeta → rosa, com a cabeça em branco quente
+  vec3 night = mix(mix(${v3(C.violetLight)}, ${v3(C.roseLight)}, v_order), ${v3(C.sparkWhite)}, headGlow);
+  vec3 col = mix(night, ${v3(C.ink)}, u_day);
   float a = edge * v_vis * u_alpha * (0.42 + headGlow * 0.9);
   if (a < 0.003) discard;
   gl_FragColor = vec4(col * a, a * (1.0 - u_add));
@@ -591,7 +602,10 @@ void main() {
   gl_Position = toClip(p);
   float a = shown * (1.0 - gone) * u_alpha * (a_meta.y > 0.5 ? 0.0 : 1.0);
   gl_PointSize = a > 0.0 ? 7.0 * u_dpr : 0.0;
-  v_col = vec4(mix(vec3(1.0, 0.86, 0.66), vec3(0.035, 0.094, 0.153), u_day), a);
+  // nós em roxo, rosa e laranja, conforme a ordem em que entram na rede
+  float o = a_meta.x;
+  vec3 tri = o < 0.34 ? ${v3(C.violetLight)} : (o < 0.67 ? ${v3(C.roseLight)} : ${v3(C.orangeLight)});
+  v_col = vec4(mix(tri, ${v3(C.ink)}, u_day), a);
 }
 `;
 
@@ -606,6 +620,6 @@ void main() {
   gl_Position = toClip(uv * u_res);
   float a = u_alpha * (0.12 + 0.4 * a_data.w) * (0.4 + 0.6 * a_data.z);
   gl_PointSize = (1.0 + a_data.w * 1.5) * u_dpr;
-  v_col = vec4(0.85, 0.9, 1.0, a);
+  v_col = vec4(${v3(C.dust)}, a);
 }
 `;

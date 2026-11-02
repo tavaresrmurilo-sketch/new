@@ -3,10 +3,25 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { site } from "@/content/site";
 import { buildDots } from "@/components/intro/globe/data";
+import { mixRgb, palette, rgb, toHex } from "@/lib/palette";
 
 export const alt = "ESF — Empreendendo Sem Fronteiras: conectando pessoas, criando oportunidades e transformando recomeços.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+
+/** Cores da imagem (paleta oficial). */
+const C = {
+  bgTop: palette.night2,
+  bg: palette.night,
+  halo: palette.purple,
+  globe: toHex(mixRgb("purpleDeep", "night", 0.45)),
+  rim: palette.purple,
+  dot: toHex(mixRgb("lavender", rgb("purple"), 0.15)),
+  home: palette.rose,
+  text: palette.lavender,
+  muted: toHex(mixRgb("lavender", "purpleDeep", 0.3)),
+  accent: palette.orange,
+};
 
 const fontsDir = join(process.cwd(), "src/app/fonts");
 const serif = readFile(join(fontsDir, "instrument-serif-latin.woff"));
@@ -53,18 +68,18 @@ export default async function OpengraphImage() {
           height: "100%",
           display: "flex",
           position: "relative",
-          background: "linear-gradient(160deg, #0b1d2e 0%, #050e19 70%)",
-          color: "#F7F5F0",
+          background: `linear-gradient(160deg, ${C.bgTop} 0%, ${C.bg} 70%)`,
+          color: C.text,
           fontFamily: "Instrument Serif",
         }}
       >
         <svg width="1200" height="630" viewBox="0 0 1200 630" style={{ position: "absolute", left: 0, top: 0 }}>
-          <circle cx={g.cx} cy={g.cy} r={g.r + 28} fill="#4A9D99" opacity="0.06" />
-          <circle cx={g.cx} cy={g.cy} r={g.r} fill="#0b2133" />
+          <circle cx={g.cx} cy={g.cy} r={g.r + 28} fill={C.halo} opacity="0.12" />
+          <circle cx={g.cx} cy={g.cy} r={g.r} fill={C.globe} />
           {g.dots.map((d, i) => (
-            <circle key={i} cx={d.x} cy={d.y} r={d.br ? 2.6 : 2.1} fill={d.br ? "#F28C45" : "#DCE6EE"} opacity={d.o} />
+            <circle key={i} cx={d.x} cy={d.y} r={d.br ? 2.6 : 2.1} fill={d.br ? C.home : C.dot} opacity={d.o} />
           ))}
-          <circle cx={g.cx} cy={g.cy} r={g.r} fill="none" stroke="#4A9D99" strokeOpacity="0.5" strokeWidth="2" />
+          <circle cx={g.cx} cy={g.cy} r={g.r} fill="none" stroke={C.rim} strokeOpacity="0.6" strokeWidth="2" />
         </svg>
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "48px 72px 64px", width: "100%" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
@@ -73,9 +88,9 @@ export default async function OpengraphImage() {
           <div style={{ display: "flex", flexDirection: "column", maxWidth: 600 }}>
             <div style={{ fontSize: 92, lineHeight: 1, letterSpacing: -2 }}>Empreendendo</div>
             <div style={{ display: "flex", fontSize: 92, lineHeight: 1.08, letterSpacing: -2, fontStyle: "italic" }}>
-              sem fronteiras<span style={{ color: "#F28C45" }}>.</span>
+              sem fronteiras<span style={{ color: C.accent }}>.</span>
             </div>
-            <div style={{ marginTop: 28, fontSize: 30, color: "#A9B4BF", lineHeight: 1.3, maxWidth: 520 }}>{site.tagline}</div>
+            <div style={{ marginTop: 28, fontSize: 30, color: C.muted, lineHeight: 1.3, maxWidth: 520 }}>{site.tagline}</div>
           </div>
         </div>
       </div>

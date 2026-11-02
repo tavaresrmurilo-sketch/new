@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { links, site } from "@/content/site";
+import { palette } from "@/lib/palette";
 import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
@@ -62,7 +63,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#050e19",
+  themeColor: palette.night,
   colorScheme: "light",
   width: "device-width",
   initialScale: 1,

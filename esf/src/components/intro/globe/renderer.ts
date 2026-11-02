@@ -21,6 +21,7 @@ import { buildBorders, buildDoorFrame, buildDots, buildDust, buildHeroRibbon, bu
 import { cameraAt, DOOR_H, DOOR_W, DOOR_Z, easeOut, sceneAt, seg, T, type Layout, type SceneParams } from "./scene";
 import { cameraFrame, project, type CameraFrame, type Vec3 } from "./math";
 import { yieldToMain } from "@/lib/yield";
+import { sceneColors as C } from "./colors";
 
 export interface GlobeOptions {
   /** perfil leve para celulares e telas pequenas */
@@ -480,7 +481,7 @@ export class GlobeRenderer {
     const doorRect = this.doorRect(cam, L);
 
     gl.depthMask(true);
-    gl.clearColor(0.969, 0.961, 0.941, 1);
+    gl.clearColor(C.day[0], C.day[1], C.day[2], 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
@@ -506,7 +507,8 @@ export class GlobeRenderer {
         u_floor: s.floor,
         u_dawn: s.dawn,
         u_doorLight: s.doorLight,
-        u_rim: [0.33, 0.66, 0.68],
+        u_rim: C.rim,
+        u_halo: C.halo,
         u_light: LIGHT,
       });
       gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -547,8 +549,9 @@ export class GlobeRenderer {
           u_reveal: s.bordersIn,
           u_dissolve: s.dissolve,
           u_alpha: 1,
-          u_color: [0.5, 1.0, 0.96],
-          u_hot: [1.0, 0.66, 0.38],
+          u_color: C.border,
+          u_grad: 0,
+          u_hot: C.borderHot,
         });
         gl.drawArrays(gl.TRIANGLES, 0, this.meshes.borders.count);
       }
@@ -565,8 +568,11 @@ export class GlobeRenderer {
           u_reveal: s.links,
           u_dissolve: 0,
           u_alpha: s.linksAlpha * 0.9,
-          u_color: [1.0, 0.7, 0.42],
-          u_hot: [1.0, 0.95, 0.86],
+          u_color: C.linkStart,
+          u_mid: C.linkMid,
+          u_end: C.linkEnd,
+          u_grad: 1,
+          u_hot: C.linkHead,
         });
         gl.drawArrays(gl.TRIANGLES, 0, this.meshes.links.count);
       }
@@ -611,8 +617,9 @@ export class GlobeRenderer {
           u_reveal: 1,
           u_dissolve: 0,
           u_alpha: s.doorIn * (0.5 + 0.5 * s.doorLight),
-          u_color: [1.0, 0.8, 0.58],
-          u_hot: [1.0, 0.9, 0.8],
+          u_color: C.frame,
+          u_grad: 0,
+          u_hot: C.frameHot,
         });
         gl.drawArrays(gl.TRIANGLES, 0, this.meshes.frame.count);
       }
@@ -636,7 +643,8 @@ export class GlobeRenderer {
       const bloom = Math.sin(s.day * Math.PI) * 0.35;
       const t = Math.min(1, Math.max(0, (s.day - 0.3) / 0.7));
       const mixC = (a: number, b: number) => a + (b - a) * t;
-      this.set(p, { u_color: [mixC(1.0, 0.969), mixC(0.86, 0.961), mixC(0.7, 0.941), Math.min(1, s.day + bloom)] });
+      const [b0, b1] = [C.dayBloom, C.day];
+      this.set(p, { u_color: [mixC(b0[0], b1[0]), mixC(b0[1], b1[1]), mixC(b0[2], b1[2]), Math.min(1, s.day + bloom)] });
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
 

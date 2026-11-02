@@ -24,7 +24,7 @@ export function CopyEmail({ email }: { email: string }) {
     <button
       type="button"
       onClick={copy}
-      className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-paper/85 shadow-[inset_0_0_0_1.5px_rgb(247_245_240/0.3)] transition-[box-shadow,color] duration-300 hover:text-paper hover:shadow-[inset_0_0_0_1.5px_rgb(247_245_240/0.8)]"
+      className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-paper/85 shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--color-paper)_30%,transparent)] transition-[box-shadow,color] duration-300 hover:text-paper hover:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--color-paper)_80%,transparent)]"
     >
       <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
         {state === "copied" ? (

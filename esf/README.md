@@ -68,7 +68,9 @@ esf/
 │  │  ├─ layout/                    # cabeçalho (com menu mobile) e rodapé
 │  │  ├─ brand/Logo.tsx             # marca da ESF (selo, versão horizontal e logo completa)
 │  │  └─ icons/Art.tsx              # ilustrações de traço próprias (sem emojis/bibliotecas)
-│  └─ lib/shapes.ts                 # geometria compartilhada: ícones SVG = destinos das partículas
+│  └─ lib/
+│     ├─ palette.ts                 # paleta oficial em TS (WebGL, imagem de compartilhamento, manifest)
+│     └─ shapes.ts                  # geometria compartilhada: ícones SVG = destinos das partículas
 ```
 
 **Para editar textos ou links, altere apenas `src/content/site.ts`.**
@@ -134,6 +136,33 @@ npm run dev          # http://localhost:3000
 - **Telefone `(000) 000-0000`** e ícones de redes sociais com links vazios.
 
 Nenhum número, data, depoimento ou parceria foi inventado. A seção "Nossa história" é narrada em capítulos, sem datas.
+
+---
+
+## Cores
+
+A paleta oficial vive em dois lugares, sempre com os mesmos valores:
+
+- **CSS:** `src/app/globals.css`, no primeiro bloco `@theme` (`--color-purple`, `--color-magenta`, `--color-orange`,
+  `--color-night`, `--color-lavender`…). São os únicos HEX do CSS; todo o resto deriva deles com `var()`,
+  `color-mix()` ou `--alpha()`.
+- **TypeScript:** `src/lib/palette.ts`, para o que o CSS não alcança: shaders WebGL, imagem de compartilhamento,
+  manifest e `theme-color`.
+
+Os componentes usam **papéis de cor** (segundo bloco `@theme`), não as cores diretamente:
+
+| Papel | Cor | Uso |
+|---|---|---|
+| `ink` / `ink-deep` | fundo secundário / fundo escuro | seções escuras; abertura, "Faça parte" e rodapé; texto escuro |
+| `paper` / `sand` | branco suave / lavanda levemente arroxeada | seções claras; texto sobre fundo escuro |
+| `ember` | laranja principal | chamadas para ação e pontos de atenção (sobre fundo escuro) |
+| `ember-ink` | magenta | destaques sobre fundo claro (contraste 5,3:1) |
+| `focus` | rosa vibrante | anel de foco (≥ 3:1 sobre fundos claros e escuros) |
+| `mist` / `slate` | lavanda acinzentada / cinza arroxeado | texto secundário sobre fundo escuro / claro |
+
+As luzes da abertura 3D (planeta, fronteiras, conexões, caminho, passagem, partículas) ficam em
+`src/components/intro/globe/colors.ts`, todas derivadas da paleta. A logo não é recolorida pelo código: ela vem
+pronta de `brand/`.
 
 ---
 
