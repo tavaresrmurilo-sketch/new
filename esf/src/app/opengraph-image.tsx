@@ -11,6 +11,8 @@ export const contentType = "image/png";
 const fontsDir = join(process.cwd(), "src/app/fonts");
 const serif = readFile(join(fontsDir, "instrument-serif-latin.woff"));
 const serifItalic = readFile(join(fontsDir, "instrument-serif-latin-italic.woff"));
+// logo oficial completa da ESF (fundo transparente, feita para fundos escuros)
+const lockup = readFile(join(process.cwd(), "src/assets/brand/esf-logo.png"), "base64");
 
 /** Mesmo globo pontilhado da abertura (dados reais de terra), centrado no Brasil. */
 function globeDots() {
@@ -41,7 +43,7 @@ function globeDots() {
 }
 
 export default async function OpengraphImage() {
-  const [regular, italic] = await Promise.all([serif, serifItalic]);
+  const [regular, italic, lockupData] = await Promise.all([serif, serifItalic, lockup]);
   const g = globeDots();
   return new ImageResponse(
     (
@@ -64,14 +66,9 @@ export default async function OpengraphImage() {
           ))}
           <circle cx={g.cx} cy={g.cy} r={g.r} fill="none" stroke="#4A9D99" strokeOpacity="0.5" strokeWidth="2" />
         </svg>
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "64px 72px", width: "100%" }}>
+        <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "48px 72px 64px", width: "100%" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-            <svg width="56" height="56" viewBox="0 0 100 100">
-              <path d="M89.13 41.68A40 40 0 1 1 58.32 10.87" fill="none" stroke="#F7F5F0" strokeWidth="8" strokeLinecap="round" />
-              <path d="M50 90A16 40 0 0 1 50 10" fill="none" stroke="#F7F5F0" strokeWidth="5.5" strokeLinecap="round" opacity="0.55" />
-              <circle cx="79" cy="21" r="9" fill="#F28C45" />
-            </svg>
-            <div style={{ display: "flex", fontSize: 30, letterSpacing: 8 }}>ESF</div>
+            <img src={`data:image/png;base64,${lockupData}`} width={192} height={171} alt="" />
           </div>
           <div style={{ display: "flex", flexDirection: "column", maxWidth: 600 }}>
             <div style={{ fontSize: 92, lineHeight: 1, letterSpacing: -2 }}>Empreendendo</div>

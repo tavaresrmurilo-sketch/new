@@ -1,51 +1,62 @@
-import { LOGO_MERIDIAN, LOGO_RING, LOGO_SUN, segmentPath } from "@/lib/shapes";
-
-const ringPath = segmentPath(LOGO_RING);
-const meridianPath = segmentPath(LOGO_MERIDIAN);
-const sun = LOGO_SUN.kind === "disc" ? LOGO_SUN : { c: [79, 21] as const, r: 8.5 };
+import Image from "next/image";
+import seal from "@/assets/brand/esf-selo.png";
+import lockup from "@/assets/brand/esf-logo.png";
 
 /**
- * Marca da ESF: um círculo aberto (a fronteira que se abre), um meridiano (o mundo)
- * e um ponto laranja atravessando a abertura (o novo começo).
- * A mesma geometria é usada pelas partículas da abertura (src/lib/shapes.ts).
+ * Marca oficial da ESF (paleta roxa/quente — variação "premium", ver esf/brand/).
+ *
+ * - `LogoMark`: o símbolo (globo + pessoas) sobre o disco preto da marca — o "selo". Funciona sobre
+ *   fundos escuros e claros, mantendo o fundo preto original da logo.
+ * - `Wordmark`: versão horizontal para o cabeçalho — selo + "Empreendendo / Sem Fronteiras" em texto vivo
+ *   (nítido em qualquer tamanho e com contraste ajustado ao fundo).
+ * - `LogoLockup`: a logo completa (símbolo + texto), fundo transparente — para fundos escuros.
  */
 export function LogoMark({
   className,
   title,
-  sunColor = "var(--color-ember)",
+  sizes = "64px",
+  eager = false,
 }: {
   className?: string;
+  /** texto alternativo; omita quando a marca for apenas decorativa */
   title?: string;
-  sunColor?: string;
+  sizes?: string;
+  eager?: boolean;
 }) {
   return (
-    <svg
-      viewBox="0 0 100 100"
+    <Image
+      src={seal}
+      alt={title ?? ""}
       className={className}
-      role={title ? "img" : undefined}
-      aria-hidden={title ? undefined : true}
-      aria-label={title}
-      focusable="false"
-    >
-      <path d={ringPath} fill="none" stroke="currentColor" strokeWidth="7.5" strokeLinecap="round" />
-      <path d={meridianPath} fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" opacity="0.55" />
-      <circle cx={sun.c[0]} cy={sun.c[1]} r={sun.r} fill={sunColor} />
-    </svg>
+      sizes={sizes}
+      quality={80}
+      loading={eager ? "eager" : "lazy"}
+      draggable={false}
+    />
   );
 }
 
-export function Wordmark({ className, compact = false }: { className?: string; compact?: boolean }) {
+export function Wordmark({ className }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-3 ${className ?? ""}`}>
-      <LogoMark className="h-8 w-8 shrink-0" />
-      <span className="flex flex-col leading-none">
-        <span className="font-sans text-[1.05rem] font-extrabold tracking-[0.14em]">ESF</span>{" "}
-        {!compact && (
-          <span className="mt-1 hidden text-[0.62rem] font-semibold uppercase tracking-[0.2em] opacity-70 sm:block">
-            Empreendendo Sem Fronteiras
-          </span>
-        )}
+    <span className={`brand-wordmark ${className ?? ""}`}>
+      <LogoMark className="brand-wordmark-seal" title="ESF" sizes="44px" eager />
+      <span className="brand-wordmark-text">
+        <span className="brand-wordmark-top">Empreendendo</span>{" "}
+        <span className="brand-wordmark-bottom">Sem Fronteiras</span>
       </span>
     </span>
+  );
+}
+
+export function LogoLockup({ className, sizes = "240px" }: { className?: string; sizes?: string }) {
+  return (
+    <Image
+      src={lockup}
+      alt="ESF — Empreendendo Sem Fronteiras"
+      className={className}
+      sizes={sizes}
+      quality={80}
+      draggable={false}
+    />
   );
 }

@@ -71,15 +71,6 @@ export const inclusionShape: Shape = [
   disc([50, 8], 4.6),
 ];
 
-/**
- * Marca da ESF — um círculo aberto (a fronteira que se abre), um meridiano (o mundo)
- * e um ponto laranja que atravessa a abertura (o novo começo).
- */
-export const LOGO_RING: Segment = arc([50, 50], 40, 40, -12, 282);
-export const LOGO_MERIDIAN: Segment = arc([50, 50], 16, 40, 90, 270);
-export const LOGO_SUN: Segment = disc([79, 21], 8.5);
-export const logoShape: Shape = [LOGO_RING, LOGO_MERIDIAN, LOGO_SUN];
-
 /** Ordem igual a `introSymbols` em src/content/site.ts: educação, empreendedorismo, inclusão, colaboração. */
 export const introGlyphShapes: readonly Shape[] = [bookShape, cubeShape, inclusionShape, ringsShape];
 
@@ -123,9 +114,6 @@ export function toPath(shape: Shape): string {
   return shape.map(segmentPath).filter(Boolean).join("");
 }
 
-export function discsOf(shape: Shape): { cx: number; cy: number; r: number }[] {
-  return shape.flatMap((s) => (s.kind === "disc" ? [{ cx: s.c[0], cy: s.c[1], r: s.r }] : []));
-}
 
 /* ------------------------------------------------------------------ */
 /* Amostragem                                                          */
@@ -235,17 +223,4 @@ export function sampleShape(shape: Shape, count: number, seed = 1, jitter = 0.9)
     out[i * 2 + 1] = (y - 50) / 50;
   }
   return out;
-}
-
-/** Indica, para cada ponto amostrado, se ele pertence a um disco (usado para colorir o "sol" do logo). */
-export function sampleShapeWithFlags(shape: Shape, count: number, seed = 1, jitter = 0.9) {
-  const points = sampleShape(shape, count, seed, jitter);
-  const discs = discsOf(shape);
-  const flags = new Float32Array(count);
-  for (let i = 0; i < count; i++) {
-    const x = points[i * 2] * 50 + 50;
-    const y = points[i * 2 + 1] * 50 + 50;
-    flags[i] = discs.some((d) => Math.hypot(x - d.cx, y - d.cy) <= d.r + 0.01) ? 1 : 0;
-  }
-  return { points, flags };
 }

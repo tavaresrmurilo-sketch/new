@@ -55,6 +55,7 @@ quadro.
 
 ```
 esf/
+├─ brand/                          # logo oficial: original, variações de cor e scripts (ver brand/README.md)
 ├─ scripts/build-globe-data.mjs     # gera a máscara terra/Brasil a partir do Natural Earth (world-atlas)
 ├─ src/
 │  ├─ app/                          # layout, página, metadata, OG image, ícones, robots, sitemap, 404/erro
@@ -65,7 +66,7 @@ esf/
 │  │  ├─ intro/globe/               # WebGL: dados, shaders, coreografia (scene.ts) e renderizador
 │  │  ├─ sections/                  # Quem somos, Propósito, Iniciativas, História, Material, Faça parte, Contato
 │  │  ├─ layout/                    # cabeçalho (com menu mobile) e rodapé
-│  │  ├─ brand/Logo.tsx             # marca da ESF (SVG)
+│  │  ├─ brand/Logo.tsx             # marca da ESF (selo, versão horizontal e logo completa)
 │  │  └─ icons/Art.tsx              # ilustrações de traço próprias (sem emojis/bibliotecas)
 │  └─ lib/shapes.ts                 # geometria compartilhada: ícones SVG = destinos das partículas
 ```
@@ -115,10 +116,8 @@ npm run dev          # http://localhost:3000
 - [ ] **Link de doação:** confirmar com a ESF a titularidade do recebimento do link Nubank em
       `src/content/site.ts` (ou definir `NEXT_PUBLIC_DONATION_URL`). O site **não** afirma que o recebedor foi
       validado e orienta o visitante a conferir os dados antes de pagar.
-- [ ] **Marca:** a marca (círculo aberto + meridiano + ponto laranja) foi desenhada para este site, pois o site
-      atual não tem um logotipo em arquivo. Se a ESF tiver um logotipo oficial, substitua
-      `src/components/brand/Logo.tsx` e `src/app/icon.svg` (e ajuste `LOGO_*` em `src/lib/shapes.ts`, que define o
-      desenho formado pelas partículas na abertura).
+- [x] **Marca:** o site usa a logo oficial da ESF, recolorida com a paleta roxa/quente (variação "premium").
+      Originais, variações e scripts em `brand/` (veja `brand/README.md`).
 - [ ] **Imagem do mural** (`src/assets/mural-refugees-welcome.jpg`): veio do site atual da ESF; a autoria/licença
       não está indicada lá. Confirme os direitos de uso ou substitua por fotos da própria ESF.
 - [ ] **Redes sociais:** não foram incluídas porque os links do site atual apontam para `#`. Quando houver perfis

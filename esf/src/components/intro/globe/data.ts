@@ -1,7 +1,8 @@
 import { MASK_COLS, MASK_ROWS, MASK_RLE } from "./land-mask";
 import { BORDERS_Q, BORDERS_RLE } from "./borders";
 import { DOOR_H, DOOR_W, DOOR_Z, FLOOR, VIEW_LAT, VIEW_LON, heroPath } from "./scene";
-import { introGlyphShapes, logoShape, rng, sampleShape, sampleShapeWithFlags } from "@/lib/shapes";
+import { LOGO_PALETTE, LOGO_POINTS_B64, LOGO_POINTS_COUNT } from "./logo-points";
+import { introGlyphShapes, rng, sampleShape } from "@/lib/shapes";
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 const DEG = Math.PI / 180;
@@ -299,9 +300,26 @@ export interface SparkData {
   start: Float32Array;
   /** destino no símbolo: x, y locais [-1,1] e índice do símbolo */
   glyph: Float32Array;
-  /** destino na marca: x, y locais e 1 se pertence ao "sol" */
+  /** destino no símbolo da ESF: x, y locais [-1,1] (quadro de esf-simbolo.png) */
   logo: Float32Array;
+  /** cor do símbolo naquele ponto (RGB 0..1) */
+  logoColor: Float32Array;
   seed: Float32Array;
+}
+
+/** Amostras do símbolo oficial (geradas por brand/scripts/export_site_assets.py). */
+function decodeLogoPoints() {
+  const bytes = atob(LOGO_POINTS_B64);
+  const palette = LOGO_PALETTE.map((hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255));
+  const int8 = (b: number) => (b > 127 ? b - 256 : b);
+  const xy = new Float32Array(LOGO_POINTS_COUNT * 2);
+  const color = new Float32Array(LOGO_POINTS_COUNT * 3);
+  for (let i = 0; i < LOGO_POINTS_COUNT; i++) {
+    xy[i * 2] = int8(bytes.charCodeAt(i * 3)) / 127;
+    xy[i * 2 + 1] = int8(bytes.charCodeAt(i * 3 + 1)) / 127;
+    color.set(palette[bytes.charCodeAt(i * 3 + 2)] ?? [1, 1, 1], i * 3);
+  }
+  return { xy, color };
 }
 
 export function buildSparks(perGlyph: number): SparkData {
@@ -311,11 +329,13 @@ export function buildSparks(perGlyph: number): SparkData {
   const start = new Float32Array(count * 2);
   const glyph = new Float32Array(count * 3);
   const logo = new Float32Array(count * 3);
+  const logoColor = new Float32Array(count * 3);
   const seed = new Float32Array(count * 2);
   const glyphSamples = introGlyphShapes.map((shape, g) => sampleShape(shape, perGlyph, 100 + g, 0.7));
-  const logoSamples = sampleShapeWithFlags(logoShape, count, 300, 0.45);
-  const order = Array.from({ length: count }, (_, i) => i);
-  for (let i = count - 1; i > 0; i--) {
+  const logoPoints = decodeLogoPoints();
+  // cada partícula recebe um ponto distinto do símbolo, em ordem embaralhada (os quatro elementos convergem juntos)
+  const order = Array.from({ length: LOGO_POINTS_COUNT }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
     [order[i], order[j]] = [order[j], order[i]];
   }
@@ -324,11 +344,12 @@ export function buildSparks(perGlyph: number): SparkData {
     const k = Math.floor(i / glyphCount);
     start.set([(rand() - 0.5) * 0.7, rand() * 0.9 - 0.45], i * 2);
     glyph.set([glyphSamples[g][k * 2], glyphSamples[g][k * 2 + 1], g], i * 3);
-    const o = order[i];
-    logo.set([logoSamples.points[o * 2], logoSamples.points[o * 2 + 1], logoSamples.flags[o]], i * 3);
+    const o2 = order[i % order.length];
+    logo.set([logoPoints.xy[o2 * 2], logoPoints.xy[o2 * 2 + 1], 0], i * 3);
+    logoColor.set(logoPoints.color.subarray(o2 * 3, o2 * 3 + 3), i * 3);
     seed.set([rand(), rand()], i * 2);
   }
-  return { count, start, glyph, logo, seed };
+  return { count, start, glyph, logo, logoColor, seed };
 }
 
 /** Estrelas: pontos em espaço de tela (0..1) com semente. */

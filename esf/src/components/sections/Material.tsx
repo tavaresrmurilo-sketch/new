@@ -36,7 +36,7 @@ export function Material() {
             <span className="doc-sheet" aria-hidden="true" />
             <span className="doc-cover" data-tilt-target aria-hidden="true">
               <span className="flex items-center justify-between">
-                <LogoMark className="h-11 w-11 text-paper" />
+                <LogoMark className="h-11 w-11" sizes="44px" />
                 <span className="text-[0.62rem] font-bold uppercase tracking-[0.24em] text-mist">PDF</span>
               </span>
               <span className="mt-auto block">
