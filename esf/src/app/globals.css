@@ -391,6 +391,60 @@
   transform: translate3d(0, -110%, 0);
 }
 
+/* marca no cabeçalho: selo + "Empreendendo / Sem Fronteiras" (cores da logo, adaptadas ao fundo) */
+.brand-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.brand-wordmark-seal {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgb(247 245 240 / 0.08);
+}
+.brand-wordmark-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.brand-wordmark-top {
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #f1edff;
+  transition: color 0.5s var(--ease-out-expo);
+}
+.brand-wordmark-bottom {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  color: #fb923c;
+  transition: color 0.5s var(--ease-out-expo);
+}
+.site-header[data-tone="light"] .brand-wordmark-top {
+  color: #2e1065;
+}
+.site-header[data-tone="light"] .brand-wordmark-bottom {
+  color: var(--color-ember-ink);
+}
+.site-header[data-tone="light"] .brand-wordmark-seal {
+  box-shadow: 0 6px 16px -10px rgb(46 16 101 / 0.6);
+}
+@media (max-width: 380px) {
+  .brand-wordmark-seal {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+  .brand-wordmark-top {
+    font-size: 0.78rem;
+  }
+}
+
 .nav-link {
   position: relative;
   font-size: 0.875rem;
@@ -767,7 +821,7 @@
   text-align: center;
 }
 .intro-reveal-logo {
-  width: clamp(3.75rem, 6.5vw, 5.5rem);
+  width: clamp(4.5rem, 7.5vw, 6.5rem);
   aspect-ratio: 1;
   margin: 0 auto clamp(1.25rem, 3vh, 2rem);
   color: var(--color-ink);

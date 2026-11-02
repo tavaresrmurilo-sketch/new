@@ -425,7 +425,7 @@ export function Intro() {
 
           <div className="intro-reveal">
             <div ref={logoRef} className="intro-reveal-logo" data-reveal-logo>
-              <LogoMark className="h-full w-full" title="ESF — Empreendendo Sem Fronteiras" />
+              <LogoMark className="h-full w-full" title="ESF — Empreendendo Sem Fronteiras" sizes="(max-width: 767px) 72px, 104px" />
             </div>
             <h1 ref={titleRef} id="intro-title" className="intro-title" data-reveal-title tabIndex={-1}>
               <span className="ln">

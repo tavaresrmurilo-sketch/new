@@ -451,6 +451,7 @@ export const sparksVertex = /* glsl */ `
 attribute vec2 a_start;
 attribute vec3 a_glyph;
 attribute vec3 a_logo;
+attribute vec3 a_logoColor;
 attribute vec2 a_seed;
 ${SCREEN}
 uniform vec4 u_doorRect;
@@ -490,11 +491,11 @@ void main() {
   gl_Position = toClip(s2);
   float born = smoothstep(0.0, 0.08, e1);
   vec3 night = mix(vec3(1.0, 0.78, 0.52), vec3(1.0, 0.94, 0.86), smoothstep(0.5, 1.0, e1));
-  night = mix(night, mix(vec3(1.0, 0.94, 0.86), vec3(1.0, 0.62, 0.32), a_logo.z), e2);
-  vec3 ink = mix(vec3(0.035, 0.094, 0.153), vec3(0.949, 0.549, 0.271), a_logo.z);
-  vec3 col = mix(night, ink, u_day);
+  vec3 ink = vec3(0.035, 0.094, 0.153);
+  // ao convergir, cada partícula assume a cor do ponto correspondente do símbolo oficial
+  vec3 col = mix(mix(night, ink, u_day), a_logoColor, e2);
   float a = born * u_alpha * (0.85 + 0.15 * a_seed.y);
-  float size = mix(u_size * mix(1.0, 1.15, e1), max(u_logo.z * 0.07, 1.6), e2);
+  float size = mix(u_size * mix(1.0, 1.15, e1), max(u_logo.z * 0.06, 1.6), e2);
   gl_PointSize = a > 0.0 ? size * u_dpr : 0.0;
   v_col = vec4(col, a);
 }

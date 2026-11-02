@@ -7,3 +7,6 @@ next-env.d.ts
 .vercel
 .env*
 !.env.example
+
+# caches do Python (scripts da marca)
+__pycache__/

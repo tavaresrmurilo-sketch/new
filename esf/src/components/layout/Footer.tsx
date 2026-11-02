@@ -1,5 +1,5 @@
 import { links, nav, site } from "@/content/site";
-import { LogoMark } from "@/components/brand/Logo";
+import { LogoLockup } from "@/components/brand/Logo";
 import { ArrowUpRight } from "@/components/icons/Art";
 
 const external = { target: "_blank", rel: "noopener noreferrer" } as const;
@@ -11,15 +11,9 @@ export function Footer() {
       <div className="mx-auto max-w-[88rem]">
         <div className="grid gap-14 lg:grid-cols-12">
           <div className="lg:col-span-5">
-            <a href="#inicio" className="inline-flex items-center gap-4 rounded-lg">
-              <LogoMark className="h-14 w-14" />
-              <span className="flex flex-col leading-none">
-                <span className="text-2xl font-extrabold tracking-[0.14em]">ESF</span>{" "}
-                <span className="mt-2 text-[0.66rem] font-semibold uppercase tracking-[0.22em] text-mist">
-                  {site.fullName}
-                </span>
-                <span className="sr-only"> — voltar ao início</span>
-              </span>
+            <a href="#inicio" className="inline-block rounded-lg">
+              <LogoLockup className="h-auto w-[13.5rem] md:w-[15rem]" sizes="(max-width: 767px) 216px, 240px" />
+              <span className="sr-only"> — voltar ao início</span>
             </a>
             <p className="mt-8 max-w-sm font-serif text-2xl italic leading-snug text-paper/90">{site.tagline}</p>
           </div>
