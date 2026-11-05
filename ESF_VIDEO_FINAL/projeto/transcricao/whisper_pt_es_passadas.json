@@ -1,0 +1,4059 @@
+{
+ "pt_noprompt_b5": [
+  {
+   "start": 0.0,
+   "end": 2.94,
+   "text": "Olá, eu sou a Manuela, como você se chama?",
+   "words": [
+    {
+     "start": 0.0,
+     "end": 0.56,
+     "word": " Olá,",
+     "prob": 0.7015932202339172
+    },
+    {
+     "start": 0.88,
+     "end": 0.9,
+     "word": " eu",
+     "prob": 0.3184301555156708
+    },
+    {
+     "start": 0.9,
+     "end": 0.9,
+     "word": " sou",
+     "prob": 0.9960078001022339
+    },
+    {
+     "start": 0.9,
+     "end": 1.02,
+     "word": " a",
+     "prob": 0.9363513588905334
+    },
+    {
+     "start": 1.02,
+     "end": 1.64,
+     "word": " Manuela,",
+     "prob": 0.8828189074993134
+    },
+    {
+     "start": 1.8,
+     "end": 2.08,
+     "word": " como",
+     "prob": 0.8315759301185608
+    },
+    {
+     "start": 2.08,
+     "end": 2.38,
+     "word": " você",
+     "prob": 0.8173962235450745
+    },
+    {
+     "start": 2.38,
+     "end": 2.64,
+     "word": " se",
+     "prob": 0.9714090824127197
+    },
+    {
+     "start": 2.64,
+     "end": 2.94,
+     "word": " chama?",
+     "prob": 0.989956259727478
+    }
+   ]
+  },
+  {
+   "start": 3.6,
+   "end": 4.9,
+   "text": "Me chamo Taís Marques.",
+   "words": [
+    {
+     "start": 3.6,
+     "end": 3.8,
+     "word": " Me",
+     "prob": 0.0964905321598053
+    },
+    {
+     "start": 3.8,
+     "end": 3.98,
+     "word": " chamo",
+     "prob": 0.7258435487747192
+    },
+    {
+     "start": 3.98,
+     "end": 4.3,
+     "word": " Taís",
+     "prob": 0.5417723655700684
+    },
+    {
+     "start": 4.3,
+     "end": 4.9,
+     "word": " Marques.",
+     "prob": 0.4706798940896988
+    }
+   ]
+  },
+  {
+   "start": 5.54,
+   "end": 7.24,
+   "text": "Taís, quantos anos você tem?",
+   "words": [
+    {
+     "start": 5.54,
+     "end": 6.0,
+     "word": " Taís,",
+     "prob": 0.9462290108203888
+    },
+    {
+     "start": 6.16,
+     "end": 6.44,
+     "word": " quantos",
+     "prob": 0.9726605415344238
+    },
+    {
+     "start": 6.44,
+     "end": 6.66,
+     "word": " anos",
+     "prob": 0.9993755221366882
+    },
+    {
+     "start": 6.66,
+     "end": 7.0,
+     "word": " você",
+     "prob": 0.9705828428268433
+    },
+    {
+     "start": 7.0,
+     "end": 7.24,
+     "word": " tem?",
+     "prob": 0.975387454032898
+    }
+   ]
+  },
+  {
+   "start": 7.92,
+   "end": 8.32,
+   "text": "28.",
+   "words": [
+    {
+     "start": 7.92,
+     "end": 8.32,
+     "word": " 28.",
+     "prob": 0.4827765226364136
+    }
+   ]
+  },
+  {
+   "start": 9.12,
+   "end": 12.52,
+   "text": "Você já trabalhou alguma vez no Brasil ou antes?",
+   "words": [
+    {
+     "start": 9.12,
+     "end": 9.54,
+     "word": " Você",
+     "prob": 0.9838885068893433
+    },
+    {
+     "start": 9.54,
+     "end": 9.7,
+     "word": " já",
+     "prob": 0.9864959120750427
+    },
+    {
+     "start": 9.7,
+     "end": 10.2,
+     "word": " trabalhou",
+     "prob": 0.9789544939994812
+    },
+    {
+     "start": 10.2,
+     "end": 10.54,
+     "word": " alguma",
+     "prob": 0.34856733679771423
+    },
+    {
+     "start": 10.54,
+     "end": 10.84,
+     "word": " vez",
+     "prob": 0.9980508089065552
+    },
+    {
+     "start": 10.84,
+     "end": 11.36,
+     "word": " no",
+     "prob": 0.708634614944458
+    },
+    {
+     "start": 11.36,
+     "end": 11.82,
+     "word": " Brasil",
+     "prob": 0.9924710988998413
+    },
+    {
+     "start": 11.82,
+     "end": 12.1,
+     "word": " ou",
+     "prob": 0.8212335109710693
+    },
+    {
+     "start": 12.1,
+     "end": 12.52,
+     "word": " antes?",
+     "prob": 0.9963077306747437
+    }
+   ]
+  },
+  {
+   "start": 13.4,
+   "end": 14.5,
+   "text": "Estou em México.",
+   "words": [
+    {
+     "start": 13.4,
+     "end": 13.9,
+     "word": " Estou",
+     "prob": 0.9134220778942108
+    },
+    {
+     "start": 13.9,
+     "end": 14.08,
+     "word": " em",
+     "prob": 0.8964524269104004
+    },
+    {
+     "start": 14.08,
+     "end": 14.5,
+     "word": " México.",
+     "prob": 0.9559478759765625
+    }
+   ]
+  },
+  {
+   "start": 15.1,
+   "end": 17.58,
+   "text": "Estou trabalhando de Camareira.",
+   "words": [
+    {
+     "start": 15.1,
+     "end": 15.68,
+     "word": " Estou",
+     "prob": 0.9522589147090912
+    },
+    {
+     "start": 15.68,
+     "end": 16.22,
+     "word": " trabalhando",
+     "prob": 0.6721710115671158
+    },
+    {
+     "start": 16.22,
+     "end": 16.98,
+     "word": " de",
+     "prob": 0.7995951771736145
+    },
+    {
+     "start": 16.98,
+     "end": 17.58,
+     "word": " Camareira.",
+     "prob": 0.6780901749928793
+    }
+   ]
+  },
+  {
+   "start": 17.84,
+   "end": 20.26,
+   "text": "É um hotel de gringos.",
+   "words": [
+    {
+     "start": 17.84,
+     "end": 18.44,
+     "word": " É",
+     "prob": 0.542268693447113
+    },
+    {
+     "start": 18.44,
+     "end": 18.6,
+     "word": " um",
+     "prob": 0.9641391038894653
+    },
+    {
+     "start": 18.6,
+     "end": 18.9,
+     "word": " hotel",
+     "prob": 0.8208227157592773
+    },
+    {
+     "start": 18.9,
+     "end": 19.86,
+     "word": " de",
+     "prob": 0.7713911533355713
+    },
+    {
+     "start": 19.86,
+     "end": 20.26,
+     "word": " gringos.",
+     "prob": 0.7510729432106018
+    }
+   ]
+  },
+  {
+   "start": 20.6,
+   "end": 20.88,
+   "text": "Sim.",
+   "words": [
+    {
+     "start": 20.6,
+     "end": 20.88,
+     "word": " Sim.",
+     "prob": 0.8635407090187073
+    }
+   ]
+  },
+  {
+   "start": 21.58,
+   "end": 23.18,
+   "text": "Quantos anos você trabalhou lá?",
+   "words": [
+    {
+     "start": 21.58,
+     "end": 22.06,
+     "word": " Quantos",
+     "prob": 0.9886491298675537
+    },
+    {
+     "start": 22.06,
+     "end": 22.26,
+     "word": " anos",
+     "prob": 0.9992285966873169
+    },
+    {
+     "start": 22.26,
+     "end": 22.54,
+     "word": " você",
+     "prob": 0.9944031238555908
+    },
+    {
+     "start": 22.54,
+     "end": 22.98,
+     "word": " trabalhou",
+     "prob": 0.9872612059116364
+    },
+    {
+     "start": 22.98,
+     "end": 23.18,
+     "word": " lá?",
+     "prob": 0.9939409494400024
+    }
+   ]
+  },
+  {
+   "start": 23.86,
+   "end": 25.18,
+   "text": "Um ano e meia.",
+   "words": [
+    {
+     "start": 23.86,
+     "end": 24.66,
+     "word": " Um",
+     "prob": 0.3797956109046936
+    },
+    {
+     "start": 24.66,
+     "end": 24.82,
+     "word": " ano",
+     "prob": 0.9727904200553894
+    },
+    {
+     "start": 24.82,
+     "end": 24.92,
+     "word": " e",
+     "prob": 0.9924370646476746
+    },
+    {
+     "start": 24.92,
+     "end": 25.18,
+     "word": " meia.",
+     "prob": 0.4991460591554642
+    }
+   ]
+  },
+  {
+   "start": 26.12,
+   "end": 28.46,
+   "text": "A sua chegada no Brasil,",
+   "words": [
+    {
+     "start": 26.12,
+     "end": 26.92,
+     "word": " A",
+     "prob": 0.9318410158157349
+    },
+    {
+     "start": 26.92,
+     "end": 27.24,
+     "word": " sua",
+     "prob": 0.9967166781425476
+    },
+    {
+     "start": 27.24,
+     "end": 27.82,
+     "word": " chegada",
+     "prob": 0.9958674311637878
+    },
+    {
+     "start": 27.82,
+     "end": 28.02,
+     "word": " no",
+     "prob": 0.9446646571159363
+    },
+    {
+     "start": 28.02,
+     "end": 28.46,
+     "word": " Brasil,",
+     "prob": 0.9957427382469177
+    }
+   ]
+  },
+  {
+   "start": 28.46,
+   "end": 32.24,
+   "text": "você já se imaginou trabalhando",
+   "words": [
+    {
+     "start": 28.46,
+     "end": 30.22,
+     "word": " você",
+     "prob": 0.09441372007131577
+    },
+    {
+     "start": 30.22,
+     "end": 30.72,
+     "word": " já",
+     "prob": 0.9676698446273804
+    },
+    {
+     "start": 30.72,
+     "end": 30.88,
+     "word": " se",
+     "prob": 0.8603150844573975
+    },
+    {
+     "start": 30.88,
+     "end": 31.36,
+     "word": " imaginou",
+     "prob": 0.9004494547843933
+    },
+    {
+     "start": 31.36,
+     "end": 32.24,
+     "word": " trabalhando",
+     "prob": 0.9824976027011871
+    }
+   ]
+  },
+  {
+   "start": 32.24,
+   "end": 36.4,
+   "text": "ou fazendo alguma coisa que trouxesse renda",
+   "words": [
+    {
+     "start": 32.24,
+     "end": 33.14,
+     "word": " ou",
+     "prob": 0.6955581307411194
+    },
+    {
+     "start": 33.14,
+     "end": 33.84,
+     "word": " fazendo",
+     "prob": 0.854401707649231
+    },
+    {
+     "start": 33.84,
+     "end": 34.24,
+     "word": " alguma",
+     "prob": 0.9188013672828674
+    },
+    {
+     "start": 34.24,
+     "end": 34.72,
+     "word": " coisa",
+     "prob": 0.9992378950119019
+    },
+    {
+     "start": 34.72,
+     "end": 35.32,
+     "word": " que",
+     "prob": 0.9468827843666077
+    },
+    {
+     "start": 35.32,
+     "end": 35.82,
+     "word": " trouxesse",
+     "prob": 0.7772771517435709
+    },
+    {
+     "start": 35.82,
+     "end": 36.4,
+     "word": " renda",
+     "prob": 0.9851424694061279
+    }
+   ]
+  },
+  {
+   "start": 36.4,
+   "end": 37.84,
+   "text": "ou era muito difícil?",
+   "words": [
+    {
+     "start": 36.4,
+     "end": 36.78,
+     "word": " ou",
+     "prob": 0.7102656364440918
+    },
+    {
+     "start": 36.78,
+     "end": 37.12,
+     "word": " era",
+     "prob": 0.906192421913147
+    },
+    {
+     "start": 37.12,
+     "end": 37.38,
+     "word": " muito",
+     "prob": 0.9945570230484009
+    },
+    {
+     "start": 37.38,
+     "end": 37.84,
+     "word": " difícil?",
+     "prob": 0.9840633869171143
+    }
+   ]
+  },
+  {
+   "start": 38.86,
+   "end": 43.66,
+   "text": "Bem, aqui eu não tenho pensado trabalhar",
+   "words": [
+    {
+     "start": 38.86,
+     "end": 39.16,
+     "word": " Bem,",
+     "prob": 0.11651196330785751
+    },
+    {
+     "start": 39.74,
+     "end": 40.74,
+     "word": " aqui",
+     "prob": 0.6138195395469666
+    },
+    {
+     "start": 40.74,
+     "end": 41.18,
+     "word": " eu",
+     "prob": 0.6246038675308228
+    },
+    {
+     "start": 41.18,
+     "end": 41.62,
+     "word": " não",
+     "prob": 0.3927520215511322
+    },
+    {
+     "start": 41.62,
+     "end": 42.74,
+     "word": " tenho",
+     "prob": 0.8338509202003479
+    },
+    {
+     "start": 42.74,
+     "end": 43.14,
+     "word": " pensado",
+     "prob": 0.7932704985141754
+    },
+    {
+     "start": 43.14,
+     "end": 43.66,
+     "word": " trabalhar",
+     "prob": 0.6471017003059387
+    }
+   ]
+  },
+  {
+   "start": 44.46,
+   "end": 45.88,
+   "text": "pelo bebê,",
+   "words": [
+    {
+     "start": 44.46,
+     "end": 45.18,
+     "word": " pelo",
+     "prob": 0.05930786207318306
+    },
+    {
+     "start": 45.18,
+     "end": 45.88,
+     "word": " bebê,",
+     "prob": 0.9478274881839752
+    }
+   ]
+  },
+  {
+   "start": 46.0,
+   "end": 50.18,
+   "text": "mas o meu expectativo é do meu próprio negócio,",
+   "words": [
+    {
+     "start": 46.0,
+     "end": 46.64,
+     "word": " mas",
+     "prob": 0.9115849733352661
+    },
+    {
+     "start": 46.64,
+     "end": 47.38,
+     "word": " o",
+     "prob": 0.39631351828575134
+    },
+    {
+     "start": 47.38,
+     "end": 47.5,
+     "word": " meu",
+     "prob": 0.8668875098228455
+    },
+    {
+     "start": 47.5,
+     "end": 48.14,
+     "word": " expectativo",
+     "prob": 0.5016877204179764
+    },
+    {
+     "start": 48.14,
+     "end": 48.52,
+     "word": " é",
+     "prob": 0.6899927258491516
+    },
+    {
+     "start": 48.52,
+     "end": 49.14,
+     "word": " do",
+     "prob": 0.058173343539237976
+    },
+    {
+     "start": 49.14,
+     "end": 49.28,
+     "word": " meu",
+     "prob": 0.8760891556739807
+    },
+    {
+     "start": 49.28,
+     "end": 49.5,
+     "word": " próprio",
+     "prob": 0.9778473377227783
+    },
+    {
+     "start": 49.5,
+     "end": 50.18,
+     "word": " negócio,",
+     "prob": 0.9121513366699219
+    }
+   ]
+  },
+  {
+   "start": 50.76,
+   "end": 55.04,
+   "text": "é de bordados, de manicuristas que me gostam",
+   "words": [
+    {
+     "start": 50.76,
+     "end": 51.46,
+     "word": " é",
+     "prob": 0.17538554966449738
+    },
+    {
+     "start": 51.46,
+     "end": 51.74,
+     "word": " de",
+     "prob": 0.5207650065422058
+    },
+    {
+     "start": 51.74,
+     "end": 53.12,
+     "word": " bordados,",
+     "prob": 0.6014099419116974
+    },
+    {
+     "start": 53.4,
+     "end": 53.58,
+     "word": " de",
+     "prob": 0.727995753288269
+    },
+    {
+     "start": 53.58,
+     "end": 54.28,
+     "word": " manicuristas",
+     "prob": 0.8493530551592509
+    },
+    {
+     "start": 54.28,
+     "end": 54.48,
+     "word": " que",
+     "prob": 0.8815858960151672
+    },
+    {
+     "start": 54.48,
+     "end": 54.6,
+     "word": " me",
+     "prob": 0.38477909564971924
+    },
+    {
+     "start": 54.6,
+     "end": 55.04,
+     "word": " gostam",
+     "prob": 0.9670030474662781
+    }
+   ]
+  },
+  {
+   "start": 55.04,
+   "end": 58.28,
+   "text": "e qualquer outra coisa que você me apresentei.",
+   "words": [
+    {
+     "start": 55.04,
+     "end": 56.04,
+     "word": " e",
+     "prob": 0.3997393250465393
+    },
+    {
+     "start": 56.04,
+     "end": 56.5,
+     "word": " qualquer",
+     "prob": 0.7285193800926208
+    },
+    {
+     "start": 56.5,
+     "end": 56.82,
+     "word": " outra",
+     "prob": 0.9407950043678284
+    },
+    {
+     "start": 56.82,
+     "end": 57.04,
+     "word": " coisa",
+     "prob": 0.9875556826591492
+    },
+    {
+     "start": 57.04,
+     "end": 57.26,
+     "word": " que",
+     "prob": 0.9807590842247009
+    },
+    {
+     "start": 57.26,
+     "end": 57.38,
+     "word": " você",
+     "prob": 0.9505634307861328
+    },
+    {
+     "start": 57.38,
+     "end": 57.5,
+     "word": " me",
+     "prob": 0.9186584949493408
+    },
+    {
+     "start": 57.5,
+     "end": 58.28,
+     "word": " apresentei.",
+     "prob": 0.7104953154921532
+    }
+   ]
+  },
+  {
+   "start": 59.22,
+   "end": 62.16,
+   "text": "E você acha que o Brasil",
+   "words": [
+    {
+     "start": 59.22,
+     "end": 59.9,
+     "word": " E",
+     "prob": 0.6594005227088928
+    },
+    {
+     "start": 59.9,
+     "end": 60.58,
+     "word": " você",
+     "prob": 0.871484100818634
+    },
+    {
+     "start": 60.58,
+     "end": 61.36,
+     "word": " acha",
+     "prob": 0.9805073142051697
+    },
+    {
+     "start": 61.36,
+     "end": 61.58,
+     "word": " que",
+     "prob": 0.99737548828125
+    },
+    {
+     "start": 61.58,
+     "end": 61.7,
+     "word": " o",
+     "prob": 0.9851053953170776
+    },
+    {
+     "start": 61.7,
+     "end": 62.16,
+     "word": " Brasil",
+     "prob": 0.9655867218971252
+    }
+   ]
+  },
+  {
+   "start": 63.50000000000001,
+   "end": 67.26,
+   "text": "está sendo acolhedor para você e para sua família",
+   "words": [
+    {
+     "start": 63.50000000000001,
+     "end": 64.18,
+     "word": " está",
+     "prob": 0.5785735249519348
+    },
+    {
+     "start": 64.18,
+     "end": 64.86,
+     "word": " sendo",
+     "prob": 0.9725127220153809
+    },
+    {
+     "start": 64.86,
+     "end": 65.66,
+     "word": " acolhedor",
+     "prob": 0.9117779433727264
+    },
+    {
+     "start": 65.66,
+     "end": 66.16,
+     "word": " para",
+     "prob": 0.8028274774551392
+    },
+    {
+     "start": 66.16,
+     "end": 66.48,
+     "word": " você",
+     "prob": 0.9686917662620544
+    },
+    {
+     "start": 66.48,
+     "end": 66.62,
+     "word": " e",
+     "prob": 0.9328162670135498
+    },
+    {
+     "start": 66.62,
+     "end": 66.7,
+     "word": " para",
+     "prob": 0.9618154168128967
+    },
+    {
+     "start": 66.7,
+     "end": 66.82,
+     "word": " sua",
+     "prob": 0.48467302322387695
+    },
+    {
+     "start": 66.82,
+     "end": 67.26,
+     "word": " família",
+     "prob": 0.9964954257011414
+    }
+   ]
+  },
+  {
+   "start": 67.26,
+   "end": 70.72,
+   "text": "ou você acha que tem muitas outras dificuldades ali?",
+   "words": [
+    {
+     "start": 67.26,
+     "end": 67.96,
+     "word": " ou",
+     "prob": 0.12482433766126633
+    },
+    {
+     "start": 67.96,
+     "end": 68.2,
+     "word": " você",
+     "prob": 0.9823450446128845
+    },
+    {
+     "start": 68.2,
+     "end": 68.36,
+     "word": " acha",
+     "prob": 0.9905948638916016
+    },
+    {
+     "start": 68.36,
+     "end": 68.54,
+     "word": " que",
+     "prob": 0.9918632507324219
+    },
+    {
+     "start": 68.54,
+     "end": 68.7,
+     "word": " tem",
+     "prob": 0.9408516883850098
+    },
+    {
+     "start": 68.7,
+     "end": 69.1,
+     "word": " muitas",
+     "prob": 0.9711071252822876
+    },
+    {
+     "start": 69.1,
+     "end": 69.5,
+     "word": " outras",
+     "prob": 0.9868082404136658
+    },
+    {
+     "start": 69.5,
+     "end": 70.42,
+     "word": " dificuldades",
+     "prob": 0.9658017555872599
+    },
+    {
+     "start": 70.42,
+     "end": 70.72,
+     "word": " ali?",
+     "prob": 0.7740083932876587
+    }
+   ]
+  },
+  {
+   "start": 71.18,
+   "end": 71.44,
+   "text": "Não.",
+   "words": [
+    {
+     "start": 71.18,
+     "end": 71.44,
+     "word": " Não.",
+     "prob": 0.9477186799049377
+    }
+   ]
+  },
+  {
+   "start": 71.7,
+   "end": 74.88,
+   "text": "Me parece que Brasília é uma cidade espectacular.",
+   "words": [
+    {
+     "start": 71.7,
+     "end": 71.9,
+     "word": " Me",
+     "prob": 0.6299082040786743
+    },
+    {
+     "start": 71.9,
+     "end": 72.32,
+     "word": " parece",
+     "prob": 0.9963819980621338
+    },
+    {
+     "start": 72.32,
+     "end": 72.7,
+     "word": " que",
+     "prob": 0.23470118641853333
+    },
+    {
+     "start": 72.7,
+     "end": 73.26,
+     "word": " Brasília",
+     "prob": 0.783506840467453
+    },
+    {
+     "start": 73.26,
+     "end": 73.6,
+     "word": " é",
+     "prob": 0.9310457706451416
+    },
+    {
+     "start": 73.6,
+     "end": 73.64,
+     "word": " uma",
+     "prob": 0.9841744303703308
+    },
+    {
+     "start": 73.64,
+     "end": 73.94,
+     "word": " cidade",
+     "prob": 0.5366702079772949
+    },
+    {
+     "start": 73.94,
+     "end": 74.88,
+     "word": " espectacular.",
+     "prob": 0.9120827317237854
+    }
+   ]
+  },
+  {
+   "start": 75.32,
+   "end": 76.58,
+   "text": "De muita oportunidade,",
+   "words": [
+    {
+     "start": 75.32,
+     "end": 75.62,
+     "word": " De",
+     "prob": 0.671947181224823
+    },
+    {
+     "start": 75.62,
+     "end": 75.8,
+     "word": " muita",
+     "prob": 0.5307325124740601
+    },
+    {
+     "start": 75.8,
+     "end": 76.58,
+     "word": " oportunidade,",
+     "prob": 0.9982635676860809
+    }
+   ]
+  },
+  {
+   "start": 77.32,
+   "end": 78.24,
+   "text": "tanto para nós,",
+   "words": [
+    {
+     "start": 77.32,
+     "end": 77.6,
+     "word": " tanto",
+     "prob": 0.9840572476387024
+    },
+    {
+     "start": 77.6,
+     "end": 78.0,
+     "word": " para",
+     "prob": 0.7082599401473999
+    },
+    {
+     "start": 78.0,
+     "end": 78.24,
+     "word": " nós,",
+     "prob": 0.8908553719520569
+    }
+   ]
+  },
+  {
+   "start": 78.62,
+   "end": 79.64,
+   "text": "para o Venezuela,",
+   "words": [
+    {
+     "start": 78.62,
+     "end": 79.34,
+     "word": " para",
+     "prob": 0.6322034597396851
+    },
+    {
+     "start": 79.34,
+     "end": 79.36,
+     "word": " o",
+     "prob": 0.5471013784408569
+    },
+    {
+     "start": 79.36,
+     "end": 79.64,
+     "word": " Venezuela,",
+     "prob": 0.07800903171300888
+    }
+   ]
+  },
+  {
+   "start": 80.14,
+   "end": 81.54,
+   "text": "como para outras pessoas também.",
+   "words": [
+    {
+     "start": 80.14,
+     "end": 80.26,
+     "word": " como",
+     "prob": 0.7310404777526855
+    },
+    {
+     "start": 80.26,
+     "end": 80.48,
+     "word": " para",
+     "prob": 0.9862868189811707
+    },
+    {
+     "start": 80.48,
+     "end": 80.68,
+     "word": " outras",
+     "prob": 0.9745402932167053
+    },
+    {
+     "start": 80.68,
+     "end": 81.12,
+     "word": " pessoas",
+     "prob": 0.9798826575279236
+    },
+    {
+     "start": 81.12,
+     "end": 81.54,
+     "word": " também.",
+     "prob": 0.9668374061584473
+    }
+   ]
+  },
+  {
+   "start": 82.54,
+   "end": 84.48,
+   "text": "O que você espera do Brasil?",
+   "words": [
+    {
+     "start": 82.47999999999999,
+     "end": 82.8,
+     "word": " O",
+     "prob": 0.5911123752593994
+    },
+    {
+     "start": 82.8,
+     "end": 82.94,
+     "word": " que",
+     "prob": 0.9895860552787781
+    },
+    {
+     "start": 82.94,
+     "end": 83.26,
+     "word": " você",
+     "prob": 0.9603999853134155
+    },
+    {
+     "start": 83.26,
+     "end": 83.8,
+     "word": " espera",
+     "prob": 0.9851911664009094
+    },
+    {
+     "start": 83.8,
+     "end": 84.16,
+     "word": " do",
+     "prob": 0.4918583631515503
+    },
+    {
+     "start": 84.16,
+     "end": 84.48,
+     "word": " Brasil?",
+     "prob": 0.9856231212615967
+    }
+   ]
+  },
+  {
+   "start": 85.76,
+   "end": 86.32,
+   "text": "Que esperam?",
+   "words": [
+    {
+     "start": 85.76,
+     "end": 85.96,
+     "word": " Que",
+     "prob": 0.33002668619155884
+    },
+    {
+     "start": 85.96,
+     "end": 86.32,
+     "word": " esperam?",
+     "prob": 0.519302062690258
+    }
+   ]
+  },
+  {
+   "start": 88.68,
+   "end": 89.62,
+   "text": "Muitas coisas.",
+   "words": [
+    {
+     "start": 88.68,
+     "end": 89.32,
+     "word": " Muitas",
+     "prob": 0.7205102741718292
+    },
+    {
+     "start": 89.32,
+     "end": 89.62,
+     "word": " coisas.",
+     "prob": 0.8388808369636536
+    }
+   ]
+  },
+  {
+   "start": 92.82,
+   "end": 94.66,
+   "text": "É isso. Muito obrigada.",
+   "words": [
+    {
+     "start": 92.82,
+     "end": 93.46,
+     "word": " É",
+     "prob": 0.9009878039360046
+    },
+    {
+     "start": 93.46,
+     "end": 93.72,
+     "word": " isso.",
+     "prob": 0.9883337020874023
+    },
+    {
+     "start": 93.9,
+     "end": 94.0,
+     "word": " Muito",
+     "prob": 0.9932348132133484
+    },
+    {
+     "start": 94.0,
+     "end": 94.66,
+     "word": " obrigada.",
+     "prob": 0.992075502872467
+    }
+   ]
+  },
+  {
+   "start": 94.78,
+   "end": 96.22,
+   "text": "Muito obrigada por isso.",
+   "words": [
+    {
+     "start": 94.78,
+     "end": 94.9,
+     "word": " Muito",
+     "prob": 0.9365857243537903
+    },
+    {
+     "start": 94.9,
+     "end": 95.42,
+     "word": " obrigada",
+     "prob": 0.985064834356308
+    },
+    {
+     "start": 95.42,
+     "end": 95.7,
+     "word": " por",
+     "prob": 0.06051565706729889
+    },
+    {
+     "start": 95.7,
+     "end": 96.22,
+     "word": " isso.",
+     "prob": 0.6644554734230042
+    }
+   ]
+  },
+  {
+   "start": 96.8,
+   "end": 99.02,
+   "text": "E a gente espera contribuir cada vez mais",
+   "words": [
+    {
+     "start": 96.8,
+     "end": 96.88,
+     "word": " E",
+     "prob": 0.8716038465499878
+    },
+    {
+     "start": 96.88,
+     "end": 97.0,
+     "word": " a",
+     "prob": 0.4625362455844879
+    },
+    {
+     "start": 97.0,
+     "end": 97.04,
+     "word": " gente",
+     "prob": 0.10579685121774673
+    },
+    {
+     "start": 97.04,
+     "end": 97.4,
+     "word": " espera",
+     "prob": 0.8516277074813843
+    },
+    {
+     "start": 97.4,
+     "end": 98.0,
+     "word": " contribuir",
+     "prob": 0.9958953857421875
+    },
+    {
+     "start": 98.0,
+     "end": 98.3,
+     "word": " cada",
+     "prob": 0.9785071611404419
+    },
+    {
+     "start": 98.3,
+     "end": 98.54,
+     "word": " vez",
+     "prob": 0.9953792095184326
+    },
+    {
+     "start": 98.54,
+     "end": 99.02,
+     "word": " mais",
+     "prob": 0.9981439113616943
+    }
+   ]
+  },
+  {
+   "start": 99.54,
+   "end": 101.06,
+   "text": "para você e para todas as pessoas",
+   "words": [
+    {
+     "start": 99.24000000000001,
+     "end": 99.56,
+     "word": " para",
+     "prob": 0.3652031421661377
+    },
+    {
+     "start": 99.56,
+     "end": 99.88,
+     "word": " você",
+     "prob": 0.9713289141654968
+    },
+    {
+     "start": 99.88,
+     "end": 100.16,
+     "word": " e",
+     "prob": 0.6289793848991394
+    },
+    {
+     "start": 100.16,
+     "end": 100.26,
+     "word": " para",
+     "prob": 0.8847893476486206
+    },
+    {
+     "start": 100.26,
+     "end": 100.48,
+     "word": " todas",
+     "prob": 0.7391823530197144
+    },
+    {
+     "start": 100.48,
+     "end": 100.72,
+     "word": " as",
+     "prob": 0.9684492945671082
+    },
+    {
+     "start": 100.72,
+     "end": 101.06,
+     "word": " pessoas",
+     "prob": 0.9978669285774231
+    }
+   ]
+  },
+  {
+   "start": 101.06,
+   "end": 103.24,
+   "text": "para conseguir cada vez mais",
+   "words": [
+    {
+     "start": 101.06,
+     "end": 101.36,
+     "word": " para",
+     "prob": 0.41636523604393005
+    },
+    {
+     "start": 101.36,
+     "end": 101.8,
+     "word": " conseguir",
+     "prob": 0.9775919318199158
+    },
+    {
+     "start": 101.8,
+     "end": 102.52,
+     "word": " cada",
+     "prob": 0.7975547909736633
+    },
+    {
+     "start": 102.52,
+     "end": 102.82,
+     "word": " vez",
+     "prob": 0.9998878240585327
+    },
+    {
+     "start": 102.82,
+     "end": 103.24,
+     "word": " mais",
+     "prob": 0.9910842180252075
+    }
+   ]
+  },
+  {
+   "start": 103.24,
+   "end": 105.3,
+   "text": "aglidar vocês a se pegarem do Brasil.",
+   "words": [
+    {
+     "start": 103.24,
+     "end": 103.92,
+     "word": " aglidar",
+     "prob": 0.5505355695883433
+    },
+    {
+     "start": 103.92,
+     "end": 104.24,
+     "word": " vocês",
+     "prob": 0.87628173828125
+    },
+    {
+     "start": 104.24,
+     "end": 104.46,
+     "word": " a",
+     "prob": 0.3315121531486511
+    },
+    {
+     "start": 104.46,
+     "end": 104.54,
+     "word": " se",
+     "prob": 0.5002124905586243
+    },
+    {
+     "start": 104.54,
+     "end": 104.92,
+     "word": " pegarem",
+     "prob": 0.6681067049503326
+    },
+    {
+     "start": 104.92,
+     "end": 105.1,
+     "word": " do",
+     "prob": 0.7005624175071716
+    },
+    {
+     "start": 105.1,
+     "end": 105.3,
+     "word": " Brasil.",
+     "prob": 0.9965822100639343
+    }
+   ]
+  },
+  {
+   "start": 105.66,
+   "end": 106.26,
+   "text": "Muito obrigada.",
+   "words": [
+    {
+     "start": 105.66,
+     "end": 105.9,
+     "word": " Muito",
+     "prob": 0.9953115582466125
+    },
+    {
+     "start": 105.9,
+     "end": 106.26,
+     "word": " obrigada.",
+     "prob": 0.9894481897354126
+    }
+   ]
+  },
+  {
+   "start": 113.91999999999999,
+   "end": 115.32,
+   "text": "Muito obrigado.",
+   "words": [
+    {
+     "start": 113.91999999999999,
+     "end": 115.32,
+     "word": " Muito",
+     "prob": 0.0008638408035039902
+    },
+    {
+     "start": 115.32,
+     "end": 115.32,
+     "word": " obrigado.",
+     "prob": 0.38833120465278625
+    }
+   ]
+  }
+ ],
+ "pt_noprompt_b10_nocond": [
+  {
+   "start": 0.0,
+   "end": 2.94,
+   "text": "Olá, eu sou a Manuela, como você se chama?",
+   "words": [
+    {
+     "start": 0.0,
+     "end": 0.56,
+     "word": " Olá,",
+     "prob": 0.7015932202339172
+    },
+    {
+     "start": 0.88,
+     "end": 0.9,
+     "word": " eu",
+     "prob": 0.3184301555156708
+    },
+    {
+     "start": 0.9,
+     "end": 0.9,
+     "word": " sou",
+     "prob": 0.9960078001022339
+    },
+    {
+     "start": 0.9,
+     "end": 1.02,
+     "word": " a",
+     "prob": 0.9363513588905334
+    },
+    {
+     "start": 1.02,
+     "end": 1.64,
+     "word": " Manuela,",
+     "prob": 0.8828189074993134
+    },
+    {
+     "start": 1.8,
+     "end": 2.08,
+     "word": " como",
+     "prob": 0.8315759301185608
+    },
+    {
+     "start": 2.08,
+     "end": 2.38,
+     "word": " você",
+     "prob": 0.8173962235450745
+    },
+    {
+     "start": 2.38,
+     "end": 2.64,
+     "word": " se",
+     "prob": 0.9714090824127197
+    },
+    {
+     "start": 2.64,
+     "end": 2.94,
+     "word": " chama?",
+     "prob": 0.989956259727478
+    }
+   ]
+  },
+  {
+   "start": 3.6,
+   "end": 4.9,
+   "text": "Me chamo Taís Marques.",
+   "words": [
+    {
+     "start": 3.6,
+     "end": 3.8,
+     "word": " Me",
+     "prob": 0.0964905321598053
+    },
+    {
+     "start": 3.8,
+     "end": 3.98,
+     "word": " chamo",
+     "prob": 0.7258435487747192
+    },
+    {
+     "start": 3.98,
+     "end": 4.3,
+     "word": " Taís",
+     "prob": 0.5417723655700684
+    },
+    {
+     "start": 4.3,
+     "end": 4.9,
+     "word": " Marques.",
+     "prob": 0.4706798940896988
+    }
+   ]
+  },
+  {
+   "start": 5.54,
+   "end": 7.24,
+   "text": "Taís, quantos anos você tem?",
+   "words": [
+    {
+     "start": 5.54,
+     "end": 6.0,
+     "word": " Taís,",
+     "prob": 0.9462290108203888
+    },
+    {
+     "start": 6.16,
+     "end": 6.44,
+     "word": " quantos",
+     "prob": 0.9726605415344238
+    },
+    {
+     "start": 6.44,
+     "end": 6.66,
+     "word": " anos",
+     "prob": 0.9993755221366882
+    },
+    {
+     "start": 6.66,
+     "end": 7.0,
+     "word": " você",
+     "prob": 0.9705828428268433
+    },
+    {
+     "start": 7.0,
+     "end": 7.24,
+     "word": " tem?",
+     "prob": 0.975387454032898
+    }
+   ]
+  },
+  {
+   "start": 7.92,
+   "end": 8.32,
+   "text": "28.",
+   "words": [
+    {
+     "start": 7.92,
+     "end": 8.32,
+     "word": " 28.",
+     "prob": 0.4827765226364136
+    }
+   ]
+  },
+  {
+   "start": 9.12,
+   "end": 12.52,
+   "text": "Você já trabalhou alguma vez no Brasil ou antes?",
+   "words": [
+    {
+     "start": 9.12,
+     "end": 9.54,
+     "word": " Você",
+     "prob": 0.9838885068893433
+    },
+    {
+     "start": 9.54,
+     "end": 9.7,
+     "word": " já",
+     "prob": 0.9864959120750427
+    },
+    {
+     "start": 9.7,
+     "end": 10.2,
+     "word": " trabalhou",
+     "prob": 0.9789544939994812
+    },
+    {
+     "start": 10.2,
+     "end": 10.54,
+     "word": " alguma",
+     "prob": 0.34856733679771423
+    },
+    {
+     "start": 10.54,
+     "end": 10.84,
+     "word": " vez",
+     "prob": 0.9980508089065552
+    },
+    {
+     "start": 10.84,
+     "end": 11.36,
+     "word": " no",
+     "prob": 0.708634614944458
+    },
+    {
+     "start": 11.36,
+     "end": 11.82,
+     "word": " Brasil",
+     "prob": 0.9924710988998413
+    },
+    {
+     "start": 11.82,
+     "end": 12.1,
+     "word": " ou",
+     "prob": 0.8212335109710693
+    },
+    {
+     "start": 12.1,
+     "end": 12.52,
+     "word": " antes?",
+     "prob": 0.9963077306747437
+    }
+   ]
+  },
+  {
+   "start": 13.4,
+   "end": 14.5,
+   "text": "Estou em México.",
+   "words": [
+    {
+     "start": 13.4,
+     "end": 13.9,
+     "word": " Estou",
+     "prob": 0.9134220778942108
+    },
+    {
+     "start": 13.9,
+     "end": 14.08,
+     "word": " em",
+     "prob": 0.8964524269104004
+    },
+    {
+     "start": 14.08,
+     "end": 14.5,
+     "word": " México.",
+     "prob": 0.9559478759765625
+    }
+   ]
+  },
+  {
+   "start": 15.1,
+   "end": 17.58,
+   "text": "Estou trabalhando de Camareira.",
+   "words": [
+    {
+     "start": 15.1,
+     "end": 15.68,
+     "word": " Estou",
+     "prob": 0.9522589147090912
+    },
+    {
+     "start": 15.68,
+     "end": 16.22,
+     "word": " trabalhando",
+     "prob": 0.6721710115671158
+    },
+    {
+     "start": 16.22,
+     "end": 16.98,
+     "word": " de",
+     "prob": 0.7995951771736145
+    },
+    {
+     "start": 16.98,
+     "end": 17.58,
+     "word": " Camareira.",
+     "prob": 0.6780901749928793
+    }
+   ]
+  },
+  {
+   "start": 17.84,
+   "end": 20.26,
+   "text": "É um hotel de gringos.",
+   "words": [
+    {
+     "start": 17.84,
+     "end": 18.44,
+     "word": " É",
+     "prob": 0.542268693447113
+    },
+    {
+     "start": 18.44,
+     "end": 18.6,
+     "word": " um",
+     "prob": 0.9641391038894653
+    },
+    {
+     "start": 18.6,
+     "end": 18.9,
+     "word": " hotel",
+     "prob": 0.8208227157592773
+    },
+    {
+     "start": 18.9,
+     "end": 19.86,
+     "word": " de",
+     "prob": 0.7713911533355713
+    },
+    {
+     "start": 19.86,
+     "end": 20.26,
+     "word": " gringos.",
+     "prob": 0.7510729432106018
+    }
+   ]
+  },
+  {
+   "start": 20.6,
+   "end": 20.88,
+   "text": "Sim.",
+   "words": [
+    {
+     "start": 20.6,
+     "end": 20.88,
+     "word": " Sim.",
+     "prob": 0.8635407090187073
+    }
+   ]
+  },
+  {
+   "start": 21.58,
+   "end": 23.18,
+   "text": "Quantos anos você trabalhou lá?",
+   "words": [
+    {
+     "start": 21.58,
+     "end": 22.06,
+     "word": " Quantos",
+     "prob": 0.9886491298675537
+    },
+    {
+     "start": 22.06,
+     "end": 22.26,
+     "word": " anos",
+     "prob": 0.9992285966873169
+    },
+    {
+     "start": 22.26,
+     "end": 22.54,
+     "word": " você",
+     "prob": 0.9944031238555908
+    },
+    {
+     "start": 22.54,
+     "end": 22.98,
+     "word": " trabalhou",
+     "prob": 0.9872612059116364
+    },
+    {
+     "start": 22.98,
+     "end": 23.18,
+     "word": " lá?",
+     "prob": 0.9939409494400024
+    }
+   ]
+  },
+  {
+   "start": 23.86,
+   "end": 25.18,
+   "text": "Um ano e meia.",
+   "words": [
+    {
+     "start": 23.86,
+     "end": 24.66,
+     "word": " Um",
+     "prob": 0.3797956109046936
+    },
+    {
+     "start": 24.66,
+     "end": 24.82,
+     "word": " ano",
+     "prob": 0.9727904200553894
+    },
+    {
+     "start": 24.82,
+     "end": 24.92,
+     "word": " e",
+     "prob": 0.9924370646476746
+    },
+    {
+     "start": 24.92,
+     "end": 25.18,
+     "word": " meia.",
+     "prob": 0.4991460591554642
+    }
+   ]
+  },
+  {
+   "start": 26.12,
+   "end": 28.46,
+   "text": "A sua chegada no Brasil,",
+   "words": [
+    {
+     "start": 26.12,
+     "end": 26.92,
+     "word": " A",
+     "prob": 0.9318410158157349
+    },
+    {
+     "start": 26.92,
+     "end": 27.24,
+     "word": " sua",
+     "prob": 0.9967166781425476
+    },
+    {
+     "start": 27.24,
+     "end": 27.82,
+     "word": " chegada",
+     "prob": 0.9958674311637878
+    },
+    {
+     "start": 27.82,
+     "end": 28.02,
+     "word": " no",
+     "prob": 0.9446646571159363
+    },
+    {
+     "start": 28.02,
+     "end": 28.46,
+     "word": " Brasil,",
+     "prob": 0.9957427382469177
+    }
+   ]
+  },
+  {
+   "start": 28.46,
+   "end": 37.76,
+   "text": "Você já se imaginou trabalhando ou fazendo alguma coisa que trouxesse renda, ou era muito difícil?",
+   "words": [
+    {
+     "start": 28.46,
+     "end": 30.22,
+     "word": " Você",
+     "prob": 0.7695186138153076
+    },
+    {
+     "start": 30.22,
+     "end": 30.72,
+     "word": " já",
+     "prob": 0.9648960828781128
+    },
+    {
+     "start": 30.72,
+     "end": 30.86,
+     "word": " se",
+     "prob": 0.8530279994010925
+    },
+    {
+     "start": 30.86,
+     "end": 31.36,
+     "word": " imaginou",
+     "prob": 0.8885464370250702
+    },
+    {
+     "start": 31.36,
+     "end": 32.24,
+     "word": " trabalhando",
+     "prob": 0.9819152355194092
+    },
+    {
+     "start": 32.24,
+     "end": 33.14,
+     "word": " ou",
+     "prob": 0.5853005051612854
+    },
+    {
+     "start": 33.14,
+     "end": 33.84,
+     "word": " fazendo",
+     "prob": 0.8903903365135193
+    },
+    {
+     "start": 33.84,
+     "end": 34.24,
+     "word": " alguma",
+     "prob": 0.8991783857345581
+    },
+    {
+     "start": 34.24,
+     "end": 34.72,
+     "word": " coisa",
+     "prob": 0.9992071986198425
+    },
+    {
+     "start": 34.72,
+     "end": 35.32,
+     "word": " que",
+     "prob": 0.9311192631721497
+    },
+    {
+     "start": 35.32,
+     "end": 35.82,
+     "word": " trouxesse",
+     "prob": 0.7648973365624746
+    },
+    {
+     "start": 35.82,
+     "end": 36.4,
+     "word": " renda,",
+     "prob": 0.9864794313907623
+    },
+    {
+     "start": 36.62,
+     "end": 36.78,
+     "word": " ou",
+     "prob": 0.9387390613555908
+    },
+    {
+     "start": 36.78,
+     "end": 37.12,
+     "word": " era",
+     "prob": 0.8025844693183899
+    },
+    {
+     "start": 37.12,
+     "end": 37.38,
+     "word": " muito",
+     "prob": 0.9952842593193054
+    },
+    {
+     "start": 37.38,
+     "end": 37.76,
+     "word": " difícil?",
+     "prob": 0.9892645478248596
+    }
+   ]
+  },
+  {
+   "start": 38.86,
+   "end": 50.18,
+   "text": "Bem, aqui eu não tenho pensado trabalhar por bebê, mas o meu expectativo é de meu próprio negócio,",
+   "words": [
+    {
+     "start": 38.86,
+     "end": 39.16,
+     "word": " Bem,",
+     "prob": 0.09509620815515518
+    },
+    {
+     "start": 39.74,
+     "end": 40.74,
+     "word": " aqui",
+     "prob": 0.5699608325958252
+    },
+    {
+     "start": 40.74,
+     "end": 41.16,
+     "word": " eu",
+     "prob": 0.5724014043807983
+    },
+    {
+     "start": 41.16,
+     "end": 41.62,
+     "word": " não",
+     "prob": 0.4226715862751007
+    },
+    {
+     "start": 41.62,
+     "end": 42.74,
+     "word": " tenho",
+     "prob": 0.8054934144020081
+    },
+    {
+     "start": 42.74,
+     "end": 43.14,
+     "word": " pensado",
+     "prob": 0.8152198195457458
+    },
+    {
+     "start": 43.14,
+     "end": 43.66,
+     "word": " trabalhar",
+     "prob": 0.6806793212890625
+    },
+    {
+     "start": 43.66,
+     "end": 45.12,
+     "word": " por",
+     "prob": 0.7735946774482727
+    },
+    {
+     "start": 45.12,
+     "end": 45.82,
+     "word": " bebê,",
+     "prob": 0.6651935279369354
+    },
+    {
+     "start": 46.0,
+     "end": 46.64,
+     "word": " mas",
+     "prob": 0.9028703570365906
+    },
+    {
+     "start": 46.64,
+     "end": 47.4,
+     "word": " o",
+     "prob": 0.4116261601448059
+    },
+    {
+     "start": 47.4,
+     "end": 47.5,
+     "word": " meu",
+     "prob": 0.8657591342926025
+    },
+    {
+     "start": 47.5,
+     "end": 48.14,
+     "word": " expectativo",
+     "prob": 0.5036497712135315
+    },
+    {
+     "start": 48.14,
+     "end": 48.52,
+     "word": " é",
+     "prob": 0.7479737997055054
+    },
+    {
+     "start": 48.52,
+     "end": 48.66,
+     "word": " de",
+     "prob": 0.15317602455615997
+    },
+    {
+     "start": 48.66,
+     "end": 49.28,
+     "word": " meu",
+     "prob": 0.2089928835630417
+    },
+    {
+     "start": 49.28,
+     "end": 49.5,
+     "word": " próprio",
+     "prob": 0.9848102927207947
+    },
+    {
+     "start": 49.5,
+     "end": 50.18,
+     "word": " negócio,",
+     "prob": 0.9112918376922607
+    }
+   ]
+  },
+  {
+   "start": 60.04,
+   "end": 67.24,
+   "text": "Você acha que o Brasil está sendo acolhedor para você e para a sua família?",
+   "words": [
+    {
+     "start": 60.04,
+     "end": 60.68,
+     "word": " Você",
+     "prob": 0.09859859198331833
+    },
+    {
+     "start": 60.68,
+     "end": 61.32,
+     "word": " acha",
+     "prob": 0.9023141264915466
+    },
+    {
+     "start": 61.32,
+     "end": 61.58,
+     "word": " que",
+     "prob": 0.9953956007957458
+    },
+    {
+     "start": 61.58,
+     "end": 61.7,
+     "word": " o",
+     "prob": 0.9567068219184875
+    },
+    {
+     "start": 61.7,
+     "end": 62.22,
+     "word": " Brasil",
+     "prob": 0.9285653233528137
+    },
+    {
+     "start": 62.22,
+     "end": 64.08,
+     "word": " está",
+     "prob": 0.8406642079353333
+    },
+    {
+     "start": 64.08,
+     "end": 64.86,
+     "word": " sendo",
+     "prob": 0.8716042041778564
+    },
+    {
+     "start": 64.86,
+     "end": 65.66,
+     "word": " acolhedor",
+     "prob": 0.6596016883850098
+    },
+    {
+     "start": 65.66,
+     "end": 66.18,
+     "word": " para",
+     "prob": 0.8439003825187683
+    },
+    {
+     "start": 66.18,
+     "end": 66.48,
+     "word": " você",
+     "prob": 0.5905129313468933
+    },
+    {
+     "start": 66.48,
+     "end": 66.66,
+     "word": " e",
+     "prob": 0.78385329246521
+    },
+    {
+     "start": 66.66,
+     "end": 66.68,
+     "word": " para",
+     "prob": 0.6453046202659607
+    },
+    {
+     "start": 66.68,
+     "end": 66.82,
+     "word": " a",
+     "prob": 0.36898812651634216
+    },
+    {
+     "start": 66.82,
+     "end": 66.86,
+     "word": " sua",
+     "prob": 0.962017834186554
+    },
+    {
+     "start": 66.86,
+     "end": 67.24,
+     "word": " família?",
+     "prob": 0.9937717318534851
+    }
+   ]
+  },
+  {
+   "start": 67.92,
+   "end": 70.74,
+   "text": "Ou você acha que tem muitas outras dificuldades ali?",
+   "words": [
+    {
+     "start": 67.92,
+     "end": 67.98,
+     "word": " Ou",
+     "prob": 0.7594193816184998
+    },
+    {
+     "start": 67.98,
+     "end": 68.2,
+     "word": " você",
+     "prob": 0.9597140550613403
+    },
+    {
+     "start": 68.2,
+     "end": 68.34,
+     "word": " acha",
+     "prob": 0.9765102863311768
+    },
+    {
+     "start": 68.34,
+     "end": 68.56,
+     "word": " que",
+     "prob": 0.9927599430084229
+    },
+    {
+     "start": 68.56,
+     "end": 68.68,
+     "word": " tem",
+     "prob": 0.8126508593559265
+    },
+    {
+     "start": 68.68,
+     "end": 69.06,
+     "word": " muitas",
+     "prob": 0.9246219992637634
+    },
+    {
+     "start": 69.06,
+     "end": 69.5,
+     "word": " outras",
+     "prob": 0.9610285758972168
+    },
+    {
+     "start": 69.5,
+     "end": 70.36,
+     "word": " dificuldades",
+     "prob": 0.9425384600957235
+    },
+    {
+     "start": 70.36,
+     "end": 70.74,
+     "word": " ali?",
+     "prob": 0.7542991042137146
+    }
+   ]
+  },
+  {
+   "start": 71.2,
+   "end": 71.44,
+   "text": "Não.",
+   "words": [
+    {
+     "start": 71.2,
+     "end": 71.44,
+     "word": " Não.",
+     "prob": 0.8812929391860962
+    }
+   ]
+  },
+  {
+   "start": 71.68,
+   "end": 74.88,
+   "text": "Me parece que Brasília é uma cidade espectacular.",
+   "words": [
+    {
+     "start": 71.68,
+     "end": 71.94,
+     "word": " Me",
+     "prob": 0.32379356026649475
+    },
+    {
+     "start": 71.94,
+     "end": 72.2,
+     "word": " parece",
+     "prob": 0.9646159410476685
+    },
+    {
+     "start": 72.2,
+     "end": 72.7,
+     "word": " que",
+     "prob": 0.6091747283935547
+    },
+    {
+     "start": 72.7,
+     "end": 73.28,
+     "word": " Brasília",
+     "prob": 0.8783373634020487
+    },
+    {
+     "start": 73.28,
+     "end": 73.6,
+     "word": " é",
+     "prob": 0.9393984079360962
+    },
+    {
+     "start": 73.6,
+     "end": 73.66,
+     "word": " uma",
+     "prob": 0.9892575144767761
+    },
+    {
+     "start": 73.66,
+     "end": 73.96,
+     "word": " cidade",
+     "prob": 0.9773536920547485
+    },
+    {
+     "start": 73.96,
+     "end": 74.88,
+     "word": " espectacular.",
+     "prob": 0.7976811230182648
+    }
+   ]
+  },
+  {
+   "start": 75.12,
+   "end": 76.54,
+   "text": "De muita oportunidade.",
+   "words": [
+    {
+     "start": 75.12,
+     "end": 75.62,
+     "word": " De",
+     "prob": 0.7435539364814758
+    },
+    {
+     "start": 75.62,
+     "end": 75.8,
+     "word": " muita",
+     "prob": 0.7685824632644653
+    },
+    {
+     "start": 75.8,
+     "end": 76.54,
+     "word": " oportunidade.",
+     "prob": 0.9957634210586548
+    }
+   ]
+  },
+  {
+   "start": 77.28,
+   "end": 78.3,
+   "text": "Tanto como para nós,",
+   "words": [
+    {
+     "start": 77.28,
+     "end": 77.6,
+     "word": " Tanto",
+     "prob": 0.5727279111742973
+    },
+    {
+     "start": 77.6,
+     "end": 77.86,
+     "word": " como",
+     "prob": 0.5845685601234436
+    },
+    {
+     "start": 77.86,
+     "end": 78.06,
+     "word": " para",
+     "prob": 0.9339226484298706
+    },
+    {
+     "start": 78.06,
+     "end": 78.3,
+     "word": " nós,",
+     "prob": 0.9355013370513916
+    }
+   ]
+  },
+  {
+   "start": 78.96,
+   "end": 80.06,
+   "text": "os venezolanos,",
+   "words": [
+    {
+     "start": 78.96,
+     "end": 79.38,
+     "word": " os",
+     "prob": 0.5061449408531189
+    },
+    {
+     "start": 79.38,
+     "end": 80.06,
+     "word": " venezolanos,",
+     "prob": 0.6025913562625647
+    }
+   ]
+  },
+  {
+   "start": 80.16,
+   "end": 81.52,
+   "text": "como para outra pessoa também.",
+   "words": [
+    {
+     "start": 80.16,
+     "end": 80.28,
+     "word": " como",
+     "prob": 0.3907765746116638
+    },
+    {
+     "start": 80.28,
+     "end": 80.48,
+     "word": " para",
+     "prob": 0.7159265279769897
+    },
+    {
+     "start": 80.48,
+     "end": 80.66,
+     "word": " outra",
+     "prob": 0.4551669657230377
+    },
+    {
+     "start": 80.66,
+     "end": 81.04,
+     "word": " pessoa",
+     "prob": 0.7723985314369202
+    },
+    {
+     "start": 81.04,
+     "end": 81.52,
+     "word": " também.",
+     "prob": 0.7963733077049255
+    }
+   ]
+  },
+  {
+   "start": 82.46,
+   "end": 84.5,
+   "text": "O que você espera do Brasil?",
+   "words": [
+    {
+     "start": 82.46,
+     "end": 82.82,
+     "word": " O",
+     "prob": 0.7716757655143738
+    },
+    {
+     "start": 82.82,
+     "end": 82.94,
+     "word": " que",
+     "prob": 0.9952516555786133
+    },
+    {
+     "start": 82.94,
+     "end": 83.24,
+     "word": " você",
+     "prob": 0.9669106006622314
+    },
+    {
+     "start": 83.24,
+     "end": 83.8,
+     "word": " espera",
+     "prob": 0.9866764545440674
+    },
+    {
+     "start": 83.8,
+     "end": 84.16,
+     "word": " do",
+     "prob": 0.6219887733459473
+    },
+    {
+     "start": 84.16,
+     "end": 84.5,
+     "word": " Brasil?",
+     "prob": 0.9884945750236511
+    }
+   ]
+  },
+  {
+   "start": 85.6,
+   "end": 86.34,
+   "text": "Que esperam?",
+   "words": [
+    {
+     "start": 85.6,
+     "end": 85.98,
+     "word": " Que",
+     "prob": 0.5226891040802002
+    },
+    {
+     "start": 85.98,
+     "end": 86.34,
+     "word": " esperam?",
+     "prob": 0.5645289272069931
+    }
+   ]
+  },
+  {
+   "start": 88.72,
+   "end": 89.6,
+   "text": "Muitas coisas.",
+   "words": [
+    {
+     "start": 88.72,
+     "end": 89.32,
+     "word": " Muitas",
+     "prob": 0.7379283507664999
+    },
+    {
+     "start": 89.32,
+     "end": 89.6,
+     "word": " coisas.",
+     "prob": 0.8583943247795105
+    }
+   ]
+  },
+  {
+   "start": 92.86,
+   "end": 96.26,
+   "text": "É isso, muito obrigada, muito obrigada para nós.",
+   "words": [
+    {
+     "start": 92.86,
+     "end": 93.46,
+     "word": " É",
+     "prob": 0.8135267496109009
+    },
+    {
+     "start": 93.46,
+     "end": 93.76,
+     "word": " isso,",
+     "prob": 0.9833246469497681
+    },
+    {
+     "start": 93.86,
+     "end": 94.0,
+     "word": " muito",
+     "prob": 0.9801766872406006
+    },
+    {
+     "start": 94.0,
+     "end": 94.68,
+     "word": " obrigada,",
+     "prob": 0.9924444258213043
+    },
+    {
+     "start": 94.72,
+     "end": 94.9,
+     "word": " muito",
+     "prob": 0.9403887391090393
+    },
+    {
+     "start": 94.9,
+     "end": 95.42,
+     "word": " obrigada",
+     "prob": 0.9800550937652588
+    },
+    {
+     "start": 95.42,
+     "end": 95.68,
+     "word": " para",
+     "prob": 0.09017471969127655
+    },
+    {
+     "start": 95.68,
+     "end": 96.26,
+     "word": " nós.",
+     "prob": 0.18348835408687592
+    }
+   ]
+  },
+  {
+   "start": 96.84,
+   "end": 98.98,
+   "text": "E a gente espera contribuir cada vez mais",
+   "words": [
+    {
+     "start": 96.84,
+     "end": 96.86,
+     "word": " E",
+     "prob": 0.8788982033729553
+    },
+    {
+     "start": 96.86,
+     "end": 97.0,
+     "word": " a",
+     "prob": 0.6895566582679749
+    },
+    {
+     "start": 97.0,
+     "end": 97.06,
+     "word": " gente",
+     "prob": 0.45529547333717346
+    },
+    {
+     "start": 97.06,
+     "end": 97.42,
+     "word": " espera",
+     "prob": 0.9109246730804443
+    },
+    {
+     "start": 97.42,
+     "end": 98.0,
+     "word": " contribuir",
+     "prob": 0.9977405965328217
+    },
+    {
+     "start": 98.0,
+     "end": 98.3,
+     "word": " cada",
+     "prob": 0.9806939363479614
+    },
+    {
+     "start": 98.3,
+     "end": 98.52,
+     "word": " vez",
+     "prob": 0.9922715425491333
+    },
+    {
+     "start": 98.52,
+     "end": 98.98,
+     "word": " mais",
+     "prob": 0.9988391995429993
+    }
+   ]
+  },
+  {
+   "start": 98.98,
+   "end": 101.06,
+   "text": "para você e para todas as pessoas",
+   "words": [
+    {
+     "start": 98.98,
+     "end": 99.56,
+     "word": " para",
+     "prob": 0.7542427182197571
+    },
+    {
+     "start": 99.56,
+     "end": 99.9,
+     "word": " você",
+     "prob": 0.9499217867851257
+    },
+    {
+     "start": 99.9,
+     "end": 100.2,
+     "word": " e",
+     "prob": 0.5520347952842712
+    },
+    {
+     "start": 100.2,
+     "end": 100.26,
+     "word": " para",
+     "prob": 0.9491628408432007
+    },
+    {
+     "start": 100.26,
+     "end": 100.48,
+     "word": " todas",
+     "prob": 0.7722703814506531
+    },
+    {
+     "start": 100.48,
+     "end": 100.74,
+     "word": " as",
+     "prob": 0.959963321685791
+    },
+    {
+     "start": 100.74,
+     "end": 101.06,
+     "word": " pessoas",
+     "prob": 0.9984903335571289
+    }
+   ]
+  },
+  {
+   "start": 101.06,
+   "end": 103.24,
+   "text": "para conseguir cada vez mais",
+   "words": [
+    {
+     "start": 101.06,
+     "end": 101.36,
+     "word": " para",
+     "prob": 0.3913459777832031
+    },
+    {
+     "start": 101.36,
+     "end": 101.8,
+     "word": " conseguir",
+     "prob": 0.9686050415039062
+    },
+    {
+     "start": 101.8,
+     "end": 102.54,
+     "word": " cada",
+     "prob": 0.8779540061950684
+    },
+    {
+     "start": 102.54,
+     "end": 102.84,
+     "word": " vez",
+     "prob": 0.999934196472168
+    },
+    {
+     "start": 102.84,
+     "end": 103.24,
+     "word": " mais",
+     "prob": 0.9890629649162292
+    }
+   ]
+  },
+  {
+   "start": 103.24,
+   "end": 105.3,
+   "text": "a lidar com vocês e para vocês que pegarem do Brasil.",
+   "words": [
+    {
+     "start": 103.24,
+     "end": 103.78,
+     "word": " a",
+     "prob": 0.34902921319007874
+    },
+    {
+     "start": 103.78,
+     "end": 103.98,
+     "word": " lidar",
+     "prob": 0.7783370614051819
+    },
+    {
+     "start": 103.98,
+     "end": 104.14,
+     "word": " com",
+     "prob": 0.4598182141780853
+    },
+    {
+     "start": 104.14,
+     "end": 104.3,
+     "word": " vocês",
+     "prob": 0.8059253096580505
+    },
+    {
+     "start": 104.3,
+     "end": 104.54,
+     "word": " e",
+     "prob": 0.39879295229911804
+    },
+    {
+     "start": 104.54,
+     "end": 104.54,
+     "word": " para",
+     "prob": 0.366183340549469
+    },
+    {
+     "start": 104.54,
+     "end": 104.54,
+     "word": " vocês",
+     "prob": 0.10975100100040436
+    },
+    {
+     "start": 104.54,
+     "end": 104.64,
+     "word": " que",
+     "prob": 0.4083569347858429
+    },
+    {
+     "start": 104.64,
+     "end": 104.92,
+     "word": " pegarem",
+     "prob": 0.8177523910999298
+    },
+    {
+     "start": 104.92,
+     "end": 105.1,
+     "word": " do",
+     "prob": 0.4861215054988861
+    },
+    {
+     "start": 105.1,
+     "end": 105.3,
+     "word": " Brasil.",
+     "prob": 0.9960143566131592
+    }
+   ]
+  },
+  {
+   "start": 105.7,
+   "end": 106.28,
+   "text": "Muito obrigada.",
+   "words": [
+    {
+     "start": 105.7,
+     "end": 105.9,
+     "word": " Muito",
+     "prob": 0.9930103421211243
+    },
+    {
+     "start": 105.9,
+     "end": 106.28,
+     "word": " obrigada.",
+     "prob": 0.9851457178592682
+    }
+   ]
+  },
+  {
+   "start": 110.39999999999999,
+   "end": 111.8,
+   "text": ".",
+   "words": [
+    {
+     "start": 110.39999999999999,
+     "end": 111.8,
+     "word": " .",
+     "prob": 0.006451153662055731
+    }
+   ]
+  },
+  {
+   "start": 111.8,
+   "end": 111.88,
+   "text": ".",
+   "words": [
+    {
+     "start": 111.8,
+     "end": 111.88,
+     "word": " .",
+     "prob": 0.8209149241447449
+    }
+   ]
+  },
+  {
+   "start": 113.91999999999999,
+   "end": 115.32,
+   "text": ".",
+   "words": [
+    {
+     "start": 113.91999999999999,
+     "end": 115.32,
+     "word": " .",
+     "prob": 0.9002845287322998
+    }
+   ]
+  }
+ ],
+ "pt_clips_b8": [
+  {
+   "start": 3.2,
+   "end": 4.96,
+   "text": "O nome é Tairis Martes.",
+   "words": [
+    {
+     "start": 3.2,
+     "end": 3.7600000000000002,
+     "word": " O",
+     "prob": 0.1243961825966835
+    },
+    {
+     "start": 3.7600000000000002,
+     "end": 3.8400000000000003,
+     "word": " nome",
+     "prob": 0.2616400122642517
+    },
+    {
+     "start": 3.8400000000000003,
+     "end": 4.08,
+     "word": " é",
+     "prob": 0.24936313927173615
+    },
+    {
+     "start": 4.08,
+     "end": 4.48,
+     "word": " Tairis",
+     "prob": 0.5817960500717163
+    },
+    {
+     "start": 4.48,
+     "end": 4.96,
+     "word": " Martes.",
+     "prob": 0.7769639790058136
+    }
+   ]
+  },
+  {
+   "start": 7.6,
+   "end": 8.719999999999999,
+   "text": "Bem-vindo ao chão.",
+   "words": [
+    {
+     "start": 7.6,
+     "end": 8.16,
+     "word": " Bem",
+     "prob": 0.7218537926673889
+    },
+    {
+     "start": 8.16,
+     "end": 8.4,
+     "word": "-vindo",
+     "prob": 0.6100973536570867
+    },
+    {
+     "start": 8.4,
+     "end": 8.52,
+     "word": " ao",
+     "prob": 0.11648117005825043
+    },
+    {
+     "start": 8.52,
+     "end": 8.719999999999999,
+     "word": " chão.",
+     "prob": 0.6959185600280762
+    }
+   ]
+  },
+  {
+   "start": 13.0,
+   "end": 20.259999999999998,
+   "text": "Estuve em México. Estuve trabalhando de camarela em um hotel de gringos.",
+   "words": [
+    {
+     "start": 13.0,
+     "end": 13.94,
+     "word": " Estuve",
+     "prob": 0.6356122195720673
+    },
+    {
+     "start": 13.94,
+     "end": 14.14,
+     "word": " em",
+     "prob": 0.8653436899185181
+    },
+    {
+     "start": 14.14,
+     "end": 14.5,
+     "word": " México.",
+     "prob": 0.9660938382148743
+    },
+    {
+     "start": 15.120000000000001,
+     "end": 15.72,
+     "word": " Estuve",
+     "prob": 0.9586155712604523
+    },
+    {
+     "start": 15.72,
+     "end": 16.28,
+     "word": " trabalhando",
+     "prob": 0.9505812227725983
+    },
+    {
+     "start": 16.28,
+     "end": 16.96,
+     "word": " de",
+     "prob": 0.597892165184021
+    },
+    {
+     "start": 16.96,
+     "end": 17.62,
+     "word": " camarela",
+     "prob": 0.5631129940350851
+    },
+    {
+     "start": 17.62,
+     "end": 18.44,
+     "word": " em",
+     "prob": 0.6531595587730408
+    },
+    {
+     "start": 18.44,
+     "end": 18.6,
+     "word": " um",
+     "prob": 0.9697360992431641
+    },
+    {
+     "start": 18.6,
+     "end": 18.92,
+     "word": " hotel",
+     "prob": 0.8753060698509216
+    },
+    {
+     "start": 18.92,
+     "end": 19.86,
+     "word": " de",
+     "prob": 0.9088266491889954
+    },
+    {
+     "start": 19.86,
+     "end": 20.259999999999998,
+     "word": " gringos.",
+     "prob": 0.7711045444011688
+    }
+   ]
+  },
+  {
+   "start": 23.6,
+   "end": 25.12,
+   "text": "9,1,5",
+   "words": [
+    {
+     "start": 23.6,
+     "end": 24.14,
+     "word": " 9",
+     "prob": 0.20873284339904785
+    },
+    {
+     "start": 24.14,
+     "end": 24.720000000000002,
+     "word": ",1",
+     "prob": 0.44213370978832245
+    },
+    {
+     "start": 24.720000000000002,
+     "end": 25.12,
+     "word": ",5",
+     "prob": 0.801321268081665
+    }
+   ]
+  },
+  {
+   "start": 39.9,
+   "end": 50.18,
+   "text": "Aqui eu não tenho peso de trabalhar por o bebê, mas o meu expectativo é de meu próprio negócio,",
+   "words": [
+    {
+     "start": 39.9,
+     "end": 40.62,
+     "word": " Aqui",
+     "prob": 0.054328981786966324
+    },
+    {
+     "start": 40.62,
+     "end": 41.28,
+     "word": " eu",
+     "prob": 0.5083932280540466
+    },
+    {
+     "start": 41.28,
+     "end": 41.66,
+     "word": " não",
+     "prob": 0.6242925524711609
+    },
+    {
+     "start": 41.66,
+     "end": 42.739999999999995,
+     "word": " tenho",
+     "prob": 0.7981692552566528
+    },
+    {
+     "start": 42.739999999999995,
+     "end": 43.019999999999996,
+     "word": " peso",
+     "prob": 0.21771684288978577
+    },
+    {
+     "start": 43.019999999999996,
+     "end": 43.72,
+     "word": " de",
+     "prob": 0.7233552932739258
+    },
+    {
+     "start": 43.72,
+     "end": 43.72,
+     "word": " trabalhar",
+     "prob": 0.963172435760498
+    },
+    {
+     "start": 43.72,
+     "end": 45.1,
+     "word": " por",
+     "prob": 0.5999129414558411
+    },
+    {
+     "start": 45.1,
+     "end": 45.62,
+     "word": " o",
+     "prob": 0.1489071100950241
+    },
+    {
+     "start": 45.62,
+     "end": 45.879999999999995,
+     "word": " bebê,",
+     "prob": 0.9702263176441193
+    },
+    {
+     "start": 46.0,
+     "end": 46.62,
+     "word": " mas",
+     "prob": 0.9636834263801575
+    },
+    {
+     "start": 46.62,
+     "end": 47.42,
+     "word": " o",
+     "prob": 0.4743202030658722
+    },
+    {
+     "start": 47.42,
+     "end": 47.5,
+     "word": " meu",
+     "prob": 0.8017078638076782
+    },
+    {
+     "start": 47.5,
+     "end": 48.16,
+     "word": " expectativo",
+     "prob": 0.45727796852588654
+    },
+    {
+     "start": 48.16,
+     "end": 48.48,
+     "word": " é",
+     "prob": 0.7670378088951111
+    },
+    {
+     "start": 48.48,
+     "end": 48.7,
+     "word": " de",
+     "prob": 0.15964993834495544
+    },
+    {
+     "start": 48.7,
+     "end": 49.3,
+     "word": " meu",
+     "prob": 0.25019335746765137
+    },
+    {
+     "start": 49.3,
+     "end": 49.5,
+     "word": " próprio",
+     "prob": 0.9763976335525513
+    },
+    {
+     "start": 49.5,
+     "end": 50.18,
+     "word": " negócio,",
+     "prob": 0.7881655097007751
+    }
+   ]
+  },
+  {
+   "start": 50.76,
+   "end": 58.08,
+   "text": "é de bordado, de manicurista que eu gosto e qualquer outra coisa que eu se apresentei.",
+   "words": [
+    {
+     "start": 50.76,
+     "end": 51.46,
+     "word": " é",
+     "prob": 0.2879912853240967
+    },
+    {
+     "start": 51.46,
+     "end": 51.72,
+     "word": " de",
+     "prob": 0.7716456651687622
+    },
+    {
+     "start": 51.72,
+     "end": 53.099999999999994,
+     "word": " bordado,",
+     "prob": 0.7673960328102112
+    },
+    {
+     "start": 53.379999999999995,
+     "end": 53.58,
+     "word": " de",
+     "prob": 0.7211108803749084
+    },
+    {
+     "start": 53.58,
+     "end": 54.3,
+     "word": " manicurista",
+     "prob": 0.826042632261912
+    },
+    {
+     "start": 54.3,
+     "end": 54.48,
+     "word": " que",
+     "prob": 0.8071651458740234
+    },
+    {
+     "start": 54.48,
+     "end": 54.599999999999994,
+     "word": " eu",
+     "prob": 0.7890146970748901
+    },
+    {
+     "start": 54.599999999999994,
+     "end": 54.9,
+     "word": " gosto",
+     "prob": 0.6987282037734985
+    },
+    {
+     "start": 54.9,
+     "end": 56.04,
+     "word": " e",
+     "prob": 0.49363434314727783
+    },
+    {
+     "start": 56.04,
+     "end": 56.5,
+     "word": " qualquer",
+     "prob": 0.7007031440734863
+    },
+    {
+     "start": 56.5,
+     "end": 56.84,
+     "word": " outra",
+     "prob": 0.9117790460586548
+    },
+    {
+     "start": 56.84,
+     "end": 57.04,
+     "word": " coisa",
+     "prob": 0.9958504438400269
+    },
+    {
+     "start": 57.04,
+     "end": 57.26,
+     "word": " que",
+     "prob": 0.9875048995018005
+    },
+    {
+     "start": 57.26,
+     "end": 57.36,
+     "word": " eu",
+     "prob": 0.4201289415359497
+    },
+    {
+     "start": 57.36,
+     "end": 57.379999999999995,
+     "word": " se",
+     "prob": 0.23689565062522888
+    },
+    {
+     "start": 57.379999999999995,
+     "end": 58.08,
+     "word": " apresentei.",
+     "prob": 0.7722103893756866
+    }
+   ]
+  },
+  {
+   "start": 70.9,
+   "end": 78.28,
+   "text": "Não, parece-me que Brasília é uma cidade espectacular, de muita oportunidade, tanto como para nós,",
+   "words": [
+    {
+     "start": 70.9,
+     "end": 71.44000000000001,
+     "word": " Não,",
+     "prob": 0.8062782883644104
+    },
+    {
+     "start": 71.72,
+     "end": 72.12,
+     "word": " parece",
+     "prob": 0.3386780023574829
+    },
+    {
+     "start": 72.12,
+     "end": 72.44000000000001,
+     "word": "-me",
+     "prob": 0.6692728698253632
+    },
+    {
+     "start": 72.44000000000001,
+     "end": 72.78,
+     "word": " que",
+     "prob": 0.5374734401702881
+    },
+    {
+     "start": 72.78,
+     "end": 73.32000000000001,
+     "word": " Brasília",
+     "prob": 0.8491842746734619
+    },
+    {
+     "start": 73.32000000000001,
+     "end": 73.58000000000001,
+     "word": " é",
+     "prob": 0.9366470575332642
+    },
+    {
+     "start": 73.58000000000001,
+     "end": 73.66000000000001,
+     "word": " uma",
+     "prob": 0.9839207530021667
+    },
+    {
+     "start": 73.66000000000001,
+     "end": 73.96000000000001,
+     "word": " cidade",
+     "prob": 0.9747009873390198
+    },
+    {
+     "start": 73.96000000000001,
+     "end": 74.96000000000001,
+     "word": " espectacular,",
+     "prob": 0.7016671001911163
+    },
+    {
+     "start": 75.44000000000001,
+     "end": 75.62,
+     "word": " de",
+     "prob": 0.5568000078201294
+    },
+    {
+     "start": 75.62,
+     "end": 75.80000000000001,
+     "word": " muita",
+     "prob": 0.8979954123497009
+    },
+    {
+     "start": 75.80000000000001,
+     "end": 76.72,
+     "word": " oportunidade,",
+     "prob": 0.9955691695213318
+    },
+    {
+     "start": 77.28,
+     "end": 77.58000000000001,
+     "word": " tanto",
+     "prob": 0.9781461954116821
+    },
+    {
+     "start": 77.58000000000001,
+     "end": 77.84,
+     "word": " como",
+     "prob": 0.41284042596817017
+    },
+    {
+     "start": 77.84,
+     "end": 78.04,
+     "word": " para",
+     "prob": 0.9329321980476379
+    },
+    {
+     "start": 78.04,
+     "end": 78.28,
+     "word": " nós,",
+     "prob": 0.9707365036010742
+    }
+   ]
+  },
+  {
+   "start": 78.96000000000001,
+   "end": 81.5,
+   "text": "para os meninos, como para outras pessoas também.",
+   "words": [
+    {
+     "start": 78.96000000000001,
+     "end": 79.38000000000001,
+     "word": " para",
+     "prob": 0.20026834309101105
+    },
+    {
+     "start": 79.38000000000001,
+     "end": 79.38000000000001,
+     "word": " os",
+     "prob": 0.539182186126709
+    },
+    {
+     "start": 79.38000000000001,
+     "end": 79.68,
+     "word": " meninos,",
+     "prob": 0.6163464933633804
+    },
+    {
+     "start": 79.9,
+     "end": 80.26,
+     "word": " como",
+     "prob": 0.7685561776161194
+    },
+    {
+     "start": 80.26,
+     "end": 80.48,
+     "word": " para",
+     "prob": 0.9695785045623779
+    },
+    {
+     "start": 80.48,
+     "end": 80.68,
+     "word": " outras",
+     "prob": 0.9778773188591003
+    },
+    {
+     "start": 80.68,
+     "end": 81.14,
+     "word": " pessoas",
+     "prob": 0.9894266128540039
+    },
+    {
+     "start": 81.14,
+     "end": 81.5,
+     "word": " também.",
+     "prob": 0.9708628058433533
+    }
+   ]
+  },
+  {
+   "start": 85.2,
+   "end": 86.38000000000001,
+   "text": "O que fizeram?",
+   "words": [
+    {
+     "start": 85.2,
+     "end": 85.2,
+     "word": " O",
+     "prob": 0.05318070575594902
+    },
+    {
+     "start": 85.2,
+     "end": 85.98,
+     "word": " que",
+     "prob": 0.9584910273551941
+    },
+    {
+     "start": 85.98,
+     "end": 86.38000000000001,
+     "word": " fizeram?",
+     "prob": 0.5556222125887871
+    }
+   ]
+  },
+  {
+   "start": 88.12,
+   "end": 89.60000000000001,
+   "text": "Muitas coisas.",
+   "words": [
+    {
+     "start": 88.12,
+     "end": 89.32000000000001,
+     "word": " Muitas",
+     "prob": 0.7642335096995035
+    },
+    {
+     "start": 89.32000000000001,
+     "end": 89.60000000000001,
+     "word": " coisas.",
+     "prob": 0.9850971698760986
+    }
+   ]
+  }
+ ],
+ "es_clips_b8": [
+  {
+   "start": 3.2,
+   "end": 4.96,
+   "text": "Me llamo Tairis Martes",
+   "words": [
+    {
+     "start": 3.2,
+     "end": 3.7600000000000002,
+     "word": " Me",
+     "prob": 0.02149534784257412
+    },
+    {
+     "start": 3.7600000000000002,
+     "end": 4.0,
+     "word": " llamo",
+     "prob": 0.7453362941741943
+    },
+    {
+     "start": 4.0,
+     "end": 4.46,
+     "word": " Tairis",
+     "prob": 0.566335916519165
+    },
+    {
+     "start": 4.46,
+     "end": 4.96,
+     "word": " Martes",
+     "prob": 0.8592763841152191
+    }
+   ]
+  },
+  {
+   "start": 7.6,
+   "end": 8.36,
+   "text": "¡Bienvenidos!",
+   "words": [
+    {
+     "start": 7.6,
+     "end": 8.36,
+     "word": " ¡Bienvenidos!",
+     "prob": 0.38581445813179016
+    }
+   ]
+  },
+  {
+   "start": 13.0,
+   "end": 20.28,
+   "text": "estuve en México, estuve trabajando de camarera en un hotel de gringos.",
+   "words": [
+    {
+     "start": 13.0,
+     "end": 13.94,
+     "word": " estuve",
+     "prob": 0.7320075035095215
+    },
+    {
+     "start": 13.94,
+     "end": 14.120000000000001,
+     "word": " en",
+     "prob": 0.9526853561401367
+    },
+    {
+     "start": 14.120000000000001,
+     "end": 14.5,
+     "word": " México,",
+     "prob": 0.9662598371505737
+    },
+    {
+     "start": 15.379999999999999,
+     "end": 15.72,
+     "word": " estuve",
+     "prob": 0.9423680603504181
+    },
+    {
+     "start": 15.72,
+     "end": 16.16,
+     "word": " trabajando",
+     "prob": 0.990390419960022
+    },
+    {
+     "start": 16.16,
+     "end": 16.96,
+     "word": " de",
+     "prob": 0.6477604508399963
+    },
+    {
+     "start": 16.96,
+     "end": 17.78,
+     "word": " camarera",
+     "prob": 0.5414764434099197
+    },
+    {
+     "start": 17.78,
+     "end": 18.44,
+     "word": " en",
+     "prob": 0.8095577359199524
+    },
+    {
+     "start": 18.44,
+     "end": 18.6,
+     "word": " un",
+     "prob": 0.9744074940681458
+    },
+    {
+     "start": 18.6,
+     "end": 18.92,
+     "word": " hotel",
+     "prob": 0.9723023772239685
+    },
+    {
+     "start": 18.92,
+     "end": 19.88,
+     "word": " de",
+     "prob": 0.9604820013046265
+    },
+    {
+     "start": 19.88,
+     "end": 20.28,
+     "word": " gringos.",
+     "prob": 0.8278908928235372
+    }
+   ]
+  },
+  {
+   "start": 23.6,
+   "end": 25.14,
+   "text": "No, me de un año y media.",
+   "words": [
+    {
+     "start": 23.6,
+     "end": 24.080000000000002,
+     "word": " No,",
+     "prob": 0.13172073662281036
+    },
+    {
+     "start": 24.18,
+     "end": 24.380000000000003,
+     "word": " me",
+     "prob": 0.40718182921409607
+    },
+    {
+     "start": 24.380000000000003,
+     "end": 24.540000000000003,
+     "word": " de",
+     "prob": 0.192374587059021
+    },
+    {
+     "start": 24.540000000000003,
+     "end": 24.700000000000003,
+     "word": " un",
+     "prob": 0.22962909936904907
+    },
+    {
+     "start": 24.700000000000003,
+     "end": 24.82,
+     "word": " año",
+     "prob": 0.35787850618362427
+    },
+    {
+     "start": 24.82,
+     "end": 24.94,
+     "word": " y",
+     "prob": 0.981221079826355
+    },
+    {
+     "start": 24.94,
+     "end": 25.14,
+     "word": " media.",
+     "prob": 0.7025236487388611
+    }
+   ]
+  },
+  {
+   "start": 38.4,
+   "end": 49.12,
+   "text": "Bueno, acá todavía no tengo peso de trabajar por el bebé, pero mi expectativa es de tener",
+   "words": [
+    {
+     "start": 38.4,
+     "end": 39.28,
+     "word": " Bueno,",
+     "prob": 0.040937043726444244
+    },
+    {
+     "start": 40.3,
+     "end": 40.739999999999995,
+     "word": " acá",
+     "prob": 0.9805834293365479
+    },
+    {
+     "start": 40.739999999999995,
+     "end": 41.32,
+     "word": " todavía",
+     "prob": 0.7375329732894897
+    },
+    {
+     "start": 41.32,
+     "end": 41.72,
+     "word": " no",
+     "prob": 0.9180492758750916
+    },
+    {
+     "start": 41.72,
+     "end": 42.76,
+     "word": " tengo",
+     "prob": 0.9219430088996887
+    },
+    {
+     "start": 42.76,
+     "end": 43.04,
+     "word": " peso",
+     "prob": 0.5864182114601135
+    },
+    {
+     "start": 43.04,
+     "end": 43.239999999999995,
+     "word": " de",
+     "prob": 0.7099410891532898
+    },
+    {
+     "start": 43.239999999999995,
+     "end": 43.64,
+     "word": " trabajar",
+     "prob": 0.9884772300720215
+    },
+    {
+     "start": 43.64,
+     "end": 45.12,
+     "word": " por",
+     "prob": 0.9056553244590759
+    },
+    {
+     "start": 45.12,
+     "end": 45.6,
+     "word": " el",
+     "prob": 0.9715098738670349
+    },
+    {
+     "start": 45.6,
+     "end": 45.879999999999995,
+     "word": " bebé,",
+     "prob": 0.6671455502510071
+    },
+    {
+     "start": 46.199999999999996,
+     "end": 46.64,
+     "word": " pero",
+     "prob": 0.9098663926124573
+    },
+    {
+     "start": 46.64,
+     "end": 47.48,
+     "word": " mi",
+     "prob": 0.7816558480262756
+    },
+    {
+     "start": 47.48,
+     "end": 48.16,
+     "word": " expectativa",
+     "prob": 0.6166147589683533
+    },
+    {
+     "start": 48.16,
+     "end": 48.48,
+     "word": " es",
+     "prob": 0.8285811543464661
+    },
+    {
+     "start": 48.48,
+     "end": 48.78,
+     "word": " de",
+     "prob": 0.5064342021942139
+    },
+    {
+     "start": 48.78,
+     "end": 49.12,
+     "word": " tener",
+     "prob": 0.4660116732120514
+    }
+   ]
+  },
+  {
+   "start": 49.12,
+   "end": 56.84,
+   "text": "mis propios negocios, sea de bordados, de manicuristas que me gustan y cualquier otra",
+   "words": [
+    {
+     "start": 49.12,
+     "end": 49.3,
+     "word": " mis",
+     "prob": 0.3953576982021332
+    },
+    {
+     "start": 49.3,
+     "end": 49.56,
+     "word": " propios",
+     "prob": 0.975816160440445
+    },
+    {
+     "start": 49.56,
+     "end": 50.3,
+     "word": " negocios,",
+     "prob": 0.994598776102066
+    },
+    {
+     "start": 51.06,
+     "end": 51.519999999999996,
+     "word": " sea",
+     "prob": 0.6104182600975037
+    },
+    {
+     "start": 51.519999999999996,
+     "end": 51.9,
+     "word": " de",
+     "prob": 0.9292060136795044
+    },
+    {
+     "start": 51.9,
+     "end": 53.14,
+     "word": " bordados,",
+     "prob": 0.6715000122785568
+    },
+    {
+     "start": 53.32,
+     "end": 53.58,
+     "word": " de",
+     "prob": 0.9040930867195129
+    },
+    {
+     "start": 53.58,
+     "end": 54.3,
+     "word": " manicuristas",
+     "prob": 0.9664196570714315
+    },
+    {
+     "start": 54.3,
+     "end": 54.48,
+     "word": " que",
+     "prob": 0.7058706879615784
+    },
+    {
+     "start": 54.48,
+     "end": 54.599999999999994,
+     "word": " me",
+     "prob": 0.9943962097167969
+    },
+    {
+     "start": 54.599999999999994,
+     "end": 55.14,
+     "word": " gustan",
+     "prob": 0.9258625507354736
+    },
+    {
+     "start": 55.14,
+     "end": 56.04,
+     "word": " y",
+     "prob": 0.7573146224021912
+    },
+    {
+     "start": 56.04,
+     "end": 56.5,
+     "word": " cualquier",
+     "prob": 0.956377387046814
+    },
+    {
+     "start": 56.5,
+     "end": 56.84,
+     "word": " otra",
+     "prob": 0.7904021143913269
+    }
+   ]
+  },
+  {
+   "start": 56.84,
+   "end": 57.8,
+   "text": "cosa que se me presente.",
+   "words": [
+    {
+     "start": 56.84,
+     "end": 57.04,
+     "word": " cosa",
+     "prob": 0.9317792057991028
+    },
+    {
+     "start": 57.04,
+     "end": 57.26,
+     "word": " que",
+     "prob": 0.983576238155365
+    },
+    {
+     "start": 57.26,
+     "end": 57.36,
+     "word": " se",
+     "prob": 0.6073842644691467
+    },
+    {
+     "start": 57.36,
+     "end": 57.5,
+     "word": " me",
+     "prob": 0.9813182950019836
+    },
+    {
+     "start": 57.5,
+     "end": 57.8,
+     "word": " presente.",
+     "prob": 0.39891427755355835
+    }
+   ]
+  },
+  {
+   "start": 70.9,
+   "end": 78.36,
+   "text": "No, me parece Brasilia una ciudad espectacular, de mucha oportunidad, tanto como para nosotros,",
+   "words": [
+    {
+     "start": 70.9,
+     "end": 71.44000000000001,
+     "word": " No,",
+     "prob": 0.8321704268455505
+    },
+    {
+     "start": 71.76,
+     "end": 71.88000000000001,
+     "word": " me",
+     "prob": 0.9457532167434692
+    },
+    {
+     "start": 71.88000000000001,
+     "end": 72.34,
+     "word": " parece",
+     "prob": 0.9958773851394653
+    },
+    {
+     "start": 72.34,
+     "end": 73.4,
+     "word": " Brasilia",
+     "prob": 0.7178064286708832
+    },
+    {
+     "start": 73.4,
+     "end": 73.66000000000001,
+     "word": " una",
+     "prob": 0.8411822319030762
+    },
+    {
+     "start": 73.66000000000001,
+     "end": 73.98,
+     "word": " ciudad",
+     "prob": 0.9954681396484375
+    },
+    {
+     "start": 73.98,
+     "end": 75.02000000000001,
+     "word": " espectacular,",
+     "prob": 0.9946028292179108
+    },
+    {
+     "start": 75.52000000000001,
+     "end": 75.62,
+     "word": " de",
+     "prob": 0.9669163823127747
+    },
+    {
+     "start": 75.62,
+     "end": 75.82000000000001,
+     "word": " mucha",
+     "prob": 0.97513347864151
+    },
+    {
+     "start": 75.82000000000001,
+     "end": 76.48,
+     "word": " oportunidad,",
+     "prob": 0.9912806153297424
+    },
+    {
+     "start": 77.28,
+     "end": 77.60000000000001,
+     "word": " tanto",
+     "prob": 0.9890089631080627
+    },
+    {
+     "start": 77.60000000000001,
+     "end": 77.84,
+     "word": " como",
+     "prob": 0.718422532081604
+    },
+    {
+     "start": 77.84,
+     "end": 78.06,
+     "word": " para",
+     "prob": 0.9927858114242554
+    },
+    {
+     "start": 78.06,
+     "end": 78.36,
+     "word": " nosotros,",
+     "prob": 0.9946821331977844
+    }
+   ]
+  },
+  {
+   "start": 79.10000000000001,
+   "end": 81.52000000000001,
+   "text": "los venezolanos, como para otras personas también.",
+   "words": [
+    {
+     "start": 79.10000000000001,
+     "end": 79.38000000000001,
+     "word": " los",
+     "prob": 0.8746692538261414
+    },
+    {
+     "start": 79.38000000000001,
+     "end": 80.14,
+     "word": " venezolanos,",
+     "prob": 0.761606078594923
+    },
+    {
+     "start": 80.2,
+     "end": 80.28,
+     "word": " como",
+     "prob": 0.9831376075744629
+    },
+    {
+     "start": 80.28,
+     "end": 80.48,
+     "word": " para",
+     "prob": 0.9900107979774475
+    },
+    {
+     "start": 80.48,
+     "end": 80.7,
+     "word": " otras",
+     "prob": 0.9913055300712585
+    },
+    {
+     "start": 80.7,
+     "end": 81.16000000000001,
+     "word": " personas",
+     "prob": 0.993671178817749
+    },
+    {
+     "start": 81.16000000000001,
+     "end": 81.52000000000001,
+     "word": " también.",
+     "prob": 0.9231486916542053
+    }
+   ]
+  },
+  {
+   "start": 85.2,
+   "end": 86.28,
+   "text": "¿Qué hicieron?",
+   "words": [
+    {
+     "start": 85.2,
+     "end": 85.98,
+     "word": " ¿Qué",
+     "prob": 0.5051694884896278
+    },
+    {
+     "start": 85.98,
+     "end": 86.28,
+     "word": " hicieron?",
+     "prob": 0.6376522183418274
+    }
+   ]
+  },
+  {
+   "start": 88.02,
+   "end": 89.62,
+   "text": "Muchas cosas.",
+   "words": [
+    {
+     "start": 88.02,
+     "end": 89.24000000000001,
+     "word": " Muchas",
+     "prob": 0.47139739990234375
+    },
+    {
+     "start": 89.24000000000001,
+     "end": 89.62,
+     "word": " cosas.",
+     "prob": 0.99613356590271
+    }
+   ]
+  }
+ ]
+}

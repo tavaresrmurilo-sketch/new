@@ -1,0 +1,101 @@
+===== nome [3.3-5.3] pt
+   4x O nome é Tairis Martes.
+   2x O meu nome é Tairis Martes.
+   1x Tó, tó.
+   1x O que é o tais martes?
+   1x Me chamam Tairis Martes.
+   1x os taires, martes.
+===== nome [3.3-5.3] es
+   2x Vaya mota y dismarques.
+   2x me llamo Tairis Martes
+   1x Me llamo Tairis Martes
+   1x y ya hemos terminado.
+   1x Vaya mota y dies martes.
+   1x Vayan Mota Iris Martes
+===== idade [7.5-9.1] pt
+   5x Bem beitinho!
+   3x Bem beitinho.
+   2x Bem-vindo.
+   1x Bem-vindo a chão.
+   1x bembeatido.
+   1x Bembeaço.
+===== idade [7.5-9.1] es
+   5x ¡Bienvenidos!
+   5x bienvenidos
+   1x bien de hecho
+   1x bien bien
+   1x ¡Bien, leo chum!
+   1x ¡Bien bien hecho!
+===== tempo [23.5-25.7] pt
+   6x 9,1,5
+   2x 9,5€.
+   2x 9,5 euros.
+   1x Eu me dei um ano e meio.
+   1x e me dei um buraco e um meio.
+   1x eu não me dei 1,5 mil.
+===== tempo [23.5-25.7] es
+   4x No, me debo más y medio.
+   3x y me de un año y media.
+   1x 9,5 euros.
+   1x porque me de un año y media.
+   1x me de un año y media.
+   1x 9 euros y medio
+===== expectativa [38.4-58.6] pt
+   1x Eu não tenho peso de trabalhar por bebê, mas o meu expectativo é de meu próprio negócio, de bordado, de manicurista que eu gosto e qualquer outra coisa que eu me apresentei.
+   1x Aqui eu não tenho peso de trabalhar por bebê, mas o meu expectativo é de meu próprio negócio, é de bordado, de manicurista que eu gosto e qualquer outra coisa que eu se apresentei.
+   1x Eu não tenho mais o dinheiro de trabalhar aqui, mas o meu expectativa é de meu próprio negócio. É de bordado, de manicurista que eu gosto. E qualquer outra coisa que eu se apresento.
+   1x Eu não tenho peso de trabalhar por bebê, mas meu expectativo é que tenho meu próprio negócio, é de bordado, de manicureta que eu gosto, e qualquer outra coisa que eu se apresentei.
+   1x Eu não tenho peso de trabalhar por bebê, mas meu expectativa é de dar o meu próprio negócio, de dar bordado de manicurista que eu gostaria, e qualquer outra coisa que eu se apresentei.
+   1x Eu não tenho mais peso de trabalhar por um bebê. Mas o meu expectativo é meu próprio negócio, é de bordado, de manicurista que eu gosto e qualquer outra coisa que eu se apresentei.
+===== expectativa [38.4-58.6] es
+   1x de lo acá todavía no tengo peso de trabajar por el bebé, pero mi expectativa es de tener mi propio negocio, sea de bordado, de manicurista que me gusta y cualquier otra cosa que se me presenté.
+   1x Acá todavía no tengo peso de trabajar por el bebé, pero mi expectativa es de tener mi propio negocio, sea de bordado, de manicurista que me gusta y cualquier otra cosa que se me presenté.
+   1x de lo acá, todavía no tengo peso de trabajar por el bebés, pero mi expectativa es de tener mi propio negocio, sea de bordados, de manicuristas que me gustan y cualquier otra cosa que se me presente.
+   1x de lo acá, todavía no tengo peso de trabajar por el bebés, pero mi expectativo es de tener mi propio negocio, de haber bordado, de manicuristas que me gustan y cualquier otra cosa que se me presenté.
+   1x de no, acá todavía no tengo peso de trabajar por el bebés, pero mi expectativa es de tener mi propio negocio, sea de bordado, de manicurista que me gusta y cualquier otra cosa que se me presenté.
+   1x de lo que acá todavía no tengo peso de trabajar por el bebé pero mi expectativa es de tener mi propio negocio, sea de bordado, de manicurista que me gusta y cualquier otra cosa que se me presenté.
+===== brasilia [70.9-82.0] pt
+   3x Não, parece-me que Brasília é uma cidade espectacular, de muita oportunidade, tanto para nós, os meninos, como para outras pessoas também.
+   2x Não, parece-me que Brasília é uma cidade espectacular, de muita oportunidade, tanto como para nós, os meninos, como para outras pessoas também.
+   1x Não, parece-me que Brasília é uma cidade espectacular. De muita oportunidade. Tanto como para nós, para os Venezuelanos como para outras pessoas também.
+   1x Não, parece-me que Brasília é uma cidade espectacular, de muita oportunidade, tanto como para nós, os meninos e para outras pessoas também.
+   1x Não, parece-me que Brasília é uma cidade espectacular. De muita oportunidade. Tanto como para nós, os meninos também, como para outras pessoas.
+   1x Não, parece-me que Brasília é uma cidade espectacular, de muita oportunidade. Tanto como para nós, as meninas, como para outras pessoas também.
+===== brasilia [70.9-82.0] es
+   2x No, me parece Brasilia una ciudad espectacular, de mucha oportunidad, tanto como para nosotros, los venezolanos como para otras personas también.
+   1x No, me parece Brasilia una ciudad espectacular, de mucha oportunidad, tanto como para nosotros, los menesolanos como para otras personas también.
+   1x No, me parece Brasilia una ciudad espectacular, de mucha oportunidad, tanto como para nosotros, los venezolanos, como para otras personas también.
+   1x No. Me parece Brasilia una ciudad espectacular, de mucha oportunidad, tanto como para nosotros, los menesolanos como para otras personas también.
+   1x No, me parece Brasilia una ciudad espectacular. De mucha oportunidad. Anto como para nosotros, los menesolanos, como para otras personas también.
+   1x No, me parece Brasilia una ciudad espectacular, de mucha oportunidad, tanto como para nosotros, los menesolanos, como para otras personas también.
+===== espera [84.9-90.6] pt
+   1x Que esperam? Muitas coisas.
+   1x Que esperam, ehm, muitas coisas.
+   1x E que espero. E... Muitas coisas.
+   1x O que é que é? É... Muitas coisas!
+   1x Que espero, hein? Muitas coisas.
+   1x Que esperam... Muitas coisas.
+===== espera [84.9-90.6] es
+   2x que fueron muchas cosas
+   2x ¿Qué fueron? Muchas cosas.
+   1x que hablan de la vida. Que esperon. Muchas cosas.
+   1x Que esperon... Muchas cosas...
+   1x Que espero. Muchas cosas.
+   1x que espera, muchas cosas.
+===== agradece [92.5-96.5] pt
+   2x É isso, muito obrigada, muito obrigada por isso.
+   2x É isso. Muito obrigada, muito obrigada por isso.
+   1x É isso, muito obrigada. Muito obrigada por sermos.
+   1x É isso! Muito obrigada! Muito obrigada por estar aqui.
+   1x É isso! Muito obrigada! Muito obrigada por isso.
+   1x É isso. Muito obrigada. Muito obrigada por os meus amigos.
+===== fechamento [96.4-106.6] pt
+   1x E a gente espera contribuir cada vez mais pra você e pra todas as pessoas pra conseguir cada vez mais ajudar vocês a se pegar em Brasil. Muito obrigada!
+   1x E a gente espera contribuir cada vez mais pra você, pra todas as pessoas, pra conseguir cada vez mais ajudar vocês a se pegar no Brasil. Muito obrigada.
+   1x e a gente espera contribuir cada vez mais pra você e pra todas as pessoas, pra conseguir cada vez mais ajudar vocês a se pegar em Brasil. Muito obrigada!
+   1x e a gente espera contribuir cada vez mais para você, para todas as pessoas, para conseguir cada vez mais ajudar vocês a se pegar em Brasil. Muito obrigada.
+   1x e a gente espera contribuir cada vez mais para você e para todas as pessoas para conseguir cada vez mais ajudar vocês a se pegar no Brasil. Muito obrigada!
+   1x e a gente espera contribuir cada vez mais pra você e pra todas as pessoas, pra conseguir cada vez mais ajudar vocês a se por chegar em um Brasil. Muito obrigada.
+===== final [106.4-115.35] pt
+  11x 
+   3x Um minuto.
