@@ -162,9 +162,9 @@ export function spotNear(w: World, map: MapData, x: number, y: number, radius: n
 
 export function garrisonMax(s: StateRT, map: MapData): number {
   const imp = map.states[s.i].info.imp;
-  let hp = 350 + imp * 25 + s.b.fort * 300;
+  // grandes centros (importância alta) são fortalezas: cresce com o quadrado da importância
+  let hp = 300 + imp * imp * 6 + s.b.fort * 300;
   if (s.owner === 'lula') hp *= 1.2;
-  if (s.owner === 'neutral') hp *= 0.85;
   return Math.round(hp);
 }
 
@@ -186,6 +186,7 @@ export function createWorld(settings: MatchSettings): World {
     turn: settings.mode === 'local' ? { phase: 'plan', active: 'lula', t: 0, n: 1 } : null,
     log: [],
     tick: 0,
+    timers: { eco: 0, supply: 0, victory: 0, objectives: 0 },
   };
 
   // distribuição territorial
@@ -291,7 +292,7 @@ export function createWorld(settings: MatchSettings): World {
   for (const s of w.states) {
     if (s.owner !== 'neutral') continue;
     const imp = map.states[s.i].info.imp;
-    const n = 2 + Math.floor(imp / 3);
+    const n = 2 + Math.floor((imp * imp) / 20);
     const cap = map.states[s.i].capital;
     for (let c = 0; c < n; c++) {
       const p = spotNear(w, map, cap.x, cap.y, 40);

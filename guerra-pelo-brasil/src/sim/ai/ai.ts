@@ -8,6 +8,7 @@ import type { AIGroup, AIState, BuildingType, Difficulty, Faction, Unit, UnitTyp
 
 interface Params {
   think: number;
+  groupRetreat: boolean;
   maxGroups: number;
   attackRatio: number;
   reserve: number;
@@ -20,10 +21,10 @@ interface Params {
 }
 
 const PARAMS: Record<Difficulty, Params> = {
-  facil: { think: 5, maxGroups: 1, attackRatio: 1.0, reserve: 0.4, queue: 1, abilityGap: 100, micro: false, maxFortHq: 1, airbaseAfter: 600, defendFactor: 0.8 },
-  normal: { think: 3, maxGroups: 2, attackRatio: 1.35, reserve: 0.25, queue: 2, abilityGap: 35, micro: false, maxFortHq: 2, airbaseAfter: 300, defendFactor: 1.2 },
-  dificil: { think: 2, maxGroups: 2, attackRatio: 1.5, reserve: 0.2, queue: 2, abilityGap: 15, micro: true, maxFortHq: 3, airbaseAfter: 200, defendFactor: 1.35 },
-  insano: { think: 1.2, maxGroups: 3, attackRatio: 1.4, reserve: 0.15, queue: 3, abilityGap: 6, micro: true, maxFortHq: 3, airbaseAfter: 120, defendFactor: 1.4 },
+  facil: { think: 5, groupRetreat: false, maxGroups: 1, attackRatio: 1.0, reserve: 0.4, queue: 1, abilityGap: 100, micro: false, maxFortHq: 1, airbaseAfter: 600, defendFactor: 0.8 },
+  normal: { think: 3, groupRetreat: true, maxGroups: 2, attackRatio: 1.35, reserve: 0.25, queue: 2, abilityGap: 35, micro: false, maxFortHq: 2, airbaseAfter: 300, defendFactor: 1.2 },
+  dificil: { think: 2, groupRetreat: true, maxGroups: 2, attackRatio: 1.25, reserve: 0.2, queue: 2, abilityGap: 15, micro: true, maxFortHq: 3, airbaseAfter: 200, defendFactor: 1.35 },
+  insano: { think: 1.2, groupRetreat: true, maxGroups: 2, attackRatio: 1.2, reserve: 0.15, queue: 3, abilityGap: 8, micro: true, maxFortHq: 3, airbaseAfter: 200, defendFactor: 1.4 },
 };
 
 const COMPOSITION: Record<Faction, Partial<Record<UnitType, number>>> = {
@@ -231,7 +232,10 @@ function scoreTarget(g: Game, f: Faction, ai: AIState, s: number, lostRecent: nu
   const fr = g.w.factions[f];
   if (fr.income.fuel < 2.5) value += info.fuel;
   if (fr.income.steel < 2.5) value += info.steel;
-  const defense = g.garrisonPower(s) + g.hostilePowerNear(c.x, c.y, 280, f);
+  // defesa local + metade das forças inimigas móveis da região (reforços prováveis)
+  const local = g.hostilePowerNear(c.x, c.y, 280, f);
+  const regional = st.owner === 'neutral' ? 0 : g.powerNear(c.x, c.y, 650, st.owner) - g.powerNear(c.x, c.y, 280, st.owner);
+  const defense = g.garrisonPower(s) + local + Math.max(0, regional) * 0.5;
   let cx = 0, cy = 0;
   for (const u of free) { cx += u.x; cy += u.y; }
   const n = Math.max(1, free.length);
@@ -289,7 +293,7 @@ function manageAttackGroup(
   }
 
   // fase de ataque
-  if (p.micro && pw < defense * 0.45 && g.w.time - gr.t0 > 8) {
+  if (p.groupRetreat && pw < defense * 0.45 && g.w.time - gr.t0 > 8) {
     gr.phase = 'retreat';
     gr.t0 = g.w.time;
     g.commandMove(f, gr.units, gr.sx, gr.sy, false);
@@ -461,6 +465,8 @@ function produce(g: Game, f: Faction, ai: AIState, p: Params, owned: number[], m
         if (ai.strategy === 'defensiva' && (t === 'infantry' || t === 'artillery')) deficit += 0.05;
         if (ai.strategy === 'ofensiva' && t === 'tank') deficit += 0.04;
         deficit -= 0.08 * stress(t);
+        // perto do limite de tropas, cada vaga vale ouro: prefere unidades com mais poder por vaga
+        if (fr.pop >= fr.popCap * 0.8) deficit += 0.2 * (UNIT_DEFS[t].power / UNIT_DEFS[t].pop - 1.1);
         if (deficit > bestDef) { bestDef = deficit; best = t; }
       }
       if (!best) break;

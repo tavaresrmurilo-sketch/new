@@ -22,7 +22,7 @@ export const INCOME_SCALE: Res = { money: 0.55, fuel: 0.3, steel: 0.35, supplies
 export const EXEC_TURN_SECONDS = 15;
 export const TRADE_RATE = 0.5;
 const RES_KEYS: ResKey[] = ['money', 'fuel', 'steel', 'supplies'];
-const AI_INCOME: Record<string, number> = { facil: 0.75, normal: 1.0, dificil: 1.2, insano: 1.5 };
+const AI_INCOME: Record<string, number> = { facil: 0.75, normal: 1.0, dificil: 1.3, insano: 1.6 };
 
 export interface TargetInfo {
   x: number;
@@ -46,10 +46,6 @@ export class Game {
   alpha = 0;
   private acc = 0;
   private byId = new Map<number, Unit>();
-  private nextEco = 0;
-  private nextSupply = 0;
-  private nextVictory = 0;
-  private nextObjectives = 0;
 
   constructor(world: World) {
     this.map = getMap();
@@ -57,7 +53,7 @@ export class Game {
     this.hash = new SpatialHash(this.map.width, this.map.height, 64);
     this.w = world;
     for (const u of world.units) this.byId.set(u.id, u);
-    this.recomputeEconomy();
+    if (world.time === 0) this.recomputeEconomy();
   }
 
   static create(settings: MatchSettings): Game {
@@ -198,13 +194,14 @@ export class Game {
     w.tick++;
     for (const u of w.units) { u.px = u.x; u.py = u.y; }
 
-    if (w.time >= this.nextEco) { this.nextEco = w.time + 0.5; this.recomputeEconomy(); }
+    const tm = w.timers;
+    if (w.time >= tm.eco) { tm.eco = w.time + 0.5; this.recomputeEconomy(); }
     this.applyIncome(dt);
     this.updateBuffs(dt);
     this.updateProduction(dt);
 
     this.hash.rebuild(w.units);
-    if (w.time >= this.nextSupply) { this.nextSupply = w.time + 0.5; this.updateSupplyAndHealing(0.5); }
+    if (w.time >= tm.supply) { tm.supply = w.time + 0.5; this.updateSupplyAndHealing(0.5); }
     for (const u of w.units) if (u.hp > 0) this.updateUnit(u, dt);
     this.separate(dt);
     this.updateShells(dt);
@@ -216,8 +213,8 @@ export class Game {
       const ai = w.ai[f];
       if (ai && w.factions[f].control === 'ai' && w.time >= ai.nextThink) thinkAI(this, f);
     }
-    if (w.time >= this.nextObjectives) { this.nextObjectives = w.time + 2; this.checkObjectives(); }
-    if (w.time >= this.nextVictory) { this.nextVictory = w.time + 1; this.checkVictory(); }
+    if (w.time >= tm.objectives) { tm.objectives = w.time + 2; this.checkObjectives(); }
+    if (w.time >= tm.victory) { tm.victory = w.time + 1; this.checkVictory(); }
 
     if (w.turn && w.turn.phase === 'exec') {
       w.turn.t -= dt;
@@ -264,6 +261,7 @@ export class Game {
       if (fr.crisisT > 0) mul *= 0.7;
       for (const k of RES_KEYS) income[k] *= mul * INCOME_SCALE[k];
       if (owned.has(map.byUf.DF)) income.money *= 1.15;
+      if (f === 'lula') income.money *= 1.2; // passiva: estatais a todo vapor
       fr.income = income;
       fr.industry = Math.round(industry);
       fr.prodMul = Math.max(0.6, Math.min(2.0, 0.6 + industry / 35));
@@ -342,6 +340,14 @@ export class Game {
         }
       }
     }
+  }
+
+  /** Insere uma unidade numa posição arbitrária (sandbox e testes). */
+  addUnitAt(type: UnitType, f: Owner, x: number, y: number, home = -1): Unit {
+    const u = makeUnit(this.w, type, f, x, y, home);
+    this.w.units.push(u);
+    this.byId.set(u.id, u);
+    return u;
   }
 
   spawnUnit(type: UnitType, f: Owner, s: number): Unit {

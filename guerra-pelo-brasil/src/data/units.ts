@@ -120,9 +120,6 @@ export const RECRUITABLE: UnitType[] = ['infantry', 'tank', 'artillery', 'heli',
 
 /** Guarnição (base militar na capital de cada estado). */
 export const GARRISON = {
-  baseHp: 350,
-  perImp: 25,
-  perFort: 300,
   damage: 11,
   perFortDmg: 5,
   range: 82,

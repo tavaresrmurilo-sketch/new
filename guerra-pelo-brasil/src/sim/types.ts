@@ -228,8 +228,9 @@ export interface World {
   ai: Record<Faction, AIState | null>;
   turn: TurnState | null;
   log: LogEntry[];
-  /** frentes ativas (cache para renderização) */
   tick: number;
+  /** próximos instantes das rotinas periódicas (salvos para manter o determinismo) */
+  timers: { eco: number; supply: number; victory: number; objectives: number };
 }
 
 /** Eventos transitórios produzidos pela simulação (efeitos visuais, sons, alertas). */

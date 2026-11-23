@@ -107,7 +107,7 @@ export const FACTIONS: Record<Faction, FactionDef> = {
     commander: 'Josef Stalin',
     commanderTitle: 'Comandante militar supremo (caricatura)',
     doctrine: 'Grandes contingentes de infantaria, defesa territorial, indústria e contra-ataques.',
-    passives: ['Infantaria 20% mais barata', 'Guarnições +20% de vida', '+4 de capacidade industrial'],
+    passives: ['Infantaria 20% mais barata', 'Guarnições +20% de vida', '+4 de capacidade industrial', '+20% de dinheiro (estatais a todo vapor)'],
     abilities: ['industria', 'massa', 'ferrea'],
     leaderBio: 'Caricatura satírica do presidente. No roteiro absurdo deste jogo, comanda o lado vermelho de um Brasil rachado.',
     commanderBio: 'Caricatura de Josef Stalin, ditador soviético responsável pelo Grande Expurgo, pelos gulags e por fomes que mataram milhões. Aparece aqui apenas como alvo de sátira: um personagem ridículo, nunca um modelo.',
