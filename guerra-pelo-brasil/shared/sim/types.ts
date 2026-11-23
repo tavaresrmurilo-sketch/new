@@ -280,6 +280,8 @@ export interface World {
   gevents: ActiveEvent[];
   /** empate por tempo */
   draw?: boolean;
+  /** estatísticas por função militar ("lula:infantaria" -> contadores) */
+  roleStats?: Record<string, { killed: number; lost: number; captured: number }>;
 }
 
 export interface Reveal {

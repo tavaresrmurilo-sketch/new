@@ -694,6 +694,8 @@ export class Game {
         }
         if (bf) bf.stats.killed++;
         if (vf) vf.stats.lost++;
+        if (src && src.f !== 'neutral') this.roleStat(src.f, src.ctrl).killed++;
+        if (v.f !== 'neutral') this.roleStat(v.f, v.ctrl).lost++;
         if (w.settings.morale !== false) {
           this.hash.query(v.x, v.y, 120, (o) => { if (o.f === v.f && o !== v && o.hp > 0) o.morale = Math.max(0, o.morale - MORALE.allyDeath); });
         }
@@ -1088,9 +1090,22 @@ export class Game {
     }
   }
 
+  roleStat(f: Faction, r: Role): { killed: number; lost: number; captured: number } {
+    const w = this.w;
+    if (!w.roleStats) w.roleStats = {};
+    const k = `${f}:${r}`;
+    return (w.roleStats[k] ??= { killed: 0, lost: 0, captured: 0 });
+  }
+
   transferState(s: StateRT, f: Faction): void {
     const w = this.w;
     const from = s.owner;
+    // crédito da captura para as funções das tropas presentes
+    const cc = this.capital(s.i);
+    const credited = new Set<Role>();
+    for (const u of w.units) if (u.f === f && u.hp > 0 && Math.hypot(u.x - cc.x, u.y - cc.y) <= CAPTURE_R + 10) credited.add(u.ctrl);
+    for (const r of credited) this.roleStat(f, r).captured++;
+    for (const u of w.units) if (u.f === f && u.hp > 0 && Math.hypot(u.x - cc.x, u.y - cc.y) <= CAPTURE_R + 10) this.gainXp(u, 1);
     s.owner = f;
     s.b.fort = Math.max(0, s.b.fort - 1);
     s.gMax = garrisonMax(s, this.map);

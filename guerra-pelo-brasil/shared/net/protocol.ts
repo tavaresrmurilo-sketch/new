@@ -1,5 +1,5 @@
 // Protocolo do multiplayer online (cliente <-> servidor autoritativo).
-import type { Difficulty, Distribution, Faction, Role, VictoryRule } from '../sim/types';
+import type { Difficulty, Distribution, Faction, MatchSettings, Role, VictoryRule } from '../sim/types';
 import { ROLES } from '../sim/rules';
 
 export const PROTOCOL_VERSION = 2;
@@ -304,7 +304,8 @@ export type ServerMsg =
   | { t: 'chat'; msg: ChatMsg }
   | { t: 'chatlog'; list: ChatMsg[] }
   | { t: 'markers'; list: Marker[] }
-  | { t: 'start'; team: Faction | null; roles: Role[]; spectator: boolean; seq: number }
+  | { t: 'start'; team: Faction | null; roles: Role[]; spectator: boolean; seq: number; settings: MatchSettings | null }
+  | { t: 'score'; list: PlayerStats[]; time: number }
   | { t: 'snap'; s: unknown }
   | { t: 'ack'; id: number; ok: boolean; err?: string }
   | { t: 'end'; result: MatchResult }
