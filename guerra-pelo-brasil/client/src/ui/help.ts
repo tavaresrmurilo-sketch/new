@@ -4,6 +4,9 @@ import { BUILDING_DEFS, BUILDING_ORDER } from '@shared/data/buildings';
 import { ABILITIES, FACTIONS } from '@shared/data/factions';
 import { OBJECTIVES } from '@shared/sim/objectives';
 import { esc } from './dom';
+import { TERRAIN, FORMATIONS, FORMATION_LIST, RANKS, RANK_BONUS, MORALE, GAME_EVENTS, REGION_BONUSES, RESERVES, RECON } from '@shared/sim/rules';
+import { ROLE_INFO } from '@shared/net/protocol';
+import type { Role, TerrainType } from '@shared/sim/types';
 
 const cost = (c: { money: number; fuel: number; steel: number; supplies: number }) =>
   [c.money && `$${c.money}`, c.fuel && `⛽${c.fuel}`, c.steel && `🔩${c.steel}`, c.supplies && `📦${c.supplies}`].filter(Boolean).join(' ');
@@ -69,12 +72,51 @@ export function howToPlayHTML(): string {
   <h3>Objetivos de campanha</h3>
   <ul>${objs}</ul>
 
+  <h3>Terreno real</h3>
+  <table><tr><th>Terreno</th><th>Efeito</th></tr>${([0, 1, 2, 3, 4, 5] as TerrainType[]).map((t) => `<tr><td><b>${esc(TERRAIN[t].name)}</b></td><td>${esc(TERRAIN[t].desc)}</td></tr>`).join('')}</table>
+  <p class="note">Mata (Bacia Amazônica), serras, Pantanal e rios vêm de dados geográficos reais (Natural Earth). Aviões e helicópteros ignoram o terreno.</p>
+
+  <h3>Formações</h3>
+  <ul>${FORMATION_LIST.map((f) => `<li><b>${esc(FORMATIONS[f].name)}</b> — ${esc(FORMATIONS[f].desc)}</li>`).join('')}</ul>
+  <p class="note">Escolha a formação no painel das unidades selecionadas; ela vale para as próximas ordens de movimento.</p>
+
+  <h3>Veterania e moral</h3>
+  <p>Unidades ganham experiência causando dano, destruindo inimigos e ocupando capitais: ${RANKS.map((r) => `${esc(r.name)} (${r.xp} XP)`).join(' → ')}.
+  Cada patente dá +${Math.round(RANK_BONUS * 100)}% de dano e de vida máxima (máximo +${Math.round(RANK_BONUS * 300)}%). Divisas douradas aparecem sob as veteranas.</p>
+  <p>A <b>moral</b> (0–100) cai ao sofrer dano, ao ver aliados morrerem e sem suprimentos; sobe fora de combate e em território próprio.
+  Abaixo de ${MORALE.shaken} a tropa causa −15% de dano; abaixo de ${MORALE.broken}, −30% e <b>recua</b> para a capital própria mais próxima até se recompor (exceto em "manter posição" e "defesa de posição").</p>
+
+  <h3>Névoa de guerra e reconhecimento</h3>
+  <p>Com a névoa ligada você só vê o que suas tropas e capitais enxergam. <b>Batedores</b> enxergam muito longe e lançam sensores que revelam um raio de ${RECON.radius} px por ${RECON.duration} s (recarga ${RECON.cooldown} s).
+  A IA também respeita a névoa: ela só conhece o que vê e o que lembra de ter visto.</p>
+
+  <h3>Contra-ataques, eventos e regiões</h3>
+  <p><b>Convocar reservas</b>: num estado seu sob ameaça, ${RESERVES.count} reservistas surgem na capital imediatamente ($${RESERVES.cost.money} e ${RESERVES.cost.supplies} de suprimentos; recarga de ${RESERVES.cooldown} s por estado).</p>
+  <p><b>Eventos fictícios</b> (opcionais) mudam temporariamente economia, clima ou logística, valendo para quem estiver na região afetada:</p>
+  <ul>${GAME_EVENTS.map((e) => `<li><b>${esc(e.name)}</b> — ${esc(e.desc)} (${e.duration} s)</li>`).join('')}</ul>
+  <p><b>Objetivos regionais</b> — domine todos os estados de uma região:</p>
+  <ul>${REGION_BONUSES.map((r) => `<li><b>${esc(r.region)} — ${esc(r.name)}</b>: ${esc(r.desc)}</li>`).join('')}</ul>
+
+  <h3>Multiplayer online (até 5v5)</h3>
+  <p>No menu <b>Multiplayer online</b>: crie uma sala (com código curto como BR-7KQ42, senha opcional, pública ou privada), envie o convite
+  (código ou link) e configure tamanho, bots, recursos, mapa, névoa, duração, preparação, vitória e limites. Todos os jogadores veem o lobby
+  em tempo real, escolhem equipe e função e marcam "pronto"; o anfitrião inicia. O servidor é a autoridade: ele valida cada ordem e calcula
+  todo o combate, a economia e as conquistas.</p>
+  <table><tr><th>Função</th><th>O que faz</th></tr>${(['comandante', 'infantaria', 'blindados', 'aereo', 'logistica'] as Role[]).map((r) => `<tr><td><b>${esc(ROLE_INFO[r].name)}</b></td><td>${esc(ROLE_INFO[r].desc)}</td></tr>`).join('')}</table>
+  <ul>
+    <li>Recursos são da equipe; o servidor impede gastos duplicados. Com menos de 5 jogadores, as funções são agrupadas automaticamente.</li>
+    <li>Cada um comanda só as unidades da sua função. Unidades podem ser <b>transferidas</b> para outra função; funções podem ser trocadas com aprovação de um colega.</li>
+    <li><b>Chat de equipe</b> (Enter) e <b>marcadores</b> animados no mapa (atacar, defender, reforços, perigo…) aparecem na hora para os aliados. O Comandante define o <b>objetivo da equipe</b>.</li>
+    <li><span class="kbd">Tab</span> abre o placar. Bots aparecem como <b>BOT</b>. Se alguém cair, tem um tempo para voltar; depois a IA assume a função até a pessoa reconectar.</li>
+  </ul>
+
   <h3>Modos de jogo</h3>
   <ul>
     <li><b>Campanha</b>: escolha sua facção e conquiste o Brasil contra a IA. Salvamento automático a cada minuto; use <b>Continuar campanha</b>.</li>
     <li><b>Batalha rápida</b>: dificuldade, distribuição territorial, recursos e ritmo configuráveis.</li>
     <li><b>Dois jogadores locais</b>: por turnos no mesmo dispositivo. Cada turno: o Exército Lula planeja (jogo pausado), passa o dispositivo, o Exército Bolsonaro planeja, e então as ordens dos dois são executadas <b>simultaneamente</b> por 15 s. Ninguém vê as ordens do outro.</li>
     <li><b>Sandbox</b>: recursos ilimitados e produção acelerada para testar unidades e batalhas; IA opcional e troca de lado.</li>
+    <li><b>Multiplayer online</b>: de 1v1 a 5v5 com jogadores reais em computadores diferentes, com bots opcionais nas vagas.</li>
   </ul>
   <h3>Aviso</h3><p class="note">${esc(SATIRE_NOTE)}</p>`;
 }

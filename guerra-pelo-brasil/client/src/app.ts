@@ -54,6 +54,7 @@ export class App {
     this.ui = document.getElementById('ui')!;
     this.online = new Online(this);
     audio.setVolumes(this.settings.music, this.settings.sfx);
+    document.body.classList.toggle('hc', !!this.settings.highContrast);
     const unlock = () => { audio.unlock(); };
     window.addEventListener('pointerdown', unlock, { capture: true });
     window.addEventListener('keydown', unlock, { capture: true });
@@ -100,6 +101,7 @@ export class App {
   applySettings(): void {
     saveSettings(this.settings);
     audio.setVolumes(this.settings.music, this.settings.sfx);
+    document.body.classList.toggle('hc', !!this.settings.highContrast);
   }
 
   private clearMenu(): void {
@@ -347,6 +349,9 @@ export class App {
       <label>Rolagem pela borda da tela</label><input type="checkbox" data-k="edgeScroll" ${s.edgeScroll ? 'checked' : ''}>
       <label>Barras de vida sempre visíveis</label><input type="checkbox" data-k="showAllHp" ${s.showAllHp ? 'checked' : ''}>
       <label>Partículas e efeitos</label><input type="checkbox" data-k="particles" ${s.particles ? 'checked' : ''}>
+      <label>Qualidade gráfica</label>${this.seg('quality', [['auto', 'Automática'], ['baixo', 'Baixa'], ['medio', 'Média'], ['alto', 'Alta']], s.quality)}
+      <label>Alto contraste</label><input type="checkbox" data-k="highContrast" ${s.highContrast ? 'checked' : ''}>
+      <label>Servidor online</label><input class="inp" data-srv value="${esc(s.serverUrl)}" placeholder="automático (${esc(this.online.url)})">
       <label>Salvamento automático</label><input type="checkbox" data-k="autosave" ${s.autosave ? 'checked' : ''}>
     </div>
     <h3>Dados</h3><p class="note">O progresso fica salvo neste navegador (localStorage).</p>
@@ -360,7 +365,16 @@ export class App {
       else (s[k] as boolean) = t.checked;
       this.applySettings();
     });
-    this.bindSegs(back, (n, v) => { if (n === 'defaultSpeed') { s.defaultSpeed = +v; this.applySettings(); } });
+    this.bindSegs(back, (n, v) => {
+      if (n === 'defaultSpeed') { s.defaultSpeed = +v; this.applySettings(); }
+      if (n === 'quality') { s.quality = v as Settings['quality']; this.applySettings(); this.toast('Qualidade aplicada. O limite de quadros vale a partir da próxima abertura do jogo.'); }
+    });
+    back.querySelector<HTMLInputElement>('[data-srv]')?.addEventListener('change', (e) => {
+      s.serverUrl = (e.target as HTMLInputElement).value.trim();
+      this.applySettings();
+      this.online.net.disconnect();
+      this.online.probe();
+    });
     back.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('[data-wipe]') && confirm('Apagar todas as partidas salvas?')) {
         (['campanha', 'rapida', 'local', 'sandbox'] as GameMode[]).forEach(deleteSave);

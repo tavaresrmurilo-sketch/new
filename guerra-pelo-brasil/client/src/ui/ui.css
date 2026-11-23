@@ -360,3 +360,8 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .lact { display: inline-flex; gap: 3px; }
 .is-online .hud-right { width: 300px; max-height: calc(100vh - 200px); }
 @media (max-height: 950px) { .is-online .hud-right .logpanel { display: none; } .chatpanel .lchat { height: 96px; } }
+
+/* ---------- alto contraste (acessibilidade) ---------- */
+.hc { --text: #ffffff; --muted: #d6d6c6; --line: #8a9a80; --line-2: #c2d0b4; --panel: rgba(0,0,0,.95); --panel-2: rgba(0,0,0,.97); }
+.hc .btn { border-width: 2px; }
+.hc .note { color: #e6e6d6; }

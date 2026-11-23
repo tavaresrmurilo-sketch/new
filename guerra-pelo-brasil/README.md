@@ -1,20 +1,23 @@
-# GUERRA PELO BRASIL — CONQUISTA TOTAL
+# GUERRA PELO BRASIL 2.0 — CONQUISTA TOTAL
 
-Jogo de estratégia militar em tempo real (RTS 2D) para navegador. Num universo fictício e
-**satírico**, o Exército Lula (vermelho) e o Exército Bolsonaro (azul) disputam os
-**26 estados e o Distrito Federal** num mapa com as fronteiras estaduais reais do Brasil.
+Jogo de estratégia militar em tempo real (RTS 2D) para navegador. Num universo fictício e **satírico**, o
+Exército Lula (vermelho) e o Exército Bolsonaro (azul) disputam os **26 estados e o Distrito Federal** num
+mapa com as fronteiras estaduais reais do Brasil. A versão 2.0 traz **multiplayer online de 1v1 a 5v5**
+com servidor autoritativo, funções militares por equipe, terreno real, névoa de guerra e IA mais avançada.
 
-> **Aviso.** Obra de ficção satírica que ridiculariza a polarização política, em que cada lado
-> acusa o outro de “nazista” ou “comunista”. Hitler e Stalin aparecem como caricaturas ridículas.
-> Na vida real, foram ditadores responsáveis por crimes contra a humanidade. O jogo não glorifica
-> o nazismo, o stalinismo nem qualquer político, e não usa símbolos reais desses regimes: as
-> bandeiras e os emblemas das facções são fictícios.
+> **Aviso.** Obra de ficção satírica que ridiculariza a polarização política, em que cada lado acusa o outro
+> de "nazista" ou "comunista". Hitler e Stalin aparecem como caricaturas ridículas. Na vida real, foram
+> ditadores responsáveis por crimes contra a humanidade. O jogo não glorifica o nazismo, o stalinismo nem
+> qualquer político, e não usa símbolos reais desses regimes.
 
-## Como jogar no Windows 11 (sem instalar nada)
+## Jogar
 
-Abra `jogar/GuerraPeloBrasil.html` com duplo clique. O arquivo é único (cerca de 1,7 MB, com
-código, arte e áudio embutidos) e funciona no Edge ou no Chrome, sem servidor e sem internet. O
-progresso fica salvo no próprio navegador (localStorage).
+- **Offline, sem instalar nada:** abra `jogar/GuerraPeloBrasil.html` (Edge ou Chrome, Windows 11). Campanha,
+  batalha rápida, multiplayer local e sandbox funcionam sem internet. Os saves da versão 1.0 são migrados
+  automaticamente.
+- **Online:** rode ou publique o servidor (abaixo) e abra o endereço dele no navegador. Em **Multiplayer
+  online**, crie uma sala e envie o código (ex.: `BR-7KQ42`) ou o link `https://seu-servidor/?sala=BR-7KQ42`.
+  O arquivo local também pode jogar online: em **Configurações → Servidor online**, informe o endereço.
 
 ## Desenvolvimento
 
@@ -22,86 +25,96 @@ Requisitos: Node.js 20 ou mais recente.
 
 ```bash
 npm install
-npm run dev        # servidor de desenvolvimento (http://localhost:5173)
-npm test           # 36 testes automatizados, incluindo partidas completas simuladas
-npm run build      # typecheck + build de produção em dist/index.html (arquivo único)
-npm run release    # build + copia para jogar/GuerraPeloBrasil.html
-npm run map        # regenera src/data/brazil-map.json a partir da malha estadual
+npm run dev            # cliente com recarga automática (http://localhost:5173)
+npm run dev:server     # servidor multiplayer em modo desenvolvimento (http://localhost:8787)
+npm run build:all      # typecheck + cliente (dist/index.html) + servidor (dist-server/server.mjs)
+npm start              # servidor de produção: serve o jogo e o WebSocket na mesma porta
+npm test               # 55 testes: regras, IA, equilíbrio, save, multiplayer com 10 clientes reais
+npm run test:e2e       # 10 navegadores reais jogando a mesma partida (requer: npx playwright install chromium)
+npm run release        # gera jogar/GuerraPeloBrasil.html (arquivo único offline)
+npm run map            # regenera o mapa e o terreno a partir de data/raw/
 ```
 
-## O que existe no jogo
+Com `npm run dev` + `npm run dev:server`, o cliente conecta em `http://localhost:8787` (ou no valor de
+`VITE_SERVER_URL`).
 
-- **Mapa real.** Polígonos dos 27 estados (malha do IBGE) projetados e simplificados com a
-  topologia preservada: as fronteiras compartilhadas são idênticas e a adjacência é exata (51 fronteiras).
-  As capitais ficam nas coordenadas reais, e os países vizinhos aparecem para dar contexto. Tem
-  zoom pela roda do mouse e por pinça, câmera livre, minimapa e frentes de combate animadas.
-- **Unidades com comportamento real.** Infantaria, tanques, artilharia (projéteis em arco com dano
-  em área), helicópteros, caças-bombardeiros (surtidas com munição e combustível limitados, com
-  retorno à base aérea para rearmar) e apoio logístico (repara, cura, reabastece). Cada unidade
-  tem vida, velocidade, dano, alcance, recarga, custo, tempo de produção e efetivo. As unidades
-  terrestres usam A* por terra.
-- **Conquista por combate.** Cada capital tem uma guarnição que atira e se regenera. Para tomar um
-  estado, é preciso destruir a guarnição, eliminar os defensores e manter infantaria ou tanques na
-  capital até completar a ocupação.
-- **Economia e logística.** Dinheiro, combustível, aço, suprimentos e capacidade industrial.
-  Estados desconectados da sede rendem metade. Tropas fora da linha de suprimento perdem dano e
-  sofrem desgaste, e há manutenção contínua de combustível e suprimentos. Há limite de tropas e um
-  mercado de troca de recursos. Também há quartéis, fábricas, bases aéreas, depósitos e três
-  níveis de fortificação.
-- **Comandantes.** Hitler (Ofensiva Relâmpago, Ataque Coordenado e Mobilização Blindada) e Stalin
-  (Esforço Industrial, Mobilização em Massa e Resistência Férrea), com custo, duração e recarga,
-  além de passivas por facção.
-- **IA estratégica** com quatro dificuldades. Ela avalia ameaças a cada estado, defende a sede e
-  forma grupos de ataque dimensionados pela defesa do alvo (incluindo reforços prováveis). Também
-  reagrupa, recua, contra-ataca estados perdidos, adapta a produção aos recursos e ao limite de
-  tropas, constrói, usa o mercado e ativa as habilidades dos comandantes. Ela usa exatamente os
-  mesmos comandos que o jogador.
-- **Modos:** Campanha (objetivos com recompensa e salvamento automático), Batalha rápida
-  (dificuldade, distribuição territorial, recursos e ritmo), Dois jogadores locais (turnos
-  simultâneos: planejamento alternado e execução de 15 s) e Sandbox (recursos ilimitados, IA
-  opcional e troca de lado).
-- **Vitória:** dominar os 27 territórios ou eliminar o inimigo. Uma facção **se rende** quando
-  controla 2 estados ou menos enquanto o adversário controla 15 ou mais. Também é possível se
-  render pelo menu.
-- **Apresentação:** menu cinematográfico animado, retratos caricaturais em SVG, trilha militar
-  original e efeitos sonoros sintetizados em tempo real (WebAudio), partículas, rastros de tiro,
-  explosões e destroços.
+## Publicação
 
-## Controles
+### Servidor (Railway, recomendado)
+1. Crie um serviço a partir do repositório, com **Root Directory** `guerra-pelo-brasil`. O `railway.json`
+   usa o `Dockerfile`, que gera o cliente e o servidor numa única imagem.
+2. Adicione um **volume** montado em `/data` (partidas em andamento, histórico e replays sobrevivem a
+   reinícios).
+3. Variáveis de ambiente (veja `.env.example`): `ALLOWED_ORIGINS` (origens autorizadas; inclua o domínio da
+   Vercel e `null` para o arquivo local) e `LOG_LEVEL`. O Railway define a `PORT`.
+4. Health check: `GET /health` responde `{"status":"ok", ...}`. Outros endpoints: `GET /api/rooms` e
+   `GET /api/history`.
 
-| Ação | Mouse/teclado | Toque |
-|---|---|---|
-| Selecionar | clique; arrastar = área; `Shift` adiciona; duplo clique = mesmo tipo | tocar; botão **Área** |
-| Ordem (mover/atacar/tomar capital) | botão direito | tocar no mapa com tropas selecionadas |
-| Ataque-movimento / parar / manter | `Q` / `X` / `H` | botões de ação |
-| Câmera | arrastar com o botão direito ou do meio, `WASD`/setas, roda = zoom | arrastar e pinça |
-| Grupos | `Ctrl`+`1-9` cria, `1-9` seleciona | — |
-| Habilidades do comandante | `Z` `C` `V` | painel Comando |
-| Pausa / velocidade | `Espaço`, `+`/`-` | barra superior |
+O próprio servidor já serve o jogo, então só o Railway basta.
 
-## Arquitetura
+### Front-end separado (Vercel, opcional)
+Crie um projeto com **Root Directory** `guerra-pelo-brasil` (o `vercel.json` desta pasta define o build) e a
+variável `VITE_SERVER_URL=https://seu-servidor.up.railway.app`. Autorize o domínio da Vercel em
+`ALLOWED_ORIGINS` no servidor.
 
-```
-src/
-  sim/          simulação determinística e independente do Phaser (roda no navegador e nos testes)
-    game.ts       laço, movimento, combate, captura, economia, suprimento, habilidades, vitória
-    ai/ai.ts      IA estratégica
-    map.ts nav.ts geometria real, raster de estados, A* por terra
-    setup.ts      cenários iniciais; objectives.ts; types.ts (estado 100% serializável)
-  scenes/       Phaser 3: MenuScene (fundo animado) e GameScene (mapa, unidades, efeitos, entrada)
-  render/       texturas procedurais
-  ui/           HUD e menus em DOM, arte SVG, ajuda
-  audio/        música e efeitos via WebAudio
-  persist/      localStorage (configurações e saves)
-scripts/build-map.mjs   converte data/raw/brazil-states.geojson em src/data/brazil-map.json
-tests/                  mapa, combate, captura, economia, IA, save e partidas completas
+### Docker em qualquer host
+```bash
+docker build -t gpb . && docker run -p 8787:8787 -v gpb-data:/data -e ALLOWED_ORIGINS="*" gpb
 ```
 
-O desempenho foi medido no Chromium: a simulação custa cerca de 0,2 ms por passo, e a lógica
-somada à interface fica abaixo de 1 ms por quadro com cerca de 100 unidades em campo. O heap fica
-em torno de 30 MB.
+Nenhum segredo é necessário: as sessões usam tokens aleatórios gerados pelo servidor e as senhas de sala são
+guardadas apenas como hash com sal.
+
+## Multiplayer: como funciona
+
+- **Servidor autoritativo** (`server/`): cada sala roda a simulação em ticks fixos de 50 ms. Os clientes só
+  enviam intenções (mover, atacar, construir, recrutar, habilidade, objetivo, marcador). O servidor valida a
+  forma do comando, a função militar do jogador, a posse das unidades e os recursos, e calcula tudo.
+- **Sincronização:** snapshots compactos por equipe a 10 Hz, com deltas, compressão per-message-deflate e
+  filtro de **névoa** (cada equipe recebe só o que enxerga). O cliente interpola entre snapshots.
+- **Confiabilidade:** comandos com id único e confirmação; duplicados são ignorados; reenvio após queda;
+  reconexão automática com recuo exponencial; sessão por token (recarregar a página devolve a mesma equipe e
+  função). Se um jogador não voltar dentro do prazo configurado, a IA da equipe assume a função dele.
+- **Funções (5 por equipe):** Comandante Supremo, General de Infantaria, General de Blindados, Comandante
+  Aéreo e Ministro de Logística e Indústria. Com menos jogadores, as funções são agrupadas automaticamente.
+  Os recursos são compartilhados pela equipe.
+- **Segurança:** limite de 16 KB por mensagem, limitação de taxa (mensagens, ordens, chat, marcadores, salas),
+  limite de conexões por IP, apelidos e chat sanitizados, verificação de origem, salas isoladas, logs
+  estruturados, persistência atômica e recuperação após reinício.
+- **Replays:** cada partida encerrada grava as configurações e todos os comandos com o tick em
+  `DATA_DIR/replays/`. A simulação é determinística, então isso basta para reproduzir a partida. O player de
+  replay ainda não existe.
+
+### Limites documentados
+- 10 jogadores por sala (5v5) e até 10 espectadores; até 100 salas por servidor (`MAX_ROOMS`).
+- Limite de tropas por equipe: 60, 100 ou 150 (configurável na sala).
+- Medido neste projeto: uma partida 5v5 custa cerca de 1 a 3 ms por tick no servidor; o snapshot completo
+  inicial tem cerca de 4 KB e as atualizações, de 1 a 3 KB.
+
+## Novidades de jogabilidade 2.0
+Terreno real (mata amazônica, serras, Pantanal e rios da Natural Earth, além das cidades), formações (linha,
+coluna, dispersa, escolta, cerco e defesa), veterania com limite, moral com recuo, batedores com sensores,
+névoa de guerra (também na batalha rápida), eventos fictícios, objetivos regionais, convocação de reservas e
+IA que respeita a névoa (memória do que viu, cautela com o desconhecido), assume funções vagas e segue o
+objetivo do comandante. O equilíbrio entre facções é verificado por simulação em `tests/balance.test.ts`.
+
+## Estrutura
+```
+shared/   regras e simulação determinística (roda no navegador e no Node), protocolo, snapshots, comandos
+client/   Phaser 3 + interface DOM (menus, lobby, HUD, áudio procedural)
+server/   servidor Node (HTTP + WebSocket, salas, persistência)
+tests/    Vitest (regras, IA, equilíbrio, save, multiplayer real) e e2e/ (10 navegadores)
+backup/   cópia do GuerraPeloBrasil.html da versão 1.0 (também na tag git gpb-v1.0)
+```
+
+## Limitações conhecidas
+- Comunicação por voz não foi implementada. A arquitetura de salas e equipes está pronta para integrá-la
+  (por exemplo, WebRTC com o servidor atual fazendo a sinalização).
+- Histórico e salas são persistidos em arquivos (`DATA_DIR`). PostgreSQL/Neon não foi integrado.
+- O replay é registrado, mas ainda não há reprodutor.
+- O teste com 10 navegadores usa o renderizador Canvas (`?renderer=canvas`), porque esta máquina de testes
+  não tem GPU. Os jogadores usam WebGL normalmente.
 
 ## Fontes de dados
-
 - Malha estadual: IBGE, via `click_that_hood/brazil-states.geojson`.
-- Países vizinhos: Natural Earth (`world-atlas`, domínio público).
+- Países vizinhos, rios e regiões geográficas: Natural Earth (domínio público).
