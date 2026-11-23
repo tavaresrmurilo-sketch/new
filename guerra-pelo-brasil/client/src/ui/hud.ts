@@ -1,13 +1,13 @@
 // HUD da partida (DOM sobre o canvas do Phaser).
-import { FACTIONS, ABILITIES, NEUTRAL_COLOR, enemyOf, DIFFICULTY_LABEL } from '../data/factions';
-import { UNIT_DEFS, RECRUITABLE } from '../data/units';
-import { BUILDING_DEFS, BUILDING_ORDER } from '../data/buildings';
-import { OBJECTIVES } from '../sim/objectives';
-import { INCOME_SCALE, TRADE_RATE, type Game } from '../sim/game';
-import { newAIState } from '../sim/setup';
+import { FACTIONS, ABILITIES, NEUTRAL_COLOR, enemyOf, DIFFICULTY_LABEL } from '@shared/data/factions';
+import { UNIT_DEFS, RECRUITABLE } from '@shared/data/units';
+import { BUILDING_DEFS, BUILDING_ORDER } from '@shared/data/buildings';
+import { OBJECTIVES } from '@shared/sim/objectives';
+import { INCOME_SCALE, TRADE_RATE, type Game } from '@shared/sim/game';
+import { newAIState } from '@shared/sim/setup';
 import type { GameScene, SceneHooks } from '../scenes/GameScene';
 import type { App } from '../app';
-import type { BuildingType, Faction, Res, ResKey, SimEvent, Unit, UnitType } from '../sim/types';
+import type { BuildingType, Faction, Res, ResKey, SimEvent, Unit, UnitType } from '@shared/sim/types';
 import { audio } from '../audio/audio';
 import { deleteSave, recordResult } from '../persist/storage';
 import { portraitURI, flagURI, ICON } from './art';

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { emptyGame, run } from './util';
-import { Game } from '../src/sim/game';
-import { defaultSettings } from '../src/sim/setup';
-import { UNIT_DEFS } from '../src/data/units';
+import { Game } from '../shared/sim/game';
+import { defaultSettings } from '../shared/sim/setup';
+import { UNIT_DEFS } from '../shared/data/units';
 
 describe('economia, produção e construções', () => {
   it('estados geram recursos continuamente', () => {

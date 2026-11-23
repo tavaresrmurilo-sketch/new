@@ -1,11 +1,11 @@
 // Cena principal: renderiza o mapa real do Brasil, as unidades e os efeitos,
 // e traduz mouse/teclado/toque em comandos para a simulação.
 import Phaser from 'phaser';
-import { FACTIONS, NEUTRAL_COLOR, enemyOf } from '../data/factions';
-import { UNIT_DEFS } from '../data/units';
-import { ABILITIES } from '../data/factions';
-import type { Game } from '../sim/game';
-import type { AbilityId, BuildingType, Faction, Owner, SimEvent, Unit } from '../sim/types';
+import { FACTIONS, NEUTRAL_COLOR, enemyOf } from '@shared/data/factions';
+import { UNIT_DEFS } from '@shared/data/units';
+import { ABILITIES } from '@shared/data/factions';
+import type { Game } from '@shared/sim/game';
+import type { AbilityId, BuildingType, Faction, Owner, SimEvent, Unit } from '@shared/sim/types';
 import { createTextures, unitKey, UNIT_TEX_SIZE } from '../render/textures';
 import { audio, type Sfx } from '../audio/audio';
 

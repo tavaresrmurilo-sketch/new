@@ -1,6 +1,6 @@
-import { Game } from '../src/sim/game';
-import { defaultSettings, newAIState } from '../src/sim/setup';
-import type { Difficulty, MatchSettings } from '../src/sim/types';
+import { Game } from '../shared/sim/game';
+import { defaultSettings, newAIState } from '../shared/sim/setup';
+import type { Difficulty, MatchSettings } from '../shared/sim/types';
 
 /** Cria uma partida com as duas facções controladas pela IA. */
 export function aiVsAi(lula: Difficulty, bolso: Difficulty, seed: number, extra: Partial<MatchSettings> = {}): Game {

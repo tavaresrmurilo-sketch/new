@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Game } from '../src/sim/game';
-import { defaultSettings } from '../src/sim/setup';
+import { Game } from '../shared/sim/game';
+import { defaultSettings } from '../shared/sim/setup';
 import { run } from './util';
 
 describe('salvamento', () => {

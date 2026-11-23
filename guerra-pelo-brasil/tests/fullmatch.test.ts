@@ -1,10 +1,10 @@
 // Partidas completas simuladas (sem interface) para verificar vitória e derrota.
 import { describe, expect, it } from 'vitest';
-import { Game, EXEC_TURN_SECONDS } from '../src/sim/game';
-import { defaultSettings } from '../src/sim/setup';
+import { Game, EXEC_TURN_SECONDS } from '../shared/sim/game';
+import { defaultSettings } from '../shared/sim/setup';
 import { aiVsAi } from './helpers';
 import { run } from './util';
-import type { SimEvent } from '../src/sim/types';
+import type { SimEvent } from '../shared/sim/types';
 
 function collectGameOver(g: Game): SimEvent[] {
   return g.events.filter((e) => e.k === 'gameover');

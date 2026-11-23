@@ -1,4 +1,4 @@
-// Gera src/data/brazil-map.json a partir das fronteiras estaduais reais.
+// Gera shared/data/brazil-map.json a partir das fronteiras estaduais reais.
 // Fonte: data/raw/brazil-states.geojson (malha estadual derivada do IBGE, via click_that_hood)
 // Países vizinhos: world-atlas (Natural Earth, domínio público).
 //
@@ -210,7 +210,7 @@ const out = {
   outline,
   neighbors,
 };
-const target = resolve(root, 'src/data/brazil-map.json');
+const target = resolve(root, 'shared/data/brazil-map.json');
 writeFileSync(target, JSON.stringify(out));
 console.log(`OK: ${states.length} estados, ${totalPts} vértices, ${borders.length} fronteiras, ${neighbors.length} polígonos vizinhos`);
 console.log(`Mundo: ${WIDTH}x${HEIGHT}px  ->  ${target}`);

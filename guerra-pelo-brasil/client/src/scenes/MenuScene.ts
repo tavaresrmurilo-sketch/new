@@ -1,9 +1,9 @@
 // Fundo cinematográfico do menu: céu em chamas, o Brasil dividido, holofotes,
 // bandeiras fictícias tremulando, colunas de blindados, tropas e aviões.
 import Phaser from 'phaser';
-import { getMap } from '../sim/map';
-import { DISTRIBUTIONS } from '../data/states';
-import { FACTIONS } from '../data/factions';
+import { getMap } from '@shared/sim/map';
+import { DISTRIBUTIONS } from '@shared/data/states';
+import { FACTIONS } from '@shared/data/factions';
 import { createTextures } from '../render/textures';
 
 interface Mover {

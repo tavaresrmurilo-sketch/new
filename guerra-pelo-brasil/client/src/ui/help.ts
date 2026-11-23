@@ -1,8 +1,8 @@
 // Conteúdo do "Como jogar", gerado a partir dos dados reais do jogo.
-import { UNIT_DEFS, RECRUITABLE } from '../data/units';
-import { BUILDING_DEFS, BUILDING_ORDER } from '../data/buildings';
-import { ABILITIES, FACTIONS } from '../data/factions';
-import { OBJECTIVES } from '../sim/objectives';
+import { UNIT_DEFS, RECRUITABLE } from '@shared/data/units';
+import { BUILDING_DEFS, BUILDING_ORDER } from '@shared/data/buildings';
+import { ABILITIES, FACTIONS } from '@shared/data/factions';
+import { OBJECTIVES } from '@shared/sim/objectives';
 import { esc } from './dom';
 
 const cost = (c: { money: number; fuel: number; steel: number; supplies: number }) =>

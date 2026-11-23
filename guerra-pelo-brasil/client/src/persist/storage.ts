@@ -1,5 +1,5 @@
 // Persistência local (localStorage): configurações e partidas salvas.
-import type { GameMode } from '../sim/types';
+import type { GameMode } from '@shared/sim/types';
 
 export interface Settings {
   music: number;

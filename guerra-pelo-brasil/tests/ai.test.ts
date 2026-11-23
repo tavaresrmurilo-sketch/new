@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { Game } from '../src/sim/game';
-import { defaultSettings } from '../src/sim/setup';
+import { Game } from '../shared/sim/game';
+import { defaultSettings } from '../shared/sim/setup';
 import { run } from './util';
-import type { Difficulty } from '../src/sim/types';
+import type { Difficulty } from '../shared/sim/types';
 
 function vsAI(d: Difficulty, seed: number): Game {
   // jogador humano parado: só a IA age

@@ -1,6 +1,6 @@
-import { Game } from '../src/sim/game';
-import { defaultSettings } from '../src/sim/setup';
-import type { MatchSettings, Owner, UnitType } from '../src/sim/types';
+import { Game } from '../shared/sim/game';
+import { defaultSettings } from '../shared/sim/setup';
+import type { MatchSettings, Owner, UnitType } from '../shared/sim/types';
 
 /** Partida sem IA e sem tropas, para cenários controlados. */
 export function emptyGame(extra: Partial<MatchSettings> = {}): Game {

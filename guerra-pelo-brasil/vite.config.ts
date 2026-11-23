@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
-import type { Plugin } from 'vite';
+import { fileURLToPath } from 'node:url';
+import { defineConfig, type Plugin } from 'vite';
 
 /**
  * Embute o JS e o CSS gerados dentro do index.html.
@@ -34,19 +34,23 @@ function singleFile(): Plugin {
   };
 }
 
+const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
+
 export default defineConfig({
+  root: r('./client'),
   base: './',
+  envDir: r('.'),
+  publicDir: r('./public'),
+  resolve: { alias: { '@shared': r('./shared') } },
   plugins: [singleFile()],
+  server: { port: 5173 },
   build: {
+    outDir: r('./dist'),
+    emptyOutDir: true,
     target: 'es2020',
     assetsInlineLimit: 100_000_000,
     cssCodeSplit: false,
     chunkSizeWarningLimit: 4000,
     rollupOptions: { output: { inlineDynamicImports: true } },
-  },
-  test: {
-    include: ['tests/**/*.test.ts'],
-    environment: 'node',
-    testTimeout: 180_000,
   },
 });

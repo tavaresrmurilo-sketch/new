@@ -2,10 +2,10 @@
 import Phaser from 'phaser';
 import { MenuScene } from './scenes/MenuScene';
 import { GameScene } from './scenes/GameScene';
-import { Game } from './sim/game';
-import { defaultSettings } from './sim/setup';
-import { FACTIONS, ABILITIES, DIFFICULTY_LABEL } from './data/factions';
-import { DISTRIBUTIONS, DISTRIBUTION_KEYS } from './data/states';
+import { Game } from '@shared/sim/game';
+import { defaultSettings } from '@shared/sim/setup';
+import { FACTIONS, ABILITIES, DIFFICULTY_LABEL } from '@shared/data/factions';
+import { DISTRIBUTIONS, DISTRIBUTION_KEYS } from '@shared/data/states';
 import { unitKey } from './render/textures';
 import { audio } from './audio/audio';
 import {
@@ -15,7 +15,7 @@ import { portraitURI, flagURI, ICON } from './ui/art';
 import { el, esc, fmtTime, modal } from './ui/dom';
 import { howToPlayHTML, SATIRE_NOTE } from './ui/help';
 import { HUD } from './ui/hud';
-import type { Difficulty, Distribution, Faction, GameMode, MatchSettings, Owner, UnitType } from './sim/types';
+import type { Difficulty, Distribution, Faction, GameMode, MatchSettings, Owner, UnitType } from '@shared/sim/types';
 
 const MODE_LABEL: Record<GameMode, string> = { campanha: 'Campanha', rapida: 'Batalha rápida', local: 'Dois jogadores', sandbox: 'Sandbox' };
 

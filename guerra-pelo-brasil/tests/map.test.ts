@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { getMap } from '../src/sim/map';
-import { Navigator } from '../src/sim/nav';
-import { STATE_INFO } from '../src/data/states';
+import { getMap } from '../shared/sim/map';
+import { Navigator } from '../shared/sim/nav';
+import { STATE_INFO } from '../shared/data/states';
 
 const map = getMap();
 

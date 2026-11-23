@@ -1,8 +1,8 @@
 // Texturas geradas proceduralmente (nenhum arquivo de imagem externo).
 // Todas as unidades são desenhadas vistas de cima, apontando para a direita (ângulo 0).
 import Phaser from 'phaser';
-import { FACTIONS, NEUTRAL_COLOR, NEUTRAL_DARK } from '../data/factions';
-import type { Owner, UnitType } from '../sim/types';
+import { FACTIONS, NEUTRAL_COLOR, NEUTRAL_DARK } from '@shared/data/factions';
+import type { Owner, UnitType } from '@shared/sim/types';
 
 export const UNIT_TEX_SIZE = 48;
 
