@@ -5,8 +5,14 @@ import { FACTIONS, NEUTRAL_COLOR, enemyOf } from '@shared/data/factions';
 import { UNIT_DEFS } from '@shared/data/units';
 import { ABILITIES } from '@shared/data/factions';
 import type { Game } from '@shared/sim/game';
-import type { AbilityId, BuildingType, Faction, Owner, SimEvent, Unit } from '@shared/sim/types';
+import type { AbilityId, BuildingType, Faction, Formation, Owner, SimEvent, Unit } from '@shared/sim/types';
+import type { Command } from '@shared/net/commands';
+import { MARKERS, type MarkerKind } from '@shared/net/protocol';
+import type { Driver } from '../driver';
 import { createTextures, unitKey, UNIT_TEX_SIZE } from '../render/textures';
+import { FOG_CELL } from '@shared/sim/fog';
+import { CELL } from '@shared/sim/map';
+import { rankOf } from '@shared/sim/rules';
 import { audio, type Sfx } from '../audio/audio';
 
 export interface SceneHooks {
@@ -16,10 +22,12 @@ export interface SceneHooks {
   toast(msg: string, kind?: 'info' | 'warn' | 'error'): void;
   autosave(): void;
   openPause(): void;
-  settings(): { edgeScroll: boolean; showAllHp: boolean; particles: boolean };
+  settings(): { edgeScroll: boolean; showAllHp: boolean; particles: boolean; quality: 'baixo' | 'medio' | 'alto' };
 }
 
-export type CommandMode = { kind: 'none' } | { kind: 'attackMove' } | { kind: 'ability'; id: AbilityId } | { kind: 'rally' } | { kind: 'box' };
+export type CommandMode =
+  | { kind: 'none' } | { kind: 'attackMove' } | { kind: 'ability'; id: AbilityId } | { kind: 'rally' } | { kind: 'box' }
+  | { kind: 'marker'; marker: MarkerKind } | { kind: 'objective' } | { kind: 'escort' };
 
 interface UnitView {
   body: Phaser.GameObjects.Image;
@@ -80,13 +88,26 @@ export class GameScene extends Phaser.Scene {
   private drag: { button: number; sx: number; sy: number; moved: boolean; camX: number; camY: number } | null = null;
   private pinch: { d: number; zoom: number } | null = null;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
+  private fogTex: Phaser.Textures.CanvasTexture | null = null;
+  private fogImg: Phaser.GameObjects.Image | null = null;
+  private nextFog = 0;
+  private markerTexts = new Map<number, Phaser.GameObjects.Text>();
+  private consIcons: Phaser.GameObjects.Image[] = [];
+  private nextTrack = 0;
+  private cinematic = false;
 
   constructor() {
     super('game');
   }
 
-  init(data: { sim: Game; hooks: SceneHooks; me: Faction }): void {
+  driver!: Driver;
+  /** formação usada nas próximas ordens de movimento */
+  formation: Formation = 'livre';
+
+  init(data: { sim: Game; hooks: SceneHooks; me: Faction; driver: Driver }): void {
     this.sim = data.sim;
+    this.driver = data.driver;
+    this.formation = 'livre';
     this.hooks = data.hooks;
     this.me = data.me;
     this.sel.clear();
@@ -121,14 +142,9 @@ export class GameScene extends Phaser.Scene {
     for (let y = -500; y < map.height + 500; y += 120) bg.lineBetween(-600, y, map.width + 600, y);
 
     // países vizinhos
-    const nb = this.add.graphics().setDepth(1);
-    nb.fillStyle(0x1c211d, 1);
-    nb.lineStyle(2, 0x2b3329, 1);
+    // formas com triangulação em cache (Graphics retriangularia a cada quadro)
     for (const n of map.neighbors) {
-      const pts = [];
-      for (let i = 0; i < n.ring.length; i += 2) pts.push(new Phaser.Math.Vector2(n.ring[i], n.ring[i + 1]));
-      nb.fillPoints(pts, true);
-      nb.strokePoints(pts, true);
+      this.add.polygon(0, 0, n.ring, 0x1c211d, 1).setOrigin(0, 0).setDepth(1).setStrokeStyle(2, 0x2b3329, 1);
     }
 
     // estados (polígonos reais)
@@ -145,6 +161,7 @@ export class GameScene extends Phaser.Scene {
     borders.lineStyle(3.5, 0xe9e1c2, 0.55);
     for (const l of map.outline) this.strokeLine(borders, l);
 
+    this.drawTerrain();
     this.frontG = this.add.graphics().setDepth(4);
 
     // rótulos
@@ -164,6 +181,9 @@ export class GameScene extends Phaser.Scene {
     this.rallyIcon = this.add.image(0, 0, 'rally').setOrigin(0.15, 1).setDepth(7).setVisible(false);
 
     this.overlay = this.add.graphics().setDepth(7);
+    if (this.sim.w.settings.fog) this.setupFog();
+    this.consIcons = this.sim.map.states.map((s) => this.add.image(s.capital.x, s.capital.y, 'b_build').setDepth(7.5).setVisible(false));
+    this.markerTexts = new Map();
     this.fxG = this.add.graphics().setDepth(8);
     this.boxG = this.add.graphics().setDepth(20);
 
@@ -240,7 +260,7 @@ export class GameScene extends Phaser.Scene {
 
   selectAllOnScreen(): void {
     const v = this.cameras.main.worldView;
-    const ids = this.sim.unitsOf(this.me).filter((u) => v.contains(u.x, u.y) && u.type !== 'militia').map((u) => u.id);
+    const ids = this.sim.unitsOf(this.me).filter((u) => v.contains(u.x, u.y) && this.canControl(u)).map((u) => u.id);
     this.setSelection(ids);
     if (ids.length) audio.play('select');
   }
@@ -259,16 +279,33 @@ export class GameScene extends Phaser.Scene {
     return Math.min(cam.width / (this.sim.map.width + 300), cam.height / (this.sim.map.height + 300));
   }
 
+  /** Envia um comando pelo driver (offline: simulação local; online: servidor). */
+  send(c: Command): boolean {
+    const err = this.driver.send(c);
+    if (err) { this.hooks.toast(err, 'error'); audio.play('error'); return false; }
+    return true;
+  }
+
+  /** Pode este jogador comandar a unidade (dono e função)? */
+  canControl(u: Unit): boolean {
+    if (u.f !== this.me || u.type === 'militia' || this.driver.spectator) return false;
+    const roles = this.driver.roles;
+    return !roles || roles.includes(u.ctrl);
+  }
+
   issueStop(hold = false): void {
-    if (!this.controllable) return;
-    this.sim.commandStop(this.me, [...this.sel], hold);
-    audio.play('order');
+    if (!this.controllable || !this.sel.size) return;
+    if (this.send({ k: 'stop', ids: [...this.sel], hold })) audio.play('order');
   }
 
   issueRTB(): void {
-    if (!this.controllable) return;
-    this.sim.commandRTB(this.me, [...this.sel]);
-    audio.play('order');
+    if (!this.controllable || !this.sel.size) return;
+    if (this.send({ k: 'rtb', ids: [...this.sel] })) audio.play('order');
+  }
+
+  issueRecon(): void {
+    if (!this.controllable || !this.sel.size) return;
+    if (this.send({ k: 'recon', ids: [...this.sel] })) audio.play('ability');
   }
 
   useAbility(id: AbilityId): void {
@@ -281,8 +318,7 @@ export class GameScene extends Phaser.Scene {
       this.hooks.toast(`${def.name}: clique no mapa para escolher o alvo (botão direito cancela).`);
       return;
     }
-    const e = this.sim.useAbility(this.me, id, { s: this.selState >= 0 ? this.selState : undefined });
-    if (e) { this.hooks.toast(e, 'error'); audio.play('error'); }
+    this.send({ k: 'ability', id, s: this.selState >= 0 ? this.selState : undefined });
   }
 
   // ================================================================== entrada
@@ -440,7 +476,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private boxSelect(x0: number, y0: number, x1: number, y1: number, add: boolean): void {
-    const ids = this.sim.unitsOf(this.me).filter((u) => u.x >= x0 && u.x <= x1 && u.y >= y0 && u.y <= y1).map((u) => u.id);
+    const ids = this.sim.unitsOf(this.me).filter((u) => u.x >= x0 && u.x <= x1 && u.y >= y0 && u.y <= y1 && this.canControl(u)).map((u) => u.id);
     this.setSelection(ids, add);
     if (ids.length) audio.play('select');
     if (this.touchBox) { this.touchBox = false; this.hooks.onModeChange(); }
@@ -449,8 +485,34 @@ export class GameScene extends Phaser.Scene {
   private leftClick(x: number, y: number, touch: boolean): void {
     const m = this.mode;
     if (m.kind === 'ability') {
-      const err = this.sim.useAbility(this.me, m.id, { x, y });
-      if (err) { this.hooks.toast(err, 'error'); audio.play('error'); }
+      this.send({ k: 'ability', id: m.id, x, y });
+      this.setMode({ kind: 'none' });
+      return;
+    }
+    if (m.kind === 'marker') {
+      this.driver.sendMarker(m.marker, x, y);
+      this.pulse(x, y, Phaser.Display.Color.HexStringToColor(MARKERS[m.marker].color).color, 40, 0.8);
+      audio.play('order');
+      this.setMode({ kind: 'none' });
+      return;
+    }
+    if (m.kind === 'objective') {
+      const st = this.sim.map.stateAtPrecise(x, y);
+      if (st >= 0 && this.send({ k: 'objective', s: st })) {
+        this.hooks.toast(`Objetivo da equipe: ${this.sim.stateName(st)}.`);
+        audio.play('order');
+      }
+      this.setMode({ kind: 'none' });
+      return;
+    }
+    if (m.kind === 'escort') {
+      const ally = this.pickUnit(x, y, (u) => u.f === this.me && !this.sel.has(u.id));
+      if (ally) {
+        if (this.send({ k: 'move', ids: [...this.sel], x: ally.x, y: ally.y, aggressive: true, form: 'escolta', escort: ally.id })) {
+          this.hooks.toast(`Escoltando ${UNIT_DEFS[ally.type].name}.`);
+          audio.play('order');
+        }
+      } else this.hooks.toast('Clique numa unidade aliada para escoltar.', 'warn');
       this.setMode({ kind: 'none' });
       return;
     }
@@ -460,20 +522,24 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (m.kind === 'rally') {
-      if (this.selState >= 0) {
-        this.sim.setRally(this.me, this.selState, x, y);
+      if (this.selState >= 0 && this.send({ k: 'rally', s: this.selState, x, y })) {
         this.hooks.toast('Ponto de encontro definido.');
         audio.play('order');
       }
       this.setMode({ kind: 'none' });
       return;
     }
-    const mine = this.pickUnit(x, y, (u) => u.f === this.me && u.type !== 'militia');
+    const ally = this.pickUnit(x, y, (u) => u.f === this.me && u.type !== 'militia' && !this.canControl(u));
+    const mine = this.pickUnit(x, y, (u) => this.canControl(u));
+    if (!mine && ally) {
+      this.hooks.toast(`${UNIT_DEFS[ally.type].name}: controlado pela função ${ally.ctrl}.`, 'info');
+      return;
+    }
     if (mine) {
       const now = this.time.now;
       if (now - this.lastClick.t < 350 && this.lastClick.id === mine.id) {
         const v = this.cameras.main.worldView;
-        this.setSelection(this.sim.unitsOf(this.me).filter((u) => u.type === mine.type && v.contains(u.x, u.y)).map((u) => u.id));
+        this.setSelection(this.sim.unitsOf(this.me).filter((u) => u.type === mine.type && v.contains(u.x, u.y) && this.canControl(u)).map((u) => u.id));
       } else if (this.keys.SHIFT.isDown && this.sel.has(mine.id)) {
         this.sel.delete(mine.id);
         this.hooks.onSelection();
@@ -499,10 +565,11 @@ export class GameScene extends Phaser.Scene {
   private rightClick(x: number, y: number): void {
     if (this.mode.kind !== 'none') { this.setMode({ kind: 'none' }); return; }
     if (!this.sel.size) {
-      if (this.selState >= 0 && this.sim.w.states[this.selState].owner === this.me && this.controllable) {
-        this.sim.setRally(this.me, this.selState, x, y);
-        this.hooks.toast('Ponto de encontro definido.');
-        audio.play('order');
+      if (this.selState >= 0 && this.sim.w.states[this.selState].owner === this.me && this.controllable && !this.driver.spectator) {
+        if (this.send({ k: 'rally', s: this.selState, x, y })) {
+          this.hooks.toast('Ponto de encontro definido.');
+          audio.play('order');
+        }
       }
       return;
     }
@@ -511,27 +578,34 @@ export class GameScene extends Phaser.Scene {
 
   private commandTo(x: number, y: number, forceAttack: boolean): void {
     if (!this.controllable) { this.hooks.toast('Aguarde sua vez de dar ordens.', 'warn'); return; }
-    const ids = [...this.sel];
+    const ids = [...this.sel].filter((id) => { const u = this.sim.unit(id); return !!u && this.canControl(u); });
+    if (!ids.length) { this.hooks.toast('Essas unidades pertencem a outra função militar.', 'warn'); return; }
+    const form = this.formation;
+    if (form === 'escolta') {
+      const ally = this.pickUnit(x, y, (u) => u.f === this.me && !this.sel.has(u.id));
+      if (ally && this.send({ k: 'move', ids, x: ally.x, y: ally.y, aggressive: true, form: 'escolta', escort: ally.id })) {
+        this.pulse(ally.x, ally.y, 0x7dffb0, 22);
+        audio.play('order');
+        return;
+      }
+    }
     const enemy = this.pickUnit(x, y, (u) => u.f !== this.me);
     if (enemy) {
-      this.sim.commandAttack(this.me, ids, { t: 'u', id: enemy.id });
-      this.pulse(enemy.x, enemy.y, 0xff5252, 18);
-      audio.play('order');
+      if (this.send({ k: 'attack', ids, target: { t: 'u', id: enemy.id } })) { this.pulse(enemy.x, enemy.y, 0xff5252, 18); audio.play('order'); }
       return;
     }
     const cap = this.pickCapital(x, y);
     if (cap >= 0 && this.sim.w.states[cap].owner !== this.me) {
       const c = this.sim.capital(cap);
-      this.sim.commandMove(this.me, ids, c.x, c.y, true);
-      this.pulse(c.x, c.y, 0xff5252, 26);
-      audio.play('order');
+      if (this.send({ k: 'move', ids, x: c.x, y: c.y, aggressive: true, form: form === 'escolta' ? 'livre' : form })) { this.pulse(c.x, c.y, 0xff5252, 26); audio.play('order'); }
       return;
     }
     const st = this.sim.map.stateAt(x, y);
     const hostileGround = st >= 0 && this.sim.w.states[st].owner !== this.me;
-    this.sim.commandMove(this.me, ids, x, y, forceAttack || hostileGround);
-    this.pulse(x, y, forceAttack || hostileGround ? 0xff8a50 : 0x7dffb0, 14);
-    audio.play('order');
+    if (this.send({ k: 'move', ids, x, y, aggressive: forceAttack || hostileGround, form: form === 'escolta' ? 'livre' : form })) {
+      this.pulse(x, y, forceAttack || hostileGround ? 0xff8a50 : 0x7dffb0, 14);
+      audio.play('order');
+    }
   }
 
   pulse(x: number, y: number, color: number, r: number, total = 0.45): void {
@@ -542,13 +616,14 @@ export class GameScene extends Phaser.Scene {
   update(_t: number, deltaMs: number): void {
     const dt = Math.min(0.1, deltaMs / 1000);
     const sim = this.sim;
-    if (!this.userPaused && !sim.paused) sim.advance(dt * this.speed);
+    this.driver.update(dt * this.speed, this.userPaused);
     this.updateCamera(dt);
     this.consumeEvents();
     this.redrawOwners(false);
     this.renderUnits();
     this.renderOverlay(dt);
     this.renderFx(dt);
+    this.renderExtras();
     if (sim.w.time >= this.nextIconSync) { this.nextIconSync = sim.w.time + 0.5; this.syncIcons(); }
     if (sim.w.time >= this.nextAutosave) { this.nextAutosave = sim.w.time + 60; this.hooks.autosave(); }
   }
@@ -617,6 +692,12 @@ export class GameScene extends Phaser.Scene {
     return (Phaser.Math.Clamp(z, 0.6, 1.4) / z) * (30 / UNIT_TEX_SIZE);
   }
 
+  /** Visível para este jogador (névoa de guerra)? */
+  seen(x: number, y: number): boolean {
+    if (!this.sim.w.settings.fog || this.driver.spectator) return true;
+    return this.sim.isVisible(this.me, x, y);
+  }
+
   private renderUnits(): void {
     const sim = this.sim;
     const a = sim.alpha;
@@ -625,6 +706,7 @@ export class GameScene extends Phaser.Scene {
     const seen = new Set<number>();
     for (const u of sim.w.units) {
       if (u.hp <= 0) continue;
+      if (u.f !== this.me && !this.seen(u.x, u.y)) continue;
       seen.add(u.id);
       let v = this.units.get(u.id);
       const def = UNIT_DEFS[u.type];
@@ -735,6 +817,7 @@ export class GameScene extends Phaser.Scene {
     const showAll = this.hooks.settings().showAllHp;
     for (const u of w.units) {
       if (u.hp <= 0 || !view.contains(u.x, u.y)) continue;
+      if (u.f !== this.me && !this.seen(u.x, u.y)) continue;
       const def = UNIT_DEFS[u.type];
       const x = u.px + (u.x - u.px) * sim.alpha, y = u.py + (u.y - u.py) * sim.alpha - (def.air ? 20 * sc : 0);
       const selected = this.sel.has(u.id);
@@ -873,14 +956,162 @@ export class GameScene extends Phaser.Scene {
     audio.play(name, vol * zv, pan);
   }
 
+  // ================================================================== terreno, névoa e extras
+  private drawTerrain(): void {
+    const map = this.sim.map;
+    const key = 'terrain-overlay';
+    if (!this.textures.exists(key)) {
+      const tex = this.textures.createCanvas(key, map.cols, map.rows);
+      if (tex) {
+        const ctx = tex.getContext();
+        const img = ctx.createImageData(map.cols, map.rows);
+        const col: Record<number, [number, number, number, number]> = {
+          1: [24, 92, 40, 120], 2: [128, 98, 62, 125], 4: [40, 120, 132, 115], 5: [215, 210, 196, 70],
+        };
+        for (let i = 0; i < map.terrain.length; i++) {
+          const c = col[map.terrain[i]];
+          if (!c || map.grid[i] < 0) continue;
+          img.data.set(c, i * 4);
+        }
+        ctx.putImageData(img, 0, 0);
+        tex.refresh();
+      }
+    }
+    this.add.image(0, 0, key).setOrigin(0).setScale(CELL).setDepth(2.5);
+    const g = this.add.graphics().setDepth(3.2);
+    g.lineStyle(2.6, 0x3f86c4, 0.85);
+    for (const r of map.terrainShapes.rios) this.strokeLine(g, r.line);
+    g.lineStyle(1, 0x9fd2ff, 0.5);
+    for (const r of map.terrainShapes.rios) this.strokeLine(g, r.line);
+  }
+
+  private setupFog(): void {
+    const map = this.sim.map;
+    const cols = Math.ceil(map.width / FOG_CELL), rows = Math.ceil(map.height / FOG_CELL);
+    const key = 'fog-overlay';
+    if (this.textures.exists(key)) this.textures.remove(key);
+    this.fogTex = this.textures.createCanvas(key, cols, rows);
+    this.fogImg = this.add.image(0, 0, key).setOrigin(0).setScale(FOG_CELL).setDepth(5.8);
+    this.nextFog = 0;
+  }
+
+  private updateFog(): void {
+    if (!this.fogTex || this.driver.spectator) { this.fogImg?.setVisible(false); return; }
+    const vis = this.sim.visibility(this.me);
+    const grid = vis.grid[this.me];
+    const ctx = this.fogTex.getContext();
+    const img = ctx.createImageData(vis.cols, vis.rows);
+    for (let i = 0; i < grid.length; i++) {
+      if (grid[i]) continue;
+      img.data[i * 4] = 6; img.data[i * 4 + 1] = 10; img.data[i * 4 + 2] = 14; img.data[i * 4 + 3] = 150;
+    }
+    ctx.putImageData(img, 0, 0);
+    this.fogTex.refresh();
+  }
+
+  /** Marcadores de equipe, objetivo, estados isolados, obras e rastros. */
+  private renderExtras(): void {
+    const w = this.sim.w, g = this.overlay;
+    const px = 1 / this.cameras.main.zoom;
+    const t = this.time.now / 1000;
+    if (this.fogTex && this.time.now >= this.nextFog) { this.nextFog = this.time.now + 250; this.updateFog(); }
+    // marcadores
+    const markers = this.driver.markers();
+    const alive = new Set<number>();
+    for (const m of markers) {
+      alive.add(m.id);
+      const info = MARKERS[m.kind];
+      const col = Phaser.Display.Color.HexStringToColor(info.color).color;
+      const age = w.time - m.t;
+      const pulse = 1 + 0.25 * Math.sin(t * 6);
+      g.lineStyle(3 * px, col, 0.9);
+      g.strokeCircle(m.x, m.y, 16 * px * pulse);
+      g.lineStyle(1.5 * px, col, Math.max(0, 0.8 - (age % 1.5) / 1.5));
+      g.strokeCircle(m.x, m.y, (16 + ((age % 1.5) / 1.5) * 40) * px);
+      g.fillStyle(col, 1);
+      g.fillTriangle(m.x, m.y, m.x - 7 * px, m.y - 16 * px, m.x + 7 * px, m.y - 16 * px);
+      let txt = this.markerTexts.get(m.id);
+      if (!txt) {
+        txt = this.add.text(m.x, m.y, `${info.label}\n(${m.by})`, { fontFamily: 'Bahnschrift, Arial, sans-serif', fontSize: '13px', color: info.color, stroke: '#000', strokeThickness: 4, align: 'center' })
+          .setOrigin(0.5, 1).setDepth(15).setResolution(2);
+        this.markerTexts.set(m.id, txt);
+      }
+      txt.setPosition(m.x, m.y - 20 * px).setScale(Math.max(0.8, px * 0.9));
+    }
+    for (const [id, txt] of this.markerTexts) if (!alive.has(id)) { txt.destroy(); this.markerTexts.delete(id); }
+    // objetivo da equipe
+    const obj = w.teamObjective?.[this.me] ?? -1;
+    if (obj >= 0) {
+      const c = this.sim.capital(obj);
+      const r = 34 * Math.max(1, px * 0.8);
+      g.lineStyle(3 * px, 0xffd54a, 0.9);
+      g.strokeCircle(c.x, c.y, r);
+      for (let k = 0; k < 4; k++) {
+        const a = t * 0.8 + (k * Math.PI) / 2;
+        g.lineBetween(c.x + Math.cos(a) * r * 0.75, c.y + Math.sin(a) * r * 0.75, c.x + Math.cos(a) * r * 1.35, c.y + Math.sin(a) * r * 1.35);
+      }
+    }
+    // estados próprios isolados (rendem metade): anel tracejado laranja
+    for (const s of w.states) {
+      const c = this.sim.capital(s.i);
+      const icon = this.consIcons[s.i];
+      const building = !!s.cons && s.owner === this.me;
+      icon.setVisible(building);
+      if (building) icon.setPosition(c.x - 26 * px, c.y - 24 * px + Math.sin(t * 5) * 2 * px).setScale(0.45 * Math.max(1, px * 0.8)).setRotation(Math.sin(t * 3) * 0.15);
+      if (s.owner !== this.me || s.connected) continue;
+      g.lineStyle(2 * px, 0xffa726, 0.9);
+      for (let k = 0; k < 12; k += 2) {
+        const a0 = (k / 12) * Math.PI * 2 + t * 0.5, a1 = ((k + 1) / 12) * Math.PI * 2 + t * 0.5;
+        g.beginPath();
+        g.arc(c.x, c.y, 26 * Math.max(1, px * 0.8), a0, a1);
+        g.strokePath();
+      }
+    }
+    // patentes (divisas) das unidades veteranas próximas da câmera
+    if (this.cameras.main.zoom > 0.75) {
+      const view = this.cameras.main.worldView;
+      const sc = this.unitScale();
+      for (const u of w.units) {
+        if (u.hp <= 0 || u.xp < 3 || !view.contains(u.x, u.y)) continue;
+        if (u.f !== this.me && !this.seen(u.x, u.y)) continue;
+        const r = rankOf(u.xp);
+        g.lineStyle(1.6 * px, 0xffd54a, 1);
+        for (let k = 0; k < r; k++) {
+          const yy = u.y + 14 * sc * 2 + k * 3 * px;
+          g.lineBetween(u.x - 4 * px, yy, u.x, yy + 2.5 * px);
+          g.lineBetween(u.x, yy + 2.5 * px, u.x + 4 * px, yy);
+        }
+      }
+    }
+    // rastros de blindados (qualidade média/alta)
+    const q = this.hooks.settings().quality;
+    if (q !== 'baixo' && this.time.now >= this.nextTrack) {
+      this.nextTrack = this.time.now + (q === 'alto' ? 180 : 360);
+      for (const u of w.units) {
+        if (!u.moving || (u.type !== 'tank' && u.type !== 'support' && u.type !== 'artillery' && u.type !== 'recon')) continue;
+        if (!this.visible(u.x, u.y, 0) || !this.seen(u.x, u.y)) continue;
+        this.dust.emitParticleAt(u.x - Math.cos(u.angle) * 8, u.y - Math.sin(u.angle) * 8, 1);
+      }
+    }
+    // final cinematográfico: afasta a câmera mostrando o Brasil inteiro
+    if ((w.winner || w.draw) && !this.cinematic) {
+      this.cinematic = true;
+      const cam = this.cameras.main;
+      cam.pan(this.sim.map.width / 2, this.sim.map.height / 2, 2600, 'Sine.easeInOut');
+      cam.zoomTo(this.minZoom() * 1.05, 2600, 'Sine.easeInOut');
+    }
+  }
+
   private consumeEvents(): void {
     const ev = this.sim.events;
     if (!ev.length) return;
-    const particles = this.hooks.settings().particles;
+    const st = this.hooks.settings();
+    const particles = st.particles && st.quality !== 'baixo';
     for (const e of ev) {
       switch (e.k) {
         case 'shot': {
           if (!this.visible(e.x1, e.y1) && !this.visible(e.x2, e.y2)) break;
+          if (!this.seen(e.x1, e.y1) && !this.seen(e.x2, e.y2)) break;
           const col = e.f === 'neutral' ? 0xf0e6b0 : e.f === 'lula' ? 0xffb199 : 0xa8d0ff;
           const heavy = e.ut === 'tank' || e.ut === 'plane' || e.ut === 'heli';
           this.tracers.push({ x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, life: heavy ? 0.16 : 0.09, max: heavy ? 0.16 : 0.09, color: heavy ? 0xfff3c4 : col, width: heavy ? 2.6 : 1.4 });
@@ -893,7 +1124,7 @@ export class GameScene extends Phaser.Scene {
           this.sfxAt('artillery', e.x1, e.y1, 0.6);
           break;
         case 'boom':
-          if (this.visible(e.x, e.y)) {
+          if (this.visible(e.x, e.y) && this.seen(e.x, e.y)) {
             if (particles) {
               this.fire.explode(Math.round(8 * e.size), e.x, e.y);
               this.smoke.explode(Math.round(3 * e.size), e.x, e.y);
@@ -903,7 +1134,7 @@ export class GameScene extends Phaser.Scene {
           }
           break;
         case 'death':
-          if (this.visible(e.x, e.y)) {
+          if (this.visible(e.x, e.y) && this.seen(e.x, e.y)) {
             if (e.ut === 'infantry' || e.ut === 'militia' || e.ut === 'support') { if (particles) this.dust.explode(4, e.x, e.y); }
             else {
               const img = this.add.image(e.x, e.y, 'wreck').setDepth(5.2).setRotation(Math.random() * 6).setScale(this.unitScale() * 2);

@@ -9,12 +9,15 @@ import { DISTRIBUTIONS, DISTRIBUTION_KEYS } from '@shared/data/states';
 import { unitKey } from './render/textures';
 import { audio } from './audio/audio';
 import {
-  loadSettings, saveSettings, readSave, readMeta, writeSave, deleteSave, readRecord, type Settings,
+  loadSettings, saveSettings, readSave, readMeta, writeSave, deleteSave, readRecord, effectiveQuality, type Settings,
 } from './persist/storage';
 import { portraitURI, flagURI, ICON } from './ui/art';
 import { el, esc, fmtTime, modal } from './ui/dom';
 import { howToPlayHTML, SATIRE_NOTE } from './ui/help';
 import { HUD } from './ui/hud';
+import { LocalDriver, type Driver } from './driver';
+import { Online } from './online/online';
+import type { OnlineMatch } from './online/match';
 import type { Difficulty, Distribution, Faction, GameMode, MatchSettings, Owner, UnitType } from '@shared/sim/types';
 
 const MODE_LABEL: Record<GameMode, string> = { campanha: 'Campanha', rapida: 'Batalha rápida', local: 'Dois jogadores', sandbox: 'Sandbox', online: 'Online' };
@@ -43,9 +46,13 @@ export class App {
   private menuEl: HTMLElement | null = null;
   private iconCache = new Map<string, string>();
   private splashShown = false;
+  readonly online: Online;
+  /** código de convite recebido pela URL (?sala=BR-XXXXX) */
+  private inviteCode = new URLSearchParams(location.search).get('sala')?.toUpperCase() ?? '';
 
   constructor() {
     this.ui = document.getElementById('ui')!;
+    this.online = new Online(this);
     audio.setVolumes(this.settings.music, this.settings.sfx);
     const unlock = () => { audio.unlock(); };
     window.addEventListener('pointerdown', unlock, { capture: true });
@@ -59,8 +66,14 @@ export class App {
   }
 
   boot(): void {
+    // limite de quadros: qualidade baixa = 30 fps; ?fps=N força um valor (PCs fracos e testes automatizados)
+    const fpsParam = Number(new URLSearchParams(location.search).get('fps'));
+    const fpsLimit = fpsParam > 0 ? Math.min(60, fpsParam) : effectiveQuality(this.settings) === 'baixo' ? 30 : 0;
+    // ?renderer=canvas força o Canvas 2D (fallback para PCs/navegadores sem WebGL)
+    const canvasOnly = new URLSearchParams(location.search).get('renderer') === 'canvas';
     this.phaser = new Phaser.Game({
-      type: Phaser.AUTO,
+      type: canvasOnly ? Phaser.CANVAS : Phaser.AUTO,
+      fps: fpsLimit ? { limit: fpsLimit, target: fpsLimit } : undefined,
       parent: 'game',
       backgroundColor: '#0b100e',
       scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
@@ -98,6 +111,7 @@ export class App {
   // ================================================================== menu principal
   showMainMenu(): void {
     this.clearMenu();
+    if (this.phaser?.scene.isPaused('menu')) this.phaser.scene.resume('menu');
     audio.playMusic('menu');
     const meta = readMeta('campanha');
     const rec = readRecord();
@@ -121,12 +135,14 @@ export class App {
       <div class="menu-left">
         <div class="logo"><div class="t1">GUERRA <span class="r">PELO</span><br><span class="b">BRASIL</span></div>
           <div class="t2">CONQUISTA TOTAL</div><div class="t3">Estratégia militar em tempo real · sátira política fictícia</div></div>
-        <button class="btn menu-btn primary" data-act="play" style="animation-delay:.05s">${ICON.play} Jogar <span class="sub">Campanha · Rápida · Sandbox</span></button>
-        <button class="btn menu-btn" data-act="continue" style="animation-delay:.1s">${ICON.save} Continuar campanha <span class="sub">${meta ? esc(meta.label) : 'nenhuma salva'}</span></button>
-        <button class="btn menu-btn" data-act="local" style="animation-delay:.15s">${ICON.swords} Multijogador local <span class="sub">2 jogadores · turnos</span></button>
-        <button class="btn menu-btn" data-act="settings" style="animation-delay:.2s">${ICON.gear} Configurações</button>
-        <button class="btn menu-btn" data-act="help" style="animation-delay:.25s">${ICON.info} Como jogar</button>
-        <button class="btn menu-btn" data-act="exit" style="animation-delay:.3s">${ICON.close} Sair</button>
+        <button class="btn menu-btn primary" data-act="campaign" style="animation-delay:.05s">${ICON.play} Jogar campanha <span class="sub">${meta ? `salva: ${esc(meta.label)}` : 'nova guerra contra a IA'}</span></button>
+        <button class="btn menu-btn" data-act="quick" style="animation-delay:.1s">${ICON.swords} Batalha rápida <span class="sub">partida configurável</span></button>
+        <button class="btn menu-btn online" data-act="online" style="animation-delay:.15s">${ICON.map} Multiplayer online <span class="sub">até 5v5 · <span data-netstatus data-s="${this.online.net.status}">${esc(this.online.statusText())}</span></span></button>
+        <button class="btn menu-btn" data-act="local" style="animation-delay:.2s">${ICON.troops} Multiplayer local <span class="sub">2 jogadores · turnos</span></button>
+        <button class="btn menu-btn" data-act="sandbox" style="animation-delay:.25s">${ICON.flag} Sandbox <span class="sub">recursos ilimitados</span></button>
+        <button class="btn menu-btn" data-act="help" style="animation-delay:.3s">${ICON.info} Como jogar</button>
+        <button class="btn menu-btn" data-act="settings" style="animation-delay:.35s">${ICON.gear} Configurações</button>
+        <button class="btn small exit-link" data-act="exit">${ICON.close} Sair</button>
       </div>
       <div class="menu-right">
         <div class="faction-cards">${card('lula')}${card('bolso')}</div>
@@ -143,8 +159,10 @@ export class App {
         return;
       }
       const act = t.closest<HTMLElement>('[data-act]')?.dataset.act;
-      if (act === 'play') this.showPlay();
-      else if (act === 'continue') this.continueMode('campanha');
+      if (act === 'campaign') this.showPlay('campanha');
+      else if (act === 'quick') this.showPlay('rapida');
+      else if (act === 'sandbox') this.showPlay('sandbox');
+      else if (act === 'online') this.online.openMenu();
       else if (act === 'local') this.showLocal();
       else if (act === 'settings') this.showSettings();
       else if (act === 'help') this.showHelp();
@@ -156,7 +174,20 @@ export class App {
     });
     this.ui.appendChild(root);
     this.menuEl = root;
+    this.online.probe();
     if (!this.splashShown) this.showSplash();
+    else if (this.inviteCode) { const c = this.inviteCode; this.inviteCode = ''; this.online.openMenu('entrar', c); }
+  }
+
+  hideMainMenu(): void {
+    this.menuEl?.remove();
+    this.menuEl = null;
+    // o fundo animado do menu fica coberto pelo lobby: pausa para poupar CPU
+    if (this.phaser.scene.isActive('menu')) this.phaser.scene.pause('menu');
+  }
+
+  scene(): GameScene | null {
+    return this.sim || this.online.match ? (this.phaser.scene.getScene('game') as GameScene) : null;
   }
 
   private showSplash(): void {
@@ -165,7 +196,12 @@ export class App {
       <h1>GUERRA PELO BRASIL</h1>
       <p><b>Aviso:</b> ${esc(SATIRE_NOTE)}</p>
       <button class="btn primary" data-ok>Entendi — ir para o menu</button></div></div>`);
-    s.querySelector('[data-ok]')!.addEventListener('click', () => { audio.unlock(); audio.playMusic('menu'); s.remove(); });
+    s.querySelector('[data-ok]')!.addEventListener('click', () => {
+      audio.unlock();
+      audio.playMusic('menu');
+      s.remove();
+      if (this.inviteCode) { const c = this.inviteCode; this.inviteCode = ''; this.online.openMenu('entrar', c); }
+    });
     this.ui.appendChild(s);
   }
 
@@ -184,11 +220,13 @@ export class App {
     });
   }
 
-  showPlay(): void {
+  showPlay(initial: 'campanha' | 'rapida' | 'sandbox' = 'campanha'): void {
     const diffOpts: [Difficulty, string][] = (['facil', 'normal', 'dificil', 'insano'] as Difficulty[]).map((d) => [d, DIFFICULTY_LABEL[d]]);
     const distOpts: [Distribution, string][] = DISTRIBUTION_KEYS.map((d) => [d, DISTRIBUTIONS[d].label]);
     const state = {
-      mode: 'campanha' as 'campanha' | 'rapida' | 'sandbox',
+      mode: initial as 'campanha' | 'rapida' | 'sandbox',
+      fog: 'nao',
+      extras: 'sim',
       faction: this.faction,
       difficulty: this.difficulty,
       distribution: 'eleitoral' as Distribution,
@@ -212,6 +250,8 @@ export class App {
         <label>Distribuição territorial</label>${this.seg('distribution', distOpts, state.distribution)}
         <label>Recursos iniciais</label>${this.seg('startRes', [['baixos', 'Baixos'], ['normais', 'Normais'], ['altos', 'Altos']], state.startRes)}
         <label>Ritmo da economia</label>${this.seg('income', [['0.75', 'Lento'], ['1', 'Normal'], ['1.5', 'Rápido']], state.income)}
+        <label>Névoa de guerra</label>${this.seg('fog', [['nao', 'Desligada'], ['sim', 'Ligada']], state.fog)}
+        <label>Eventos e moral</label>${this.seg('extras', [['sim', 'Ligados'], ['nao', 'Desligados']], state.extras)}
       </div></div>
       <div data-pane="sandbox" class="hidden"><div class="opts" style="margin-top:12px">
         <label>IA do oponente</label>${this.seg('sandboxAI', [['off', 'Desligada'], ['facil', 'Fácil'], ['normal', 'Normal'], ['dificil', 'Difícil'], ['insano', 'Insano']], state.sandboxAI)}
@@ -247,6 +287,9 @@ export class App {
           startRes: state.mode === 'rapida' ? state.startRes : 'normais',
           incomeMul: state.mode === 'rapida' ? +state.income : 1,
           enemyAI: state.mode !== 'sandbox' || state.sandboxAI !== 'off',
+          fog: state.mode === 'rapida' && state.fog === 'sim',
+          events: state.mode !== 'rapida' || state.extras === 'sim',
+          morale: state.mode !== 'rapida' || state.extras === 'sim',
         });
         this.startMatch(s);
       }
@@ -264,6 +307,8 @@ export class App {
       if (name === 'startRes') state.startRes = v as MatchSettings['startRes'];
       if (name === 'income') state.income = v;
       if (name === 'sandboxAI') state.sandboxAI = v;
+      if (name === 'fog') state.fog = v;
+      if (name === 'extras') state.extras = v;
       refresh();
     });
     refresh();
@@ -374,15 +419,34 @@ export class App {
     this.clearMenu();
     this.sim = sim;
     const me: Faction = sim.w.settings.mode === 'local' ? (sim.w.turn?.active ?? 'lula') : sim.w.settings.player;
-    this.phaser.scene.stop('menu');
-    const hud = new HUD(this, sim);
-    this.hud = hud;
-    this.phaser.scene.start('game', { sim, hooks: hud.hooks(), me });
-    const scene = this.phaser.scene.getScene('game') as GameScene;
+    let scene: GameScene | null = null;
+    const driver: Driver = new LocalDriver(sim, () => scene?.me ?? me);
+    scene = this.startScene(sim, driver, me, null);
     scene.speed = this.settings.defaultSpeed;
+    if (sim.w.settings.mode !== 'local' && sim.w.time < 1) this.hud!.intro();
+  }
+
+  private startScene(sim: Game, driver: Driver, me: Faction, online: OnlineMatch | null): GameScene {
+    this.phaser.scene.stop('menu');
+    if (this.phaser.scene.isActive('game')) this.phaser.scene.stop('game');
+    const hud = new HUD(this, sim, online ? this.online : null);
+    this.hud = hud;
+    this.phaser.scene.start('game', { sim, hooks: hud.hooks(), me, driver });
+    const scene = this.phaser.scene.getScene('game') as GameScene;
     hud.attach(scene);
     audio.playMusic('battle');
-    if (sim.w.settings.mode !== 'local' && sim.w.time < 1) hud.intro();
+    return scene;
+  }
+
+  /** Começa (ou retoma após reconexão) uma partida online. */
+  launchOnline(online: Online, match: OnlineMatch): void {
+    this.clearMenu();
+    this.hud?.destroy();
+    this.sim = null;
+    const scene = this.startScene(match.sim, match, match.me, match);
+    scene.speed = 1;
+    this.hud!.toast(match.spectator ? 'Você está assistindo à partida.' : `Você comanda: ${match.roles.join(', ')}.`, 'good');
+    void online;
   }
 
   save(silent = false): boolean {
@@ -404,6 +468,7 @@ export class App {
     this.hud?.destroy();
     this.hud = null;
     this.sim = null;
+    if (this.online.match) this.online.quitMatch();
     this.phaser.scene.stop('game');
     this.phaser.scene.start('menu');
     this.showMainMenu();

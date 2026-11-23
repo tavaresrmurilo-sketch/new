@@ -43,19 +43,31 @@ export class MenuScene extends Phaser.Scene {
     const box = Math.min(W * 0.62, H * 0.95);
     const scale = box / Math.max(map.width, map.height);
     const ox = W * 0.52 - (map.width * scale) / 2, oy = H * 0.46 - (map.height * scale) / 2;
-    const g = this.add.graphics();
+    // desenhado uma única vez numa textura (evita retriangular ~11 mil vértices por quadro)
     const lula = new Set<string>(DISTRIBUTIONS.eleitoral.lula), bolso = new Set<string>(DISTRIBUTIONS.eleitoral.bolso);
-    for (const s of map.states) {
-      const col = lula.has(s.uf) ? FACTIONS.lula.color : bolso.has(s.uf) ? FACTIONS.bolso.color : 0x8a8468;
-      g.fillStyle(col, 0.22);
-      g.lineStyle(1.2, 0xffe2b0, 0.3);
-      for (const r of s.rings) {
-        const pts: Phaser.Math.Vector2[] = [];
-        for (let i = 0; i < r.length; i += 4) pts.push(new Phaser.Math.Vector2(ox + r[i] * scale, oy + r[i + 1] * scale));
-        g.fillPoints(pts, true);
-        g.strokePoints(pts, true);
+    const mw = Math.ceil(map.width * scale), mh = Math.ceil(map.height * scale);
+    const key = `menu-map-${mw}x${mh}`;
+    if (!this.textures.exists(key)) {
+      const tex = this.textures.createCanvas(key, mw, mh);
+      if (tex) {
+        const ctx = tex.getContext();
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = 'rgba(255,226,176,0.3)';
+        for (const st of map.states) {
+          const col = lula.has(st.uf) ? FACTIONS.lula.color : bolso.has(st.uf) ? FACTIONS.bolso.color : 0x8a8468;
+          ctx.fillStyle = `rgba(${(col >> 16) & 255},${(col >> 8) & 255},${col & 255},0.22)`;
+          for (const r of st.rings) {
+            ctx.beginPath();
+            for (let i = 0; i < r.length; i += 4) ctx.lineTo(r[i] * scale, r[i + 1] * scale);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          }
+        }
+        tex.refresh();
       }
     }
+    const g = this.add.image(ox, oy, key).setOrigin(0);
     this.tweens.add({ targets: g, alpha: { from: 0.75, to: 1 }, duration: 2600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     this.flashes = this.add.graphics();

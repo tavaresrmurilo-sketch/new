@@ -7,12 +7,18 @@ import { INCOME_SCALE, TRADE_RATE, type Game } from '@shared/sim/game';
 import { newAIState } from '@shared/sim/setup';
 import type { GameScene, SceneHooks } from '../scenes/GameScene';
 import type { App } from '../app';
-import type { BuildingType, Faction, Res, ResKey, SimEvent, Unit, UnitType } from '@shared/sim/types';
+import type { BuildingType, Faction, Formation, Res, ResKey, Role, SimEvent, Unit, UnitType } from '@shared/sim/types';
+import { ROLE_INFO } from '@shared/net/protocol';
+import { roleCan } from '@shared/net/commands';
+import { FORMATIONS, FORMATION_LIST, RANKS, rankOf, RESERVES, REGION_BONUSES, GAME_EVENTS, MORALE } from '@shared/sim/rules';
 import { audio } from '../audio/audio';
-import { deleteSave, recordResult } from '../persist/storage';
+import { deleteSave, effectiveQuality, recordResult } from '../persist/storage';
 import { portraitURI, flagURI, ICON } from './art';
 import { el, esc, fmt, fmtRate, fmtTime, modal } from './dom';
 import { howToPlayHTML } from './help';
+import type { Online } from '../online/online';
+import type { OnlineMatch } from '../online/match';
+import type { MatchResult } from '@shared/net/protocol';
 
 const RES_ICON: Record<ResKey, string> = { money: ICON.money, fuel: ICON.fuel, steel: ICON.steel, supplies: ICON.supplies };
 const RES_NAME: Record<ResKey, string> = { money: 'Dinheiro', fuel: 'Combustível', steel: 'Aço', supplies: 'Suprimentos' };
@@ -39,7 +45,7 @@ export class HUD {
   private endShown = false;
   private logSig = '';
 
-  constructor(private app: App, private sim: Game) {
+  constructor(private app: App, private sim: Game, private online: Online | null = null) {
     this.mmBg = document.createElement('canvas');
     this.root = el(`<div class="hud">
       <div class="hud-top">
@@ -70,8 +76,8 @@ export class HUD {
         </div>
       </div>
       <div class="hud-right">
-        <div class="panel" data-objpanel><div class="ph">${ICON.flag} Objetivos</div><div class="objs" data-objs></div></div>
-        <div class="panel"><div class="ph">${ICON.swords} Relatório de batalha</div><div class="log" data-log></div></div>
+        <div class="panel" data-objpanel><div class="ph interactive" data-act="toggleobj" style="cursor:pointer">${ICON.flag} Objetivos e regiões <span class="spacer"></span>▾</div><div class="objs" data-objs></div></div>
+        <div class="panel logpanel"><div class="ph">${ICON.swords} Relatório de batalha</div><div class="log" data-log></div></div>
       </div>
       <div class="hud-bottom">
         <div class="panel minimap interactive"><canvas data-minimap width="416" height="428" aria-label="Minimapa"></canvas></div>
@@ -91,6 +97,7 @@ export class HUD {
         </div>
       </div>
       <div class="toasts" data-toasts></div>
+      <div class="netbanner hidden" data-netbanner>Conexão com o servidor perdida — reconectando… A partida continua no servidor.</div>
       <div class="banner hidden" data-banner></div>
       <div class="modeline hidden" data-modeline></div>
       <div class="paused-tag hidden" data-paused>PAUSADO</div>
@@ -108,12 +115,19 @@ export class HUD {
       toast: (m, k) => this.toast(m, k ?? 'info'),
       autosave: () => { if (this.app.settings.autosave) this.app.save(true); },
       openPause: () => this.showPause(),
-      settings: () => this.app.settings,
+      settings: () => ({ ...this.app.settings, quality: effectiveQuality(this.app.settings) }),
     };
   }
 
   attach(scene: GameScene): void {
     this.scene = scene;
+    if (this.online) {
+      this.root.classList.add('is-online');
+      this.root.querySelector<HTMLElement>('[data-speed]')!.classList.add('hidden');
+      this.root.querySelector<HTMLElement>('[data-objpanel]')!.classList.add('collapsed');
+      this.online.mountMatchPanel(this.root.querySelector<HTMLElement>('.hud-right')!);
+      window.addEventListener('keydown', this.onlineKeys, true);
+    }
     if (this.sim.w.settings.mode === 'sandbox') this.root.querySelector('[data-act="swap"]')!.classList.remove('hidden');
     if (this.sim.w.settings.mode === 'sandbox' || this.sim.w.settings.mode === 'local') this.root.querySelector<HTMLElement>('[data-objpanel]')!.classList.toggle('hidden', this.sim.w.settings.mode === 'sandbox');
     this.renderStatic();
@@ -122,7 +136,16 @@ export class HUD {
     if (this.sim.w.turn && this.sim.w.turn.phase === 'plan') this.showHandoff(this.sim.w.turn.active);
   }
 
+  private onlineKeys = (e: KeyboardEvent): void => {
+    const tag = (e.target as HTMLElement)?.tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    if (e.key === 'Tab') { e.preventDefault(); this.online?.showScoreboard(); }
+    if (e.key === 'Enter') { e.preventDefault(); this.online?.focusChat(); }
+  };
+
   destroy(): void {
+    window.removeEventListener('keydown', this.onlineKeys, true);
+    this.online?.unmountMatchPanel();
     clearInterval(this.timer);
     this.root.remove();
     this.app.ui.querySelectorAll('.modal-back').forEach((n) => n.remove());
@@ -194,30 +217,51 @@ export class HUD {
       case 'zin': sc.zoomBy(1.25); break;
       case 'zout': sc.zoomBy(0.8); break;
       case 'swap': this.swapSide(); break;
+      case 'toggleobj': this.root.querySelector('[data-objpanel]')!.classList.toggle('collapsed'); break;
     }
   }
 
   private selAction(a: string, arg: string): void {
-    const sim = this.sim, sc = this.scene, me = this.me;
-    if (!sc.controllable && ['recruit', 'build', 'cancelq', 'cancelb', 'rally', 'clearrally'].includes(a)) {
+    const sc = this.scene;
+    if (!sc.controllable && ['recruit', 'build', 'cancelq', 'cancelb', 'rally', 'clearrally', 'reserves', 'transfer'].includes(a)) {
       this.toast('Aguarde sua vez de dar ordens.', 'warn');
       return;
     }
     switch (a) {
-      case 'recruit': {
-        const err = sim.recruit(me, sc.selState, arg as UnitType);
-        if (err) { this.toast(err, 'error'); audio.play('error'); } else audio.play('recruit');
+      case 'recruit':
+        if (sc.send({ k: 'recruit', s: sc.selState, unit: arg as UnitType })) audio.play('recruit');
         break;
-      }
-      case 'build': {
-        const err = sim.build(me, sc.selState, arg as BuildingType);
-        if (err) { this.toast(err, 'error'); audio.play('error'); } else audio.play('build');
+      case 'build':
+        if (sc.send({ k: 'build', s: sc.selState, b: arg as BuildingType })) audio.play('build');
         break;
-      }
-      case 'cancelq': sim.cancelRecruit(me, sc.selState, +arg); break;
-      case 'cancelb': sim.cancelBuild(me, sc.selState); break;
+      case 'cancelq': sc.send({ k: 'cancelRecruit', s: sc.selState, i: +arg }); break;
+      case 'cancelb': sc.send({ k: 'cancelBuild', s: sc.selState }); break;
       case 'rally': sc.setMode({ kind: 'rally' }); this.toast('Clique no mapa para definir o ponto de encontro das novas tropas.'); break;
-      case 'clearrally': sim.setRally(me, sc.selState, null); break;
+      case 'clearrally': sc.send({ k: 'rally', s: sc.selState, x: null, y: 0 }); break;
+      case 'reserves':
+        if (sc.send({ k: 'reserves', s: sc.selState })) { audio.play('recruit'); this.toast('Reservistas convocados!', 'good'); }
+        break;
+      case 'transfer': {
+        const ids = sc.selectedUnits().filter((u) => sc.canControl(u)).map((u) => u.id);
+        if (ids.length && sc.send({ k: 'transfer', ids, to: arg as Role })) {
+          this.toast(`${ids.length} unidade(s) transferida(s) para ${ROLE_INFO[arg as Role].short}.`, 'good');
+          sc.clearSelection();
+        }
+        break;
+      }
+      case 'recon': sc.issueRecon(); break;
+      case 'form': {
+        sc.formation = arg as Formation;
+        this.toast(`Formação: ${FORMATIONS[arg as Formation].name} — ${FORMATIONS[arg as Formation].desc}`);
+        // reorganiza imediatamente as unidades selecionadas na nova formação, no lugar onde estão
+        const us = sc.selectedUnits().filter((u) => sc.canControl(u));
+        if (us.length && arg !== 'escolta') {
+          const cx = us.reduce((a, u) => a + u.x, 0) / us.length, cy = us.reduce((a, u) => a + u.y, 0) / us.length;
+          sc.send({ k: 'move', ids: us.map((u) => u.id), x: cx, y: cy, aggressive: false, form: arg as Formation });
+        }
+        break;
+      }
+      case 'escort': sc.setMode({ kind: 'escort' }); this.toast('Clique numa unidade aliada para escoltá-la.'); break;
       case 'focus': sc.focusSelection(); break;
       case 'onlytype': sc.setSelection(sc.selectedUnits().filter((u) => u.type === arg).map((u) => u.id)); break;
       case 'state': sc.selectState(+arg); sc.focusSelection(); break;
@@ -259,11 +303,19 @@ export class HUD {
         this.renderMode();
         break;
       case 'gameover':
-        this.showEnd(e.winner, e.reason);
+        if (!this.online) this.showEnd(e.winner, e.reason, !!e.draw);
         break;
       default:
         break;
     }
+  }
+
+  /** Notificação com botão de ação (ex.: aprovar troca de função). */
+  toastAction(msg: string, label: string, fn: () => void): void {
+    const t = el(`<div class="toast warn">${esc(msg)} <button class="btn small primary">${esc(label)}</button></div>`);
+    t.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); fn(); t.remove(); });
+    this.toastsEl.prepend(t);
+    setTimeout(() => t.remove(), 15000);
   }
 
   toast(msg: string, kind: 'info' | 'warn' | 'error' | 'alert' | 'good' = 'info', state?: number): void {
@@ -311,7 +363,7 @@ export class HUD {
         ban.classList.add(w.turn.active);
         ban.innerHTML = `TURNO ${w.turn.n} — PLANEJAMENTO: ${esc(FACTIONS[w.turn.active].name.toUpperCase())} <button class="btn primary small" data-act="endplan">Concluir planejamento ▶</button>`;
         ban.querySelector('[data-act="endplan"]')!.addEventListener('click', () => {
-          this.sim.endPlanning();
+          this.scene.send({ k: 'endPlanning' });
           this.scene.clearSelection();
           if (this.sim.w.turn?.phase === 'plan') this.showHandoff(this.sim.w.turn.active);
           this.renderMode();
@@ -379,7 +431,15 @@ export class HUD {
     const html = OBJECTIVES.map((o) => {
       const done = fr.objectives.includes(o.id);
       return `<div class="o ${done ? 'done' : ''}" title="${esc(o.desc)}"><span class="chk">${done ? '✔' : '◻'}</span><span><b>${esc(o.name)}</b> — ${esc(o.desc)}</span></div>`;
-    }).join('') + `<div class="o"><span class="chk">★</span><span><b>Vitória</b> — domine os 27 territórios ou force a rendição (inimigo com ≤2 estados e você com ≥15).</span></div>`;
+    }).join('') + `<div class="o"><span class="chk">★</span><span><b>Vitória</b> — ${this.victoryText()}</span></div>`
+      + REGION_BONUSES.map((rb) => {
+        const held = this.sim.regionBonus(this.me, rb.region);
+        return `<div class="o ${held ? 'done-good' : ''}" title="Domine todos os estados da região"><span class="chk">${held ? '◆' : '◇'}</span><span><b>${esc(rb.region)}</b>: ${esc(rb.name)} — ${esc(rb.desc)}</span></div>`;
+      }).join('')
+      + (this.sim.w.gevents ?? []).filter((e) => e.until > this.sim.w.time).map((e) => {
+        const d = GAME_EVENTS.find((x) => x.id === e.id);
+        return d ? `<div class="o event"><span class="chk">⚡</span><span><b>${esc(d.name)}</b> (${Math.ceil(e.until - this.sim.w.time)} s): ${esc(d.desc)}</span></div>` : '';
+      }).join('');
     const box = this.root.querySelector('[data-objs]')!;
     if (box.innerHTML !== html) box.innerHTML = html;
   }
@@ -446,8 +506,10 @@ export class HUD {
           <div class="stat">Abates: <b data-u="kills"></b></div>
           <div class="stat">Ordem: <b data-u="order"></b></div>
           <div class="stat">Suprimento: <b data-u="sup"></b></div>
+          <div class="stat">Patente: <b data-u="rank"></b> · Moral: <b data-u="morale"></b></div>
+          <div class="stat">Função: <b>${esc(ROLE_INFO[u.ctrl].short)}</b> · Formação: <b>${esc(FORMATIONS[u.form ?? 'livre'].name)}</b></div>
           ${u.type === 'plane' ? `<div class="stat">Munição: <b data-u="ammo"></b> · Combustível: <b data-u="fuel"></b></div><div class="stat">Situação: <b data-u="phase"></b></div>` : ''}
-        </div>`;
+        </div>${this.orderTools(units)}`;
     }
     const counts = new Map<UnitType, number>();
     for (const u of units) counts.set(u.type, (counts.get(u.type) ?? 0) + 1);
@@ -455,7 +517,32 @@ export class HUD {
       <div class="bar"><i data-u="hpbar"></i></div>
       <div class="row">${[...counts].map(([t, n]) => `<span class="unit-chip" data-sa="onlytype" data-arg="${t}" title="Selecionar só ${esc(UNIT_DEFS[t].plural)}"><img src="${app.unitIcon(t, units[0].f)}" alt="">${n}× ${esc(UNIT_DEFS[t].plural)}</span>`).join('')}</div>
       <div class="stat" style="margin-top:6px">Vida total: <b data-u="hp"></b> · Poder estimado: <b data-u="power"></b> · Fora de suprimento: <b data-u="unsup"></b></div>
-      <div class="row"><button class="btn small" data-sa="focus">${ICON.focus} Focar</button><span class="note">Dica: <span class="kbd">Ctrl</span>+<span class="kbd">1-9</span> cria um grupo.</span></div>`;
+      <div class="row"><button class="btn small" data-sa="focus">${ICON.focus} Focar</button><span class="note">Dica: <span class="kbd">Ctrl</span>+<span class="kbd">1-9</span> cria um grupo.</span></div>${this.orderTools(units)}`;
+  }
+
+  private victoryText(): string {
+    const st = this.sim.w.settings;
+    const rule = st.victory ?? 'padrao';
+    const base = rule === 'sede' ? 'capture a sede original do inimigo, domine os 27 territórios ou elimine o inimigo'
+      : rule === 'total' ? 'domine os 27 territórios ou elimine o inimigo'
+        : 'domine os 27 territórios ou force a rendição (inimigo com ≤2 estados e você com ≥15)';
+    return st.maxDuration ? `${base}. Limite de ${st.maxDuration} min: vence quem tiver mais estados.` : `${base}.`;
+  }
+
+  /** Ferramentas de ordens para as unidades selecionadas: formação, escolta, sensores e transferência. */
+  private orderTools(units: Unit[]): string {
+    const sc = this.scene;
+    const forms = FORMATION_LIST.map((f: Formation) => `<button class="btn small ${sc.formation === f ? 'active' : ''}" data-sa="form" data-arg="${f}" title="${esc(FORMATIONS[f].desc)}">${esc(FORMATIONS[f].name)}</button>`).join('');
+    const hasRecon = units.some((u) => u.type === 'recon');
+    let html = `<div class="section-t">Formação das próximas ordens</div><div class="row">${forms}</div>
+      <div class="row"><button class="btn small" data-sa="escort" title="Clique depois numa unidade aliada">Escoltar unidade</button>${hasRecon ? `<button class="btn small" data-sa="recon" title="Revela a área ao redor dos batedores por 30 s">Lançar sensor</button>` : ''}</div>`;
+    if (sc.driver.online && !sc.driver.spectator) {
+      const mine = units.filter((u) => sc.canControl(u));
+      if (mine.length) {
+        html += `<div class="section-t">Transferir para outra função</div><div class="row">${(['comandante', 'infantaria', 'blindados', 'aereo', 'logistica'] as Role[]).map((r) => `<button class="btn small" data-sa="transfer" data-arg="${r}" title="${esc(ROLE_INFO[r].name)}">${esc(ROLE_INFO[r].short)}</button>`).join('')}</div>`;
+      }
+    }
+    return html;
   }
 
   private unitsDynamic(box: HTMLElement, units: Unit[]): void {
@@ -469,6 +556,8 @@ export class HUD {
       set('kills', String(u.kills));
       set('order', u.type === 'plane' ? PLANE_PHASE[u.phase] : ORDER_LABEL[u.order.kind] ?? '');
       set('sup', u.supplied ? 'Abastecido' : 'SEM SUPRIMENTO (−40% dano, desgaste)');
+      set('rank', RANKS[rankOf(u.xp)].name + (u.xp >= 3 ? ` (+${rankOf(u.xp) * 7}%)` : ''));
+      set('morale', `${Math.round(u.morale)}${u.routed ? ' — EM RETIRADA' : u.morale < MORALE.shaken ? ' — abalada' : ''}`);
       if (u.type === 'plane') { set('ammo', `${u.ammo}/${d.ammo}`); set('fuel', `${Math.ceil(u.fuel)}s`); set('phase', PLANE_PHASE[u.phase]); }
     } else {
       set('hp', `${Math.ceil(hp)}/${max}`);
@@ -523,6 +612,7 @@ export class HUD {
         <span class="top"><img src="${app.unitIcon(t, me)}" alt="">${esc(d.name)}</span>
         <span class="cost">${costHTML(c, sim.w.factions[me].res, sim.w.factions[me].infinite)} <span>${ICON.clock}${d.buildTime}s</span> <span>${ICON.troops}${d.pop}</span></span></button>`;
     }).join('')}</div>`;
+    html += `<div class="row"><button class="btn small danger" data-sa="reserves" data-res title="Contra-ataque: ${RESERVES.count} reservistas surgem na capital (só em estados sob ameaça; recarga ${RESERVES.cooldown} s)">${ICON.shield} Convocar reservas ($${RESERVES.cost.money} · ${RESERVES.cost.supplies} supr.)</button></div>`;
     html += `<div class="queue">${s.queue.map((q, i) => `<div class="qi" data-sa="cancelq" data-arg="${i}" title="${esc(UNIT_DEFS[q.type].name)} — clique para cancelar (reembolso total)"><img src="${app.unitIcon(q.type, me)}" alt=""><span class="p" data-q="${i}"></span></div>`).join('')}</div>
       <div class="row"><button class="btn small" data-sa="rally">${ICON.flag} Ponto de encontro</button>${s.rally ? `<button class="btn small" data-sa="clearrally">Remover ponto</button>` : ''}<button class="btn small" data-sa="focus">${ICON.focus} Focar</button></div>`;
     return html;
@@ -545,15 +635,22 @@ export class HUD {
     s.queue.forEach((q, i) => { const p = box.querySelector<HTMLElement>(`[data-q="${i}"]`); if (p) p.style.width = i === 0 ? `${(q.t / q.total) * 100}%` : '0'; });
     if (s.owner !== me) return;
     const fr = sim.w.factions[me];
+    const roles = this.scene.driver.roles;
     box.querySelectorAll<HTMLButtonElement>('[data-rk]').forEach((b) => {
-      const err = sim.recruitCheck(me, si, b.dataset.rk as UnitType);
+      const err = !roleCan(roles, `recruit:${b.dataset.rk}`) ? 'Sua função militar não recruta esta unidade.' : sim.recruitCheck(me, si, b.dataset.rk as UnitType);
       b.disabled = !!err;
       b.title = err ?? UNIT_DEFS[b.dataset.rk as UnitType].desc;
       const cost = sim.costOf(me, b.dataset.rk as UnitType);
       b.querySelectorAll<HTMLElement>('[data-ck]').forEach((sp) => sp.classList.toggle('no', !fr.infinite && fr.res[sp.dataset.ck as ResKey] < cost[sp.dataset.ck as ResKey]));
     });
+    const rb = box.querySelector<HTMLButtonElement>('[data-res]');
+    if (rb) {
+      const err = !roleCan(roles, 'reserves') ? 'Apenas Comandante ou Logística convocam reservas.' : sim.reservesCheck(me, si);
+      rb.disabled = !!err;
+      rb.title = err ?? `Convoca ${RESERVES.count} reservistas imediatamente.`;
+    }
     box.querySelectorAll<HTMLButtonElement>('[data-bk]').forEach((b) => {
-      const err = sim.buildCheck(me, si, b.dataset.bk as BuildingType);
+      const err = !roleCan(roles, 'build') ? 'Apenas o Ministro de Logística constrói.' : sim.buildCheck(me, si, b.dataset.bk as BuildingType);
       b.disabled = !!err;
       b.title = err ?? BUILDING_DEFS[b.dataset.bk as BuildingType].desc;
     });
@@ -643,17 +740,17 @@ export class HUD {
     if (this.pauseOpen || this.endShown) return;
     this.pauseOpen = true;
     const wasPaused = this.scene.userPaused;
-    this.scene.userPaused = true;
+    if (!this.online) this.scene.userPaused = true;
     this.renderMode();
     const body = `<div style="display:flex;flex-direction:column;gap:8px">
       <button class="btn primary" data-close>${ICON.play} Continuar</button>
-      <button class="btn" data-p="save">${ICON.save} Salvar partida</button>
+      ${this.online ? '<p class="note">Partida online: o tempo não para e o servidor guarda o progresso.</p>' : `<button class="btn" data-p="save">${ICON.save} Salvar partida</button>`}
       <button class="btn" data-p="report">${ICON.report} Relatório de batalha</button>
       <button class="btn" data-p="trade">${ICON.trade} Mercado de recursos</button>
       <button class="btn" data-p="settings">${ICON.gear} Configurações</button>
       <button class="btn" data-p="help">${ICON.info} Como jogar</button>
-      <button class="btn danger" data-p="surrender">${ICON.flag} Render-se</button>
-      <button class="btn" data-p="menu">${ICON.home} Sair para o menu</button></div>`;
+      <button class="btn danger" data-p="surrender">${ICON.flag} Render-se${this.online ? ' (só o Comandante Supremo)' : ''}</button>
+      <button class="btn" data-p="menu">${ICON.home} ${this.online ? 'Sair da partida' : 'Sair para o menu'}</button></div>`;
     const { back, close } = modal(this.app.ui, 'Pausa', body, '', true);
     const done = () => { this.pauseOpen = false; this.scene.userPaused = wasPaused; this.renderMode(); };
     const obs = new MutationObserver(() => { if (!back.isConnected) { obs.disconnect(); done(); } });
@@ -667,10 +764,11 @@ export class HUD {
       if (p === 'settings') this.app.showSettings();
       if (p === 'help') modal(this.app.ui, 'Como jogar', howToPlayHTML(), `<button class="btn primary" data-close>Entendi</button>`);
       if (p === 'surrender') {
-        if (confirm('Assinar a rendição? A partida termina em derrota.')) { close(); this.sim.surrender(this.me); }
+        if (confirm('Assinar a rendição? A partida termina em derrota.')) { if (this.scene.send({ k: 'surrender' })) close(); }
       }
       if (p === 'menu') {
-        if (this.sim.w.settings.mode !== 'sandbox' && !this.sim.w.winner) this.app.save(true);
+        if (this.online && !confirm('Sair da partida online? Sua função passa para a IA da equipe.')) return;
+        if (!this.online && this.sim.w.settings.mode !== 'sandbox' && !this.sim.w.winner) this.app.save(true);
         close();
         this.app.toMenu();
       }
@@ -699,9 +797,9 @@ export class HUD {
       }
       const amt = t.closest<HTMLElement>('[data-amt]')?.dataset.amt;
       if (amt) {
-        const err = this.sim.trade(me, state.from, state.to, +amt);
-        if (err) { this.toast(err, 'error'); audio.play('error'); }
-        else { this.toast(`Vendido ${amt} de ${RES_NAME[state.from]} por ${Math.floor(+amt * TRADE_RATE)} de ${RES_NAME[state.to]}.`, 'good'); }
+        if (this.scene.send({ k: 'trade', from: state.from, to: state.to, amount: +amt })) {
+          this.toast(`Ordem: vender ${amt} de ${RES_NAME[state.from]} por ${Math.floor(+amt * TRADE_RATE)} de ${RES_NAME[state.to]}.`, 'good');
+        }
         note();
       }
     });
@@ -775,9 +873,31 @@ export class HUD {
     this.toast(`Agora você controla o ${FACTIONS[nf].name}.`);
   }
 
-  private showEnd(winner: Faction, reason: string): void {
+  /** Tela final de partidas online (resultado oficial do servidor). */
+  showOnlineEnd(result: MatchResult, match: OnlineMatch): void {
     if (this.endShown) return;
     this.endShown = true;
+    const won = !!match.team && result.winner === match.team;
+    audio.playMusic(null);
+    audio.play(result.draw ? 'defeat' : match.spectator ? 'victory' : won ? 'victory' : 'defeat');
+    const title = result.draw ? 'EMPATE' : match.spectator ? `VITÓRIA DO ${FACTIONS[result.winner!].name.toUpperCase()}` : won ? 'VITÓRIA' : 'DERROTA';
+    const flag = result.winner ? `<img class="end-flag" src="${flagURI(result.winner)}" width="140" alt="">` : '';
+    const body = `<div class="end-hero cine ${won || match.spectator ? 'win' : 'lose'}">${flag}<h1>${esc(title)}</h1>
+      <p>${esc(result.reason)}</p><p class="note">Duração: ${fmtTime(result.duration)} · Sala ${esc(result.code)}</p></div>${this.online!.scoreTable(result)}`;
+    const { back } = modal(this.app.ui, 'Fim da guerra', body, `<button class="btn" data-close>Ver o mapa</button><button class="btn primary" data-menu>${ICON.home} Menu principal</button>`);
+    back.querySelector('[data-menu]')!.addEventListener('click', () => this.app.toMenu());
+  }
+
+  private showEnd(winner: Faction, reason: string, draw = false): void {
+    if (this.endShown) return;
+    this.endShown = true;
+    if (draw) {
+      audio.playMusic(null);
+      audio.play('defeat');
+      const { back } = modal(this.app.ui, 'Fim da guerra', `<div class="end-hero cine lose"><h1>EMPATE</h1><p>${esc(reason)}</p></div>${this.statsTable()}`, `<button class="btn" data-close>Ver o mapa</button><button class="btn primary" data-menu>${ICON.home} Menu principal</button>`);
+      back.querySelector('[data-menu]')!.addEventListener('click', () => this.app.toMenu());
+      return;
+    }
     const w = this.sim.w;
     const mode = w.settings.mode;
     const local = mode === 'local';
@@ -787,7 +907,7 @@ export class HUD {
     audio.playMusic(null);
     audio.play(won ? 'victory' : 'defeat');
     const title = local ? `VITÓRIA DO ${FACTIONS[winner].name.toUpperCase()}` : won ? 'VITÓRIA' : 'DERROTA';
-    const body = `<div class="end-hero ${won ? 'win' : 'lose'}"><img src="${flagURI(winner)}" width="120" style="border:2px solid #000" alt=""><h1>${esc(title)}</h1>
+    const body = `<div class="end-hero cine ${won ? 'win' : 'lose'}"><img class="end-flag" src="${flagURI(winner)}" width="140" alt=""><h1>${esc(title)}</h1>
       <p>${esc(reason)}</p><p class="note">Duração: ${fmtTime(w.time)}</p></div>${this.statsTable()}`;
     const { back } = modal(this.app.ui, 'Fim da guerra', body, `<button class="btn" data-close>Ver o mapa</button><button class="btn primary" data-menu>${ICON.home} Menu principal</button>`);
     back.querySelector('[data-menu]')!.addEventListener('click', () => this.app.toMenu());

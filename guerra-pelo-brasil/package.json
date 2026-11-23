@@ -16,7 +16,9 @@
     "dev:server": "tsx watch server/index.ts",
     "build:server": "node scripts/build-server.mjs",
     "build:all": "npm run build && npm run build:server",
-    "start": "node dist-server/server.mjs"
+    "start": "node dist-server/server.mjs",
+    "test:e2e": "node tests/e2e/online-10.e2e.cjs",
+    "test:all": "npm run build:all && npm test && npm run test:e2e"
   },
   "license": "UNLICENSED",
   "dependencies": {

@@ -9,6 +9,14 @@ export interface Settings {
   particles: boolean;
   defaultSpeed: number;
   autosave: boolean;
+  /** qualidade gráfica */
+  quality: 'auto' | 'baixo' | 'medio' | 'alto';
+  /** endereço do servidor online (vazio = automático) */
+  serverUrl: string;
+  nick: string;
+  avatar: string;
+  /** alto contraste/realce de seleção (acessibilidade) */
+  highContrast: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -19,7 +27,22 @@ export const DEFAULT_SETTINGS: Settings = {
   particles: true,
   defaultSpeed: 1,
   autosave: true,
+  quality: 'auto',
+  serverUrl: '',
+  nick: '',
+  avatar: 'capacete',
+  highContrast: false,
 };
+
+/** Resolve a qualidade "automática" pelo hardware disponível. */
+export function effectiveQuality(s: Settings): 'baixo' | 'medio' | 'alto' {
+  if (s.quality !== 'auto') return s.quality;
+  const cores = navigator.hardwareConcurrency || 2;
+  const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 4;
+  if (cores <= 2 || mem <= 2) return 'baixo';
+  if (cores <= 4 || mem <= 4) return 'medio';
+  return 'alto';
+}
 
 const PREFIX = 'gpb.v1.';
 
