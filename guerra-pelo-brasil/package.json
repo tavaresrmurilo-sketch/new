@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "map": "node scripts/build-map.mjs",
-    "simulate": "vitest run tests/fullmatch.test.ts"
+    "simulate": "vitest run tests/fullmatch.test.ts",
+    "release": "npm run build && node scripts/release.mjs"
   },
   "license": "UNLICENSED",
   "dependencies": {

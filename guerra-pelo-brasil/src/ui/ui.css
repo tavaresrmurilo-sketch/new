@@ -112,10 +112,10 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .note { color: var(--muted); font-size: 12px; }
 
 /* ---------- HUD ---------- */
-.hud-top { position: absolute; top: 0; left: 0; right: 0; height: 46px; display: flex; align-items: center; gap: 6px; padding: 0 8px; background: linear-gradient(180deg, rgba(8,11,9,.96), rgba(8,11,9,.82)); border-bottom: 1px solid var(--line); pointer-events: auto; }
+.hud-top { position: absolute; top: 0; left: 0; right: 0; height: 46px; display: flex; align-items: center; gap: 6px; padding: 0 8px; overflow: hidden; background: linear-gradient(180deg, rgba(8,11,9,.96), rgba(8,11,9,.82)); border-bottom: 1px solid var(--line); pointer-events: auto; }
 .hud-top .fac { display: flex; align-items: center; gap: 8px; font-family: var(--head); letter-spacing: .06em; font-size: 15px; padding-right: 8px; border-right: 1px solid var(--line); white-space: nowrap; }
 .hud-top .fac img { width: 34px; height: 23px; border: 1px solid #000; }
-.res { display: flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 4px; background: rgba(255,255,255,.03); border: 1px solid transparent; min-width: 0; cursor: default; }
+.res { display: flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 4px; background: rgba(255,255,255,.03); border: 1px solid transparent; min-width: 0; cursor: default; white-space: nowrap; flex: none; }
 .res:hover { border-color: var(--line-2); }
 .res .ic { font-size: 18px; display: flex; }
 .res .v { font-family: var(--head); font-size: 16px; letter-spacing: .03em; font-variant-numeric: tabular-nums; }
@@ -217,6 +217,9 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .splash p { color: #d6d0b8; line-height: 1.55; font-size: 14px; }
 
 /* ---------- responsivo ---------- */
+@media (max-width: 1500px) {
+  .res .d { display: none; }
+}
 @media (max-width: 1100px) {
   .hud-right { width: 240px; }
   .hud-left { width: 200px; }
@@ -237,4 +240,41 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 @media (max-height: 640px) {
   .cmd-portraits { display: none; }
   .selpanel { max-height: 190px; }
+}
+@media (max-height: 800px) {
+  .selpanel { max-height: 230px; }
+}
+/* celulares e telas baixas (paisagem) */
+@media (max-height: 520px) {
+  #ui { font-size: 12px; }
+  .hud-top { height: 34px; gap: 3px; }
+  .hud-top .fac span { display: none; }
+  .hud-top .fac img { width: 26px; height: 18px; }
+  .res { padding: 2px 5px; gap: 3px; }
+  .res .v { font-size: 13px; }
+  .res .ic { font-size: 14px; }
+  .speed .btn, .hud-top .btn.icon { min-width: 0; padding: 3px 6px; font-size: 11px; }
+  .hud-left { top: 40px; width: 150px; }
+  .hud-left .panel .ph, .buffs, .cmd-portraits { display: none; }
+  .abilities { padding: 6px; gap: 4px; }
+  .ability { font-size: 10px; padding: 5px 6px; letter-spacing: .02em; }
+  .hud-right, .minimap { display: none; }
+  .hud-bottom { left: 4px; right: 4px; bottom: 4px; gap: 4px; }
+  .selpanel { max-height: 120px; min-height: 0; padding: 6px 8px; }
+  .selpanel h3 { font-size: 14px; }
+  .unit-chip img, .rbtn .top img { width: 18px; height: 18px; }
+  .actions { width: 128px; gap: 3px; padding: 4px; }
+  .actions .btn { font-size: 9.5px; padding: 5px 2px; }
+  .modeline { bottom: 140px; }
+  .modal { max-height: 96vh; }
+  .modal .body { padding: 10px 12px; }
+  .menu-root { padding: 10px 14px; gap: 10px; }
+  .logo { margin-bottom: 6px; }
+  .logo .t1 { font-size: 30px; }
+  .logo .t2 { font-size: 13px; }
+  .menu-btn { padding: 7px 12px; font-size: 14px; }
+  .fcard .portraits { height: 96px; }
+  .fcard ul { display: none; }
+  .toasts { top: 38px; }
+  .banner { top: 38px; font-size: 12px; padding: 4px 8px; }
 }

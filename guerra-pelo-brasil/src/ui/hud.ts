@@ -336,7 +336,8 @@ export class HUD {
       d.classList.toggle('neg', net < 0);
       v.parentElement!.title = `${RES_NAME[k]}: renda ${fmtRate(fr.income[k])}, manutenção ${fmtRate(-fr.upkeep[k])}`;
     }
-    this.root.querySelector('[data-industry]')!.textContent = `${fr.industry} (×${fr.prodMul.toFixed(2).replace('.', ',')})`;
+    this.root.querySelector('[data-industry]')!.textContent = String(fr.industry);
+    this.root.querySelector<HTMLElement>('[data-industry]')!.parentElement!.title = `Capacidade industrial ${fr.industry}: produção ${fr.prodMul.toFixed(2).replace('.', ',')}× mais rápida`;
     this.root.querySelector('[data-pop]')!.textContent = `${fr.pop}/${fr.infinite ? '∞' : fr.popCap}`;
     this.root.querySelector('[data-states]')!.textContent = `${sim.statesOf(me).length}/27`;
     this.root.querySelector('[data-time]')!.textContent = fmtTime(w.time);
