@@ -66,6 +66,7 @@ export function thinkAI(g: Game, f: Faction): void {
     .filter((x) => x.t > 0.4)
     .sort((a, b) => b.pri - a.pri);
 
+  if (g.w.settings.fog) updateIntel(g, f, ai);
   ai.lost = ai.lost.filter((l) => g.w.time - l.t < 120);
   const lostRecent = ai.lost.filter((l) => g.w.states[l.s].owner !== f).map((l) => l.s);
   const frontier = frontierStates(g, f);
@@ -253,7 +254,7 @@ function scoreTarget(g: Game, f: Faction, ai: AIState, s: number, lostRecent: nu
   if (fr.income.fuel < 2.5) value += info.fuel;
   if (fr.income.steel < 2.5) value += info.steel;
   // defesa local + metade das forças inimigas móveis da região (reforços prováveis)
-  const local = g.hostilePowerNear(c.x, c.y, 280, f, f);
+  const local = estimateLocal(g, f, ai, s);
   const regional = st.owner === 'neutral' ? 0 : g.powerNear(c.x, c.y, 650, st.owner, f) - g.powerNear(c.x, c.y, 280, st.owner, f);
   const defense = g.garrisonPower(s) + local + Math.max(0, regional) * 0.5;
   let cx = 0, cy = 0;
@@ -286,12 +287,20 @@ function manageAttackGroup(
   const units = gr.units.map((id) => byId.get(id)!).filter(Boolean);
   const pw = units.reduce((s, u) => s + power(u), 0);
   const c = g.capital(gr.target);
-  const defense = g.garrisonPower(gr.target) + g.hostilePowerNear(c.x, c.y, 280, f, f);
+  const defense = g.garrisonPower(gr.target) + estimateLocal(g, f, ai, gr.target);
   gr.lastPower = pw;
 
   if (gr.phase === 'gather') {
     const near = units.filter((u) => dist(u.x, u.y, gr.sx, gr.sy) < 230).length;
     if (near >= units.length * 0.7 || g.w.time - gr.t0 > 45) {
+      if (pw < defense * p.attackRatio * 0.8 && g.w.time - gr.t0 < 90) {
+        // reconhecimento na área de reunião revelou defesa maior: aguarda reforços
+        const extra = freeCombat().filter((u) => dist(u.x, u.y, gr.sx, gr.sy) < 900).slice(0, 4);
+        for (const u of extra) { u.group = gr.id; gr.units.push(u.id); }
+        if (extra.length) g.commandMove(f, extra.map((u) => u.id), gr.sx, gr.sy, true);
+        return;
+      }
+      if (pw < defense * 0.6) { for (const u of units) u.group = 0; gr.units = []; return; }
       gr.phase = 'attack';
       gr.t0 = g.w.time;
       g.commandMove(f, gr.units, c.x, c.y, true);
@@ -312,6 +321,22 @@ function manageAttackGroup(
     return;
   }
 
+  // emboscada no caminho: ameaça visível ao redor do próprio grupo (não só no alvo)
+  if (p.groupRetreat && units.length) {
+    const cx = units.reduce((a, u) => a + u.x, 0) / units.length, cy = units.reduce((a, u) => a + u.y, 0) / units.length;
+    const around = g.hostilePowerNear(cx, cy, 260, f, f);
+    if (around > pw * 1.4 && around > 3) {
+      const home = nearestOwned(g, f, cx, cy, true);
+      if (home >= 0) {
+        const hc = g.capital(home);
+        gr.phase = 'retreat';
+        gr.t0 = g.w.time;
+        gr.sx = hc.x; gr.sy = hc.y;
+        g.commandMove(f, gr.units, hc.x, hc.y, false);
+        return;
+      }
+    }
+  }
   // fase de ataque
   if (p.groupRetreat && pw < defense * 0.45 && g.w.time - gr.t0 > 8) {
     gr.phase = 'retreat';
@@ -487,6 +512,7 @@ function produce(g: Game, f: Faction, ai: AIState, p: Params, owned: number[], m
       let best: UnitType | null = null, bestDef = -Infinity;
       for (const t of options) {
         if (t === 'support' && (counts.support ?? 0) >= 3) continue;
+        if (t === 'recon' && (counts.recon ?? 0) >= (g.w.settings.fog ? 3 : 1)) continue;
         const share = (counts[t] ?? 0) / Math.max(1, total);
         let deficit = (comp[t] ?? 0) - share;
         if (ai.strategy === 'defensiva' && (t === 'infantry' || t === 'artillery')) deficit += 0.05;
@@ -559,4 +585,39 @@ function manageRecon(g: Game, f: Faction, ai: AIState, myUnits: Unit[]): void {
     if (g.w.settings.fog && sc.rearmT <= 0 && dist(sc.x, sc.y, target.x, target.y) < 380) g.reconSensor(f, [sc.id]);
     else if (sc.order.kind === 'idle' && dist(sc.x, sc.y, tx, ty) > 80) g.commandMove(f, [sc.id], tx, ty, false);
   });
+}
+
+/** Memória de inteligência sob névoa: registra a força inimiga vista perto de cada capital. */
+function updateIntel(g: Game, f: Faction, ai: AIState): void {
+  ai.intel ??= {};
+  // maior concentração inimiga vista agora (por amostragem nas unidades visíveis)
+  const enemy = enemyOf(f);
+  let peak = 0;
+  const seen = g.visibleUnitsOf(enemy, f);
+  for (let i = 0; i < seen.length; i += 3) peak = Math.max(peak, g.powerNear(seen[i].x, seen[i].y, 220, enemy, f));
+  if (!ai.intelPeak || peak >= ai.intelPeak.p * 0.8 || g.w.time - ai.intelPeak.t > 90) ai.intelPeak = { p: peak, t: g.w.time };
+  for (const s of g.w.states) {
+    if (s.owner === f) continue;
+    const c = g.capital(s.i);
+    if (!g.isVisible(f, c.x, c.y)) continue;
+    ai.intel[s.i] = { p: g.hostilePowerNear(c.x, c.y, 280, f, f), t: g.w.time };
+  }
+}
+
+/** Força defensiva estimada perto de uma capital: o que se vê, ou a memória com cautela pelo desconhecido. */
+function estimateLocal(g: Game, f: Faction, ai: AIState, s: number): number {
+  const c = g.capital(s);
+  const seen = g.hostilePowerNear(c.x, c.y, 280, f, f);
+  if (!g.w.settings.fog || g.isVisible(f, c.x, c.y)) return seen;
+  const mem = ai.intel?.[s];
+  const owner = g.w.states[s].owner;
+  // sem informação recente: supõe uma defesa típica (cautela, não trapaça)
+  const prior = owner === 'neutral' ? 2 + g.map.states[s].info.imp * 0.3 : 4 + g.map.states[s].info.imp * 0.4;
+  // perto do território inimigo, o grosso do exército adversário pode estar escondido na névoa
+  const enemy = enemyOf(f);
+  const contested = owner === enemy || g.map.states[s].adj.some((n) => g.w.states[n].owner === enemy);
+  const peak = contested && ai.intelPeak && g.w.time - ai.intelPeak.t < 150 ? ai.intelPeak.p * 0.6 : 0;
+  if (!mem) return Math.max(seen, prior, peak);
+  const age = g.w.time - mem.t;
+  return Math.max(seen, mem.p, age > 60 ? prior : 0, age > 30 ? peak : 0);
 }

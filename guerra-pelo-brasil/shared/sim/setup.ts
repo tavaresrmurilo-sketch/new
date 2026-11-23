@@ -181,7 +181,7 @@ export function garrisonMax(s: StateRT, map: MapData): number {
   const imp = map.states[s.i].info.imp;
   // grandes centros (importância alta) são fortalezas: cresce com o quadrado da importância
   let hp = 300 + imp * imp * 6 + s.b.fort * 300;
-  if (s.owner === 'lula') hp *= 1.2;
+  if (s.owner === 'lula') hp *= 1.1;
   return Math.round(hp);
 }
 

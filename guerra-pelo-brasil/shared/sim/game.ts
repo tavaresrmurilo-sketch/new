@@ -315,7 +315,7 @@ export class Game {
       if (fr.crisisT > 0) mul *= 0.7;
       for (const k of RES_KEYS) income[k] *= mul * INCOME_SCALE[k];
       if (owned.has(map.byUf.DF)) income.money *= 1.15;
-      if (f === 'lula') income.money *= 1.2; // passiva: estatais a todo vapor
+      if (f === 'lula') income.money *= 1.1; // passiva: estatais a todo vapor
       if (this.regionBonus(f, 'Norte')) income.steel *= 1.2;
       if (this.regionBonus(f, 'Nordeste')) income.supplies *= 1.2;
       if (this.regionBonus(f, 'Sudeste')) income.money *= 1.15;
@@ -804,11 +804,14 @@ export class Game {
     }
 
     if (order.kind === 'move') {
+      // escolta não se afasta da unidade protegida para lutar: atira andando
+      const esc = u.form === 'escolta' && u.escort ? this.unit(u.escort) : undefined;
+      const escortFar = !!esc && Math.hypot(esc.x - u.x, esc.y - u.y) > 60;
       if (tinfo && u.target) {
         if (this.inRange(u, def, tinfo)) {
           if (u.cd <= 0 && !(u.type === 'artillery' && u.moving && !order.aggressive)) this.fire(u, def, u.target, tinfo);
-          if (order.aggressive) { u.moving = false; return; } // para e luta
-        } else if (order.aggressive) {
+          if (order.aggressive && !escortFar) { u.moving = false; return; } // para e luta
+        } else if (order.aggressive && !escortFar) {
           // persegue o alvo próximo e depois retoma a rota
           const d = Math.hypot(tinfo.x - u.x, tinfo.y - u.y);
           if (d <= def.sight * 1.2) {

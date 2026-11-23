@@ -245,6 +245,10 @@ export interface AIState {
   focus: number;
   /** funções controladas por esta IA (multiplayer); ausente = todas */
   roles?: Role[] | null;
+  /** memória de inteligência: força inimiga vista perto de cada capital (névoa) */
+  intel?: Record<number, { p: number; t: number }>;
+  /** maior concentração inimiga vista recentemente (névoa) */
+  intelPeak?: { p: number; t: number };
 }
 
 export interface TurnState {
