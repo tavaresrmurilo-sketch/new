@@ -2,7 +2,8 @@
 // estados, adjacências, raster de estados, grade de navegação e capitais.
 import mapJson from '../data/brazil-map.json';
 import { STATE_INFO, type StateInfo } from '../data/states';
-import type { Vec } from './types';
+import type { TerrainType, Vec } from './types';
+import { TERRAIN, T_RIVER, T_URBAN } from './rules';
 
 export interface StateGeo {
   i: number;
@@ -40,6 +41,8 @@ interface RawMap {
   borders: { a: string; b: string; lines: number[][] }[];
   outline: number[][];
   neighbors: { name: string; ring: number[] }[];
+  terrain: { cell: number; cols: number; rows: number; rle: number[] };
+  terrainShapes: { mata: number[][]; serra: number[][]; pantanal: number[][]; rios: { name: string; line: number[] }[] };
 }
 
 const raw = mapJson as unknown as RawMap;
@@ -71,6 +74,11 @@ export class MapData {
   readonly borders: BorderGeo[];
   readonly outline = raw.outline;
   readonly neighbors = raw.neighbors;
+  readonly terrainShapes = raw.terrainShapes;
+  /** tipo de terreno por célula da grade de navegação */
+  readonly terrain: Uint8Array;
+  /** custo de travessia por célula (A*) */
+  readonly cost: Float32Array;
   readonly cols: number;
   readonly rows: number;
   /** índice do estado por célula (-1 = fora do Brasil) */
@@ -102,9 +110,44 @@ export class MapData {
     this.rows = Math.ceil(this.height / CELL);
     this.grid = new Int8Array(this.cols * this.rows).fill(-1);
     this.walk = new Uint8Array(this.cols * this.rows);
+    this.terrain = new Uint8Array(this.cols * this.rows);
+    this.cost = new Float32Array(this.cols * this.rows);
     this.rasterize();
     this.buildWalkable();
     this.placeCapitals();
+    this.buildTerrain();
+  }
+
+  /** Decodifica o terreno real e marca os centros urbanos ao redor das capitais. */
+  private buildTerrain(): void {
+    const t = raw.terrain;
+    if (t && t.cols === this.cols && t.rows === this.rows) {
+      let k = 0;
+      for (let i = 0; i < t.rle.length; i += 2) {
+        this.terrain.fill(t.rle[i], k, k + t.rle[i + 1]);
+        k += t.rle[i + 1];
+      }
+    }
+    for (const s of this.states) {
+      const r = 46 + s.info.imp * 2;
+      const c0 = Math.floor((s.capital.x - r) / CELL), c1 = Math.floor((s.capital.x + r) / CELL);
+      const r0 = Math.floor((s.capital.y - r) / CELL), r1 = Math.floor((s.capital.y + r) / CELL);
+      for (let rr = r0; rr <= r1; rr++) for (let c = c0; c <= c1; c++) {
+        if (c < 0 || rr < 0 || c >= this.cols || rr >= this.rows) continue;
+        const x = c * CELL + CELL / 2, y = rr * CELL + CELL / 2;
+        const idx = rr * this.cols + c;
+        if (Math.hypot(x - s.capital.x, y - s.capital.y) <= r && this.grid[idx] === s.i && this.terrain[idx] !== T_RIVER) this.terrain[idx] = T_URBAN;
+      }
+    }
+    for (let i = 0; i < this.terrain.length; i++) {
+      if (this.grid[i] < 0) this.terrain[i] = 0;
+      this.cost[i] = TERRAIN[this.terrain[i] as TerrainType].cost;
+    }
+  }
+
+  terrainAt(x: number, y: number): TerrainType {
+    const c = this.cellOf(x, y);
+    return (c < 0 ? 0 : this.terrain[c]) as TerrainType;
   }
 
   project(lat: number, lon: number): Vec {

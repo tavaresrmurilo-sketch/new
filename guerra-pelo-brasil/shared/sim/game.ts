@@ -7,11 +7,16 @@ import { getMap, type MapData } from './map';
 import { Navigator } from './nav';
 import { SpatialHash } from './spatial';
 import { rand } from './rng';
-import { createWorld, garrisonMax, makeUnit, spotNear, WORLD_VERSION } from './setup';
+import { createWorld, garrisonMax, makeUnit, migrateWorld, spotNear, WORLD_VERSION } from './setup';
 import { thinkAI } from './ai/ai';
 import { OBJECTIVES } from './objectives';
+import { Visibility } from './fog';
+import {
+  TERRAIN, T_HILLS, T_URBAN, URBAN_DEFENSE, HILL_ARTILLERY_RANGE, FORMATIONS, CERCO_RADIUS, CERCO_BONUS, RANK_BONUS, MORALE,
+  GAME_EVENTS, RESERVES, RECON, formationSlots, isVehicle, moraleDamageMul, rankOf, ROLES,
+} from './rules';
 import type {
-  AbilityId, ArmorClass, BuildingType, Faction, FactionRT, LogEntry, MatchSettings, Owner, Res, ResKey,
+  AbilityId, ArmorClass, BuildingType, Faction, FactionRT, Formation, LogEntry, MatchSettings, Owner, Res, ResKey, Role,
   SimEvent, StateRT, TargetRef, Unit, UnitType, World,
 } from './types';
 
@@ -46,6 +51,8 @@ export class Game {
   alpha = 0;
   private acc = 0;
   private byId = new Map<number, Unit>();
+  private vis: Visibility | null = null;
+  private visTick: Record<Faction, number> = { lula: -1, bolso: -1 };
 
   constructor(world: World) {
     this.map = getMap();
@@ -61,7 +68,7 @@ export class Game {
   }
 
   static fromJSON(json: string): Game {
-    const w = JSON.parse(json) as World;
+    const w = migrateWorld(JSON.parse(json) as World);
     if (!w || w.version !== WORLD_VERSION || !Array.isArray(w.units)) throw new Error('Save incompatível');
     return new Game(w);
   }
@@ -71,6 +78,12 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ utilidades
+  /** Reconstrói o índice de unidades (mundo espelho do cliente online). */
+  syncIndex(): void {
+    this.byId.clear();
+    for (const u of this.w.units) this.byId.set(u.id, u);
+  }
+
   unit(id: number): Unit | undefined {
     const u = this.byId.get(id);
     return u && u.hp > 0 ? u : undefined;
@@ -85,7 +98,11 @@ export class Game {
     this.events.push(e);
   }
 
+  /** quantidade de entradas de log já produzidas (para sincronização incremental) */
+  logCount = 0;
+
   log(text: string, kind: LogEntry['kind'], f?: Owner, s?: number): void {
+    this.logCount++;
     this.w.log.push({ t: this.w.time, text, kind, f, s });
     if (this.w.log.length > 80) this.w.log.splice(0, this.w.log.length - 80);
   }
@@ -159,11 +176,44 @@ export class Game {
       if ((u.type === 'tank' || u.type === 'heli') && fr.res.fuel <= 0 && !fr.infinite) s *= 0.5;
     }
     if (!u.supplied) s *= 0.85;
+    if (!def.air) {
+      const t = TERRAIN[this.map.terrainAt(u.x, u.y)];
+      s *= isVehicle(u.type) ? t.speed[1] : t.speed[0];
+      if (u.f !== 'neutral' && this.regionBonus(u.f, 'Centro-Oeste')) s *= 1.1;
+      s *= this.eventMul(u.x, u.y, 'speed');
+    }
+    if (u.moving) s *= FORMATIONS[u.form ?? 'livre'].moveSpeed;
     return s;
+  }
+
+  /** A facção domina todos os estados da região? */
+  regionBonus(f: Faction, region: string): boolean {
+    const sts = this.map.states.filter((s) => s.info.region === region);
+    return sts.length > 0 && sts.every((s) => this.w.states[s.i].owner === f);
+  }
+
+  /** Multiplicador de eventos fictícios ativos para uma posição. */
+  eventMul(x: number, y: number, key: 'speed' | 'vision'): number {
+    let m = 1;
+    if (!this.w.gevents?.length) return m;
+    const st = this.map.stateAt(x, y);
+    const region = st >= 0 ? this.map.states[st].info.region : '';
+    for (const ev of this.w.gevents) {
+      const def = GAME_EVENTS.find((e) => e.id === ev.id);
+      const v = def?.[key];
+      if (v && (!def.region || def.region === region)) m *= v;
+    }
+    return m;
+  }
+
+  get inPrep(): boolean {
+    return this.w.time < (this.w.settings.prepTime ?? 0);
   }
 
   private damageMul(u: Unit): number {
     let m = u.supplied ? 1 : 0.6;
+    m *= 1 + rankOf(u.xp) * RANK_BONUS;
+    if (this.w.settings.morale !== false) m *= moraleDamageMul(u.morale);
     const fr = this.fac(u.f);
     if (fr) {
       if (fr.buffs.dmgT > 0) m *= 1.2;
@@ -184,7 +234,7 @@ export class Game {
   }
 
   get paused(): boolean {
-    return !!this.w.winner || (!!this.w.turn && this.w.turn.phase === 'plan');
+    return !!this.w.winner || !!this.w.draw || (!!this.w.turn && this.w.turn.phase === 'plan');
   }
 
   step(dt: number): void {
@@ -202,6 +252,7 @@ export class Game {
 
     this.hash.rebuild(w.units);
     if (w.time >= tm.supply) { tm.supply = w.time + 0.5; this.updateSupplyAndHealing(0.5); }
+    if (w.settings.events !== false && w.time >= (tm.event ?? 120) && !this.inPrep) this.rollEvent();
     for (const u of w.units) if (u.hp > 0) this.updateUnit(u, dt);
     this.separate(dt);
     this.updateShells(dt);
@@ -211,7 +262,8 @@ export class Game {
 
     for (const f of ['lula', 'bolso'] as Faction[]) {
       const ai = w.ai[f];
-      if (ai && w.factions[f].control === 'ai' && w.time >= ai.nextThink) thinkAI(this, f);
+      const aiActive = ai && (w.factions[f].control === 'ai' || (ai.roles && ai.roles.length > 0));
+      if (ai && aiActive && w.time >= ai.nextThink) thinkAI(this, f);
     }
     if (w.time >= tm.objectives) { tm.objectives = w.time + 2; this.checkObjectives(); }
     if (w.time >= tm.victory) { tm.victory = w.time + 1; this.checkVictory(); }
@@ -244,15 +296,17 @@ export class Game {
       const income = zeroRes();
       let industry = f === 'lula' ? 4 : 0;
       let popCap = 10;
+      const evs = (w.gevents ?? []).map((e) => GAME_EVENTS.find((d) => d.id === e.id)).filter((d) => !!d);
       for (const i of owned) {
         const s = w.states[i];
         const info = map.states[i].info;
         s.connected = conn.has(i) || s.b.depot > 0;
         const m = s.connected ? 1 : 0.5;
-        income.money += info.money * m;
-        income.fuel += info.fuel * m;
-        income.steel += info.steel * m;
-        income.supplies += (info.supplies * (s.b.depot ? 1.5 : 1) + (s.b.depot ? 1.5 : 0)) * m;
+        const ev = (k: ResKey) => evs.reduce((a, d) => a * (d.income?.[k] && (!d.region || d.region === info.region) ? d.income[k]! : 1), 1);
+        income.money += info.money * m * ev('money');
+        income.fuel += info.fuel * m * ev('fuel');
+        income.steel += info.steel * m * ev('steel');
+        income.supplies += (info.supplies * (s.b.depot ? 1.5 : 1) + (s.b.depot ? 1.5 : 0)) * m * ev('supplies');
         industry += info.industry * (s.connected ? 1 : 0.5) + s.b.factory * 3;
         popCap += 1 + Math.round(info.imp / 3) + s.b.barracks * 2 + s.b.depot * 2;
       }
@@ -262,10 +316,14 @@ export class Game {
       for (const k of RES_KEYS) income[k] *= mul * INCOME_SCALE[k];
       if (owned.has(map.byUf.DF)) income.money *= 1.15;
       if (f === 'lula') income.money *= 1.2; // passiva: estatais a todo vapor
+      if (this.regionBonus(f, 'Norte')) income.steel *= 1.2;
+      if (this.regionBonus(f, 'Nordeste')) income.supplies *= 1.2;
+      if (this.regionBonus(f, 'Sudeste')) income.money *= 1.15;
+      if (this.regionBonus(f, 'Sul')) industry *= 1.15;
       fr.income = income;
       fr.industry = Math.round(industry);
       fr.prodMul = Math.max(0.6, Math.min(2.0, 0.6 + industry / 35));
-      fr.popCap = fr.infinite ? 999 : Math.min(150, popCap);
+      fr.popCap = fr.infinite ? 999 : Math.min(w.settings.unitCap ?? 150, 150, popCap);
       // população e manutenção
       let pop = 0, sup = 0, fuel = 0;
       for (const u of w.units) {
@@ -277,7 +335,8 @@ export class Game {
       }
       for (const s of w.states) if (s.owner === f) for (const q of s.queue) pop += UNIT_DEFS[q.type].pop;
       fr.pop = pop;
-      fr.upkeep = { money: 0, fuel, steel: 0, supplies: sup };
+      const fuelMul = evs.reduce((a, d) => a * (d.fuelUpkeep ?? 1), 1);
+      fr.upkeep = { money: 0, fuel: fuel * fuelMul, steel: 0, supplies: sup };
     }
   }
 
@@ -372,7 +431,7 @@ export class Game {
       const def = UNIT_DEFS[u.type];
       if (u.f === 'neutral') { u.supplied = true; continue; }
       const fr = w.factions[u.f];
-      if (def.air) { u.supplied = fr.res.supplies > 0 || fr.infinite; continue; }
+      if (def.air) { u.supplied = fr.res.supplies > 0 || fr.infinite; this.updateMorale(u, dt); continue; }
       let ok = false;
       if (u.st >= 0) {
         const s = w.states[u.st];
@@ -382,6 +441,7 @@ export class Game {
       if (!ok) ok = supports.some((sp) => sp.f === u.f && (sp.x - u.x) ** 2 + (sp.y - u.y) ** 2 < 170 * 170);
       if (fr.res.supplies <= 0 && !fr.infinite) ok = false;
       u.supplied = ok;
+      this.updateMorale(u, dt);
 
       // cura / atrito
       if (!ok) {
@@ -406,6 +466,55 @@ export class Game {
       }
       // apoio também cura a si mesmo devagar
       if (sp.hp < sp.maxHp) sp.hp = Math.min(sp.maxHp, sp.hp + 2 * dt);
+    }
+  }
+
+  /** Moral: cai com dano, isolamento e baixas; recupera fora de combate e perto de casa. */
+  private updateMorale(u: Unit, dt: number): void {
+    if (this.w.settings.morale === false) { u.morale = 100; u.routed = false; return; }
+    let d = 0;
+    if (!u.supplied) d -= MORALE.unsupplied;
+    if (this.w.time - u.lastHitT > 8) {
+      d += MORALE.regen;
+      const st = u.st >= 0 ? this.w.states[u.st] : null;
+      if (st && st.owner === u.f) d += MORALE.regenHome * 0.5;
+    }
+    u.morale = Math.max(0, Math.min(100, u.morale + d * dt));
+    if (u.routed && u.morale >= MORALE.recoverTo) {
+      u.routed = false;
+      this.stopUnit(u);
+    } else if (!u.routed && u.morale < MORALE.broken && u.f !== 'neutral' && !UNIT_DEFS[u.type].air
+      && u.order.kind !== 'hold' && u.form !== 'defesa' && this.w.time - u.lastHitT < 3) {
+      // tropa desmoralizada recua para a capital própria mais próxima
+      let best = -1, bd = Infinity;
+      for (const s of this.w.states) {
+        if (s.owner !== u.f) continue;
+        const c = this.capital(s.i);
+        const dd = Math.hypot(c.x - u.x, c.y - u.y);
+        if (dd < bd) { bd = dd; best = s.i; }
+      }
+      if (best >= 0 && bd > 60) {
+        const c = this.capital(best);
+        u.routed = true;
+        u.target = null;
+        u.order = { kind: 'move', x: c.x, y: c.y, aggressive: false };
+        this.setPath(u, c.x, c.y);
+      }
+    }
+  }
+
+  /** Experiência: promove a unidade e aumenta a vida máxima (limitado à patente 3). */
+  private gainXp(u: Unit, amount: number): void {
+    if (u.type === 'militia') return;
+    const before = rankOf(u.xp);
+    u.xp = Math.min(40, u.xp + amount);
+    const after = rankOf(u.xp);
+    if (after > before) {
+      const base = UNIT_DEFS[u.type].hp;
+      const newMax = Math.round(base * (1 + after * RANK_BONUS));
+      u.hp += newMax - u.maxHp;
+      u.maxHp = newMax;
+      this.emit({ k: 'promote', id: u.id, rank: after, f: u.f });
     }
   }
 
@@ -508,10 +617,12 @@ export class Game {
 
   private inRange(u: Unit, def: UnitDef, t: TargetInfo): boolean {
     const d = Math.hypot(t.x - u.x, t.y - u.y);
-    return d <= def.range + (t.armor === 'structure' ? 6 : 0) && d >= def.minRange;
+    const range = def.range * (u.type === 'artillery' && this.map.terrainAt(u.x, u.y) === T_HILLS ? HILL_ARTILLERY_RANGE : 1);
+    return d <= range + (t.armor === 'structure' ? 6 : 0) && d >= def.minRange;
   }
 
   private fire(u: Unit, def: UnitDef, ref: TargetRef, t: TargetInfo): void {
+    if (this.inPrep) { u.cd = 0.5; return; }
     u.cd = def.cooldown * (0.95 + rand(this.w) * 0.1);
     u.lastFireT = this.w.time;
     u.angle = Math.atan2(t.y - u.y, t.x - u.x);
@@ -532,13 +643,29 @@ export class Game {
   /** Aplica dano a uma unidade ou guarnição, com todos os modificadores defensivos. */
   applyDamage(ref: TargetRef, dmg: number, by: Owner, src: Unit | null): void {
     const w = this.w;
+    if (this.inPrep) return;
     if (ref.t === 'u') {
       const v = this.unit(ref.id);
       if (!v) return;
       const vf = this.fac(v.f);
       let m = 1;
       const st = this.map.stateAt(v.x, v.y);
+      const vdef = UNIT_DEFS[v.type];
       if (vf && vf.buffs.defT > 0 && st >= 0 && w.states[st].owner === v.f) m *= 0.6;
+      if (!vdef.air) {
+        const terr = this.map.terrainAt(v.x, v.y);
+        m *= TERRAIN[terr].defense;
+        if (terr === T_URBAN && st >= 0 && w.states[st].owner === v.f) m *= URBAN_DEFENSE;
+        const fm = FORMATIONS[v.form ?? 'livre'];
+        if (!v.moving && fm.hold && (v.form !== 'defesa' || v.stillT > 5)) m *= fm.holdDefense;
+        if (v.moving && v.form === 'coluna') m *= 1.15;
+      }
+      // cerco: atacantes em anel ao redor do alvo causam mais dano
+      if (src && src.form === 'cerco') {
+        let ring = 0;
+        this.hash.query(v.x, v.y, CERCO_RADIUS + 40, (o) => { if (o.f === src.f && o.form === 'cerco' && o.hp > 0) ring++; });
+        if (ring >= 3) m *= CERCO_BONUS;
+      }
       if (st >= 0 && w.states[st].owner === v.f && w.states[st].b.fort > 0) {
         const c = this.capital(st);
         if (Math.hypot(c.x - v.x, c.y - v.y) < 110) m *= 1 - 0.08 * w.states[st].b.fort;
@@ -546,6 +673,8 @@ export class Game {
       const real = Math.min(v.hp, dmg * m);
       v.hp -= dmg * m;
       v.lastHitT = w.time;
+      if (w.settings.morale !== false) v.morale = Math.max(0, v.morale - (real / v.maxHp) * MORALE.hitScale);
+      if (src) this.gainXp(src, real / 250);
       const bf = this.fac(by);
       if (bf) bf.stats.damage += real;
       if (st >= 0) {
@@ -558,9 +687,16 @@ export class Game {
         if (vd.vs[UNIT_DEFS[src.type].armor] > 0) v.target = { t: 'u', id: src.id };
       }
       if (v.hp <= 0) {
-        if (src) src.kills++;
+        if (src) {
+          src.kills++;
+          this.gainXp(src, vdef.armor === 'light' ? 1 : 2);
+          src.morale = Math.min(100, src.morale + MORALE.kill);
+        }
         if (bf) bf.stats.killed++;
         if (vf) vf.stats.lost++;
+        if (w.settings.morale !== false) {
+          this.hash.query(v.x, v.y, 120, (o) => { if (o.f === v.f && o !== v && o.hp > 0) o.morale = Math.max(0, o.morale - MORALE.allyDeath); });
+        }
       }
     } else {
       const s = w.states[ref.s];
@@ -597,7 +733,27 @@ export class Game {
     if (u.type === 'plane') { this.updatePlane(u, def, dt); return; }
     u.cd -= dt;
     u.repathT -= dt;
+    u.stillT = u.moving ? 0 : u.stillT + dt;
+    if (u.type === 'recon') u.rearmT = Math.max(0, u.rearmT - dt);
     const speed = this.speedOf(u, def);
+
+    // recuo por moral quebrada: só corre para casa
+    if (u.routed) {
+      if (u.order.kind === 'move') { if (this.followPath(u, speed * 1.1, dt)) { u.moving = false; u.order = { kind: 'hold' }; } }
+      return;
+    }
+
+    // escolta: acompanha a unidade protegida
+    if (u.form === 'escolta' && u.escort && u.order.kind !== 'attack') {
+      const e = this.unit(u.escort);
+      if (!e || e.f !== u.f) { u.form = 'livre'; u.escort = 0; }
+      else if (u.repathT <= 0) {
+        u.repathT = 0.8;
+        const a = (u.id * 2.39996) % (Math.PI * 2);
+        const tx = e.x + Math.cos(a) * 26, ty = e.y + Math.sin(a) * 26;
+        if (Math.hypot(u.x - tx, u.y - ty) > 30) { u.order = { kind: 'move', x: tx, y: ty, aggressive: true }; u.path = null; }
+      }
+    }
 
     if (u.type === 'support') {
       if (u.order.kind === 'move') { if (this.followPath(u, speed, dt)) this.stopUnit(u); }
@@ -661,7 +817,10 @@ export class Game {
         }
       }
       if (!u.path) this.setPath(u, order.x, order.y);
-      if (this.followPath(u, speed, dt)) this.stopUnit(u);
+      if (this.followPath(u, speed, dt)) {
+        this.stopUnit(u);
+        if (FORMATIONS[u.form ?? 'livre'].hold) u.order = { kind: 'hold' };
+      }
       return;
     }
 
@@ -816,9 +975,9 @@ export class Game {
 
   /** Separação simples entre unidades terrestres para evitar empilhamento. */
   private separate(dt: number): void {
-    const R = 9;
     for (const u of this.w.units) {
       if (u.hp <= 0 || UNIT_DEFS[u.type].air) continue;
+      const R = u.form === 'dispersa' ? 22 : 9;
       let px = 0, py = 0;
       this.hash.query(u.x, u.y, R, (o) => {
         if (o === u || o.hp <= 0 || UNIT_DEFS[o.type].air) return;
@@ -854,7 +1013,7 @@ export class Game {
         const d = Math.hypot(o.x - sh.x1, o.y - sh.y1);
         if (d > sh.splash) return;
         const art = UNIT_DEFS.artillery.vs;
-        this.applyDamage({ t: 'u', id: o.id }, sh.dmg * art[od.armor] * (1 - 0.5 * (d / sh.splash)), sh.f, src);
+        this.applyDamage({ t: 'u', id: o.id }, sh.dmg * art[od.armor] * (1 - 0.5 * (d / sh.splash)) * FORMATIONS[o.form ?? 'livre'].splashTaken, sh.f, src);
       });
       for (const s of w.states) {
         if (s.owner === sh.f || s.gHp <= 0) continue;
@@ -1000,14 +1159,31 @@ export class Game {
     if (w.winner) return;
     const total = this.map.states.length;
     const count = { lula: this.statesOf('lula').length, bolso: this.statesOf('bolso').length };
+    const rule = w.settings.victory ?? 'padrao';
     for (const f of ['lula', 'bolso'] as Faction[]) {
       const e = enemyOf(f);
       if (count[f] === total) return this.endGame(f, `${FACTIONS[f].name} conquistou os 26 estados e o Distrito Federal.`);
       if (count[e] === 0) return this.endGame(f, `${FACTIONS[e].name} perdeu todos os seus territórios.`);
-      if (count[e] <= 2 && count[f] >= 15) {
+      if (rule === 'padrao' && count[e] <= 2 && count[f] >= 15) {
         w.factions[e].surrendered = true;
         return this.endGame(f, `${FACTIONS[e].name} se rendeu: restavam apenas ${count[e]} estado(s) contra ${count[f]}.`);
       }
+      if (rule === 'sede' && w.states[w.factions[e].origHq].owner === f) {
+        return this.endGame(f, `${FACTIONS[f].name} tomou a sede original do inimigo (${this.stateName(w.factions[e].origHq)}).`);
+      }
+    }
+    const maxMin = w.settings.maxDuration ?? 0;
+    if (maxMin > 0 && w.time >= maxMin * 60) {
+      const sc = (f: Faction) => count[f] * 1e6 + w.factions[f].stats.damage;
+      if (count.lula === count.bolso && Math.abs(w.factions.lula.stats.damage - w.factions.bolso.stats.damage) < 1) {
+        w.draw = true;
+        w.endReason = `Tempo esgotado (${maxMin} min): empate técnico.`;
+        this.log(w.endReason, 'info');
+        this.emit({ k: 'gameover', winner: 'lula', reason: w.endReason, draw: true });
+        return;
+      }
+      const win: Faction = sc('lula') > sc('bolso') ? 'lula' : 'bolso';
+      return this.endGame(win, `Tempo esgotado (${maxMin} min): ${FACTIONS[win].name} venceu por domínio territorial (${count[win]} × ${count[enemyOf(win)]} estados).`);
     }
   }
 
@@ -1035,22 +1211,34 @@ export class Game {
     return out;
   }
 
-  commandMove(f: Faction, ids: number[], x: number, y: number, aggressive: boolean): number {
+  commandMove(f: Faction, ids: number[], x: number, y: number, aggressive: boolean, form: Formation = 'livre', escort = 0): number {
     const units = this.own(f, ids);
-    // formação em espiral (Vogel) ao redor do destino
     const ground = units.filter((u) => !UNIT_DEFS[u.type].air);
     const air = units.filter((u) => UNIT_DEFS[u.type].air);
-    ground.sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y));
-    ground.forEach((u, i) => {
-      const r = 10 * Math.sqrt(i), th = i * 2.39996;
-      let tx = x + Math.cos(th) * r, ty = y + Math.sin(th) * r;
+    // direção do avanço (do centro do grupo ao destino) orienta linha e coluna
+    let cx = 0, cy = 0;
+    for (const u of ground) { cx += u.x; cy += u.y; }
+    if (ground.length) { cx /= ground.length; cy /= ground.length; }
+    const slots = formationSlots(form, ground.length, x, y, x - cx, y - cy);
+    // atribui cada vaga à unidade mais próxima (guloso), evitando cruzamentos
+    const free = [...ground];
+    const esc = form === 'escolta' ? this.unit(escort) : undefined;
+    slots.forEach((sl) => {
+      let bi = 0, bd = Infinity;
+      free.forEach((u, i) => { const d = Math.hypot(u.x - sl.x, u.y - sl.y); if (d < bd) { bd = d; bi = i; } });
+      const u = free.splice(bi, 1)[0];
+      if (!u) return;
+      let tx = sl.x, ty = sl.y;
       if (!this.map.isWalkable(tx, ty)) { const p = this.map.nearestWalkable(tx, ty); tx = p.x; ty = p.y; }
       this.orderMove(u, tx, ty, aggressive);
       u.anchorX = tx; u.anchorY = ty;
+      u.form = esc && esc.f === f && esc !== u ? 'escolta' : form === 'escolta' ? 'livre' : form;
+      u.escort = u.form === 'escolta' ? escort : 0;
     });
     air.forEach((u, i) => {
       const r = 14 * Math.sqrt(i), th = i * 2.39996;
       this.orderMove(u, x + Math.cos(th) * r, y + Math.sin(th) * r, aggressive);
+      u.form = 'livre';
     });
     return units.length;
   }
@@ -1152,6 +1340,8 @@ export class Game {
     const def = BUILDING_DEFS[type];
     if (s.b[type] >= def.maxLevel) return 'Nível máximo atingido.';
     if (def.usesSlot && this.usedSlots(si) >= this.slots(si)) return 'Sem espaço para novas construções neste estado.';
+    const cap = this.w.settings.structureCap ?? 0;
+    if (cap > 0 && def.usesSlot && this.teamStructures(f) >= cap) return `Limite de ${cap} estruturas da equipe atingido.`;
     const cost = this.buildCost(si, type)!;
     if (!this.canAfford(f, cost)) return 'Recursos insuficientes.';
     return null;
@@ -1195,6 +1385,7 @@ export class Game {
   abilityCheck(f: Faction, id: AbilityId, si?: number): string | null {
     const fr = this.w.factions[f];
     const a = fr.abilities.find((x) => x.id === id);
+    if (this.w.settings.abilities === false) return 'Habilidades especiais desativadas nesta partida.';
     if (!a) return 'Habilidade indisponível.';
     if (a.cd > 0) return `Em recarga (${Math.ceil(a.cd)} s).`;
     if (!this.canAfford(f, ABILITIES[id].cost)) return 'Recursos insuficientes.';
@@ -1295,24 +1486,131 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ consultas para IA/UI
-  powerNear(x: number, y: number, r: number, f: Owner): number {
+  /** Poder militar de uma facção perto de um ponto. Com `viewer`, só conta o que esse lado enxerga (névoa). */
+  powerNear(x: number, y: number, r: number, f: Owner, viewer?: Faction): number {
     let p = 0;
+    const fog = viewer && viewer !== f && this.w.settings.fog;
     this.hash.query(x, y, r, (o) => {
       if (o.f !== f || o.hp <= 0) return;
+      if (fog && !this.isVisible(viewer!, o.x, o.y)) return;
       if ((o.x - x) ** 2 + (o.y - y) ** 2 > r * r) return;
       p += UNIT_DEFS[o.type].power * (o.hp / o.maxHp);
     });
     return p;
   }
 
-  hostilePowerNear(x: number, y: number, r: number, f: Owner): number {
+  hostilePowerNear(x: number, y: number, r: number, f: Owner, viewer?: Faction): number {
     let p = 0;
+    const fog = viewer && this.w.settings.fog;
     this.hash.query(x, y, r, (o) => {
       if (o.f === f || o.hp <= 0) return;
+      if (fog && !this.isVisible(viewer!, o.x, o.y)) return;
       if ((o.x - x) ** 2 + (o.y - y) ** 2 > r * r) return;
       p += UNIT_DEFS[o.type].power * (o.hp / o.maxHp);
     });
     return p;
+  }
+
+  // ------------------------------------------------------------------ névoa de guerra
+  /** Visibilidade de uma equipe, recalculada no máximo uma vez por passo (determinística). */
+  visibility(f: Faction): Visibility {
+    if (!this.vis) this.vis = new Visibility(this.map);
+    if (this.visTick[f] !== this.w.tick) {
+      this.vis.update(this.w, f);
+      this.visTick[f] = this.w.tick;
+    }
+    return this.vis;
+  }
+
+  /** Sem névoa tudo é visível. */
+  isVisible(f: Faction, x: number, y: number): boolean {
+    if (!this.w.settings.fog) return true;
+    return this.visibility(f).visible(f, x, y);
+  }
+
+  /** Unidades de outra facção que `viewer` consegue ver. */
+  visibleUnitsOf(owner: Owner, viewer: Faction): Unit[] {
+    return this.w.units.filter((u) => u.f === owner && u.hp > 0 && (owner === viewer || this.isVisible(viewer, u.x, u.y)));
+  }
+
+  /** Força a névoa a ser recalculada (cliente: depois de aplicar um snapshot). */
+  invalidateVisibility(): void {
+    this.visTick = { lula: -1, bolso: -1 };
+  }
+
+  // ------------------------------------------------------------------ sistemas estratégicos 2.0
+  teamStructures(f: Faction): number {
+    let n = 0;
+    for (const s of this.w.states) {
+      if (s.owner !== f) continue;
+      n += s.b.barracks + s.b.factory + s.b.airbase + s.b.depot;
+      if (s.cons && BUILDING_DEFS[s.cons.type].usesSlot) n++;
+    }
+    return n;
+  }
+
+  private rollEvent(): void {
+    const w = this.w;
+    w.gevents = (w.gevents ?? []).filter((e) => e.until > w.time);
+    const def = GAME_EVENTS[Math.floor(rand(w) * GAME_EVENTS.length)];
+    w.timers.event = w.time + 100 + rand(w) * 80;
+    if (w.gevents.some((e) => e.id === def.id)) return;
+    w.gevents.push({ id: def.id, until: w.time + def.duration, s: -1, region: def.region });
+    this.emit({ k: 'gevent', id: def.id, start: true });
+    this.log(`Evento: ${def.name} — ${def.desc} (${def.duration} s)`, 'info');
+    this.recomputeEconomy();
+  }
+
+  /** Contra-ataque territorial: convoca reservistas num estado próprio sob ameaça. */
+  reservesCheck(f: Faction, si: number): string | null {
+    const s = this.w.states[si];
+    if (!s || s.owner !== f) return 'Estado não pertence a você.';
+    if (s.reserveT > this.w.time) return `Reservas em recarga (${Math.ceil(s.reserveT - this.w.time)} s).`;
+    const c = this.capital(si);
+    const threatened = this.w.time - s.lastAttackT < 15 || this.hostilePowerNear(c.x, c.y, 300, f, f) > 0.5;
+    if (!threatened) return 'Só é possível convocar reservas em estados sob ameaça.';
+    const fr = this.w.factions[f];
+    if (fr.pop + RESERVES.count > fr.popCap) return 'Limite de tropas atingido.';
+    if (!this.canAfford(f, RESERVES.cost)) return 'Recursos insuficientes.';
+    return null;
+  }
+
+  callReserves(f: Faction, si: number): string | null {
+    const err = this.reservesCheck(f, si);
+    if (err) return err;
+    this.pay(f, RESERVES.cost);
+    this.w.states[si].reserveT = this.w.time + RESERVES.cooldown;
+    for (let i = 0; i < RESERVES.count; i++) { this.spawnUnit('infantry', f, si); this.w.factions[f].stats.produced++; }
+    this.recomputeEconomy();
+    this.log(`${FACTIONS[f].short} convocou reservas em ${this.stateName(si)}.`, 'ability', f, si);
+    return null;
+  }
+
+  /** Batedores lançam sensores que revelam a área por alguns segundos. */
+  reconSensor(f: Faction, ids: number[]): string | null {
+    const scouts = this.own(f, ids).filter((u) => u.type === 'recon');
+    if (!scouts.length) return 'Selecione batedores.';
+    const ready = scouts.filter((u) => u.rearmT <= 0);
+    if (!ready.length) return `Sensores em recarga (${Math.ceil(Math.min(...scouts.map((u) => u.rearmT)))} s).`;
+    for (const u of ready) {
+      u.rearmT = RECON.cooldown;
+      this.w.reveals.push({ f, x: u.x, y: u.y, r: RECON.radius, until: this.w.time + RECON.duration });
+      this.emit({ k: 'reveal', f, x: u.x, y: u.y, r: RECON.radius });
+    }
+    this.w.reveals = this.w.reveals.filter((r) => r.until > this.w.time);
+    return null;
+  }
+
+  /** Transfere o controle de unidades para outra função militar da equipe. */
+  transferUnits(f: Faction, ids: number[], to: Role): number {
+    if (!ROLES.includes(to)) return 0;
+    const us = this.own(f, ids);
+    for (const u of us) u.ctrl = to;
+    return us.length;
+  }
+
+  setTeamObjective(f: Faction, si: number): void {
+    this.w.teamObjective[f] = si >= 0 && si < this.w.states.length ? si : -1;
   }
 
   garrisonPower(si: number): number {

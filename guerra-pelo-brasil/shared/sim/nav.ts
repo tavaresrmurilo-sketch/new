@@ -128,7 +128,7 @@ export class Navigator {
     const gx = gc % cols, gy = (gc / cols) | 0;
     const h = (c: number): number => {
       const dx = Math.abs((c % cols) - gx), dy = Math.abs(((c / cols) | 0) - gy);
-      return (dx + dy) + (SQRT2 - 2) * Math.min(dx, dy);
+      return ((dx + dy) + (SQRT2 - 2) * Math.min(dx, dy)) * 0.95;
     };
     this.gen[sc] = gen; this.g[sc] = 0; this.parent[sc] = -1;
     heap.push(sc, h(sc));
@@ -156,7 +156,7 @@ export class Navigator {
           const nc = ny * cols + nx;
           if (!m.walk[nc] || this.closed[nc] === gen) continue;
           if (dx && dy && (!m.walk[cy * cols + nx] || !m.walk[ny * cols + cx])) continue; // sem cortar cantos
-          const ng = gcur + (dx && dy ? SQRT2 : 1);
+          const ng = gcur + (dx && dy ? SQRT2 : 1) * m.cost[nc];
           if (this.gen[nc] !== gen || ng < this.g[nc]) {
             this.gen[nc] = gen; this.g[nc] = ng; this.parent[nc] = c;
             heap.push(nc, ng + h(nc));

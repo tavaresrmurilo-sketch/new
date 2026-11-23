@@ -17,7 +17,7 @@ import { howToPlayHTML, SATIRE_NOTE } from './ui/help';
 import { HUD } from './ui/hud';
 import type { Difficulty, Distribution, Faction, GameMode, MatchSettings, Owner, UnitType } from '@shared/sim/types';
 
-const MODE_LABEL: Record<GameMode, string> = { campanha: 'Campanha', rapida: 'Batalha rápida', local: 'Dois jogadores', sandbox: 'Sandbox' };
+const MODE_LABEL: Record<GameMode, string> = { campanha: 'Campanha', rapida: 'Batalha rápida', local: 'Dois jogadores', sandbox: 'Sandbox', online: 'Online' };
 
 const BRIEFING: Record<Faction, string> = {
   lula: `Num universo paralelo e absurdo, a eleição mais polarizada da história rachou o Brasil ao meio.

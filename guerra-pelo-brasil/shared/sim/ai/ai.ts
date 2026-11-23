@@ -4,7 +4,7 @@
 import { UNIT_DEFS, RECRUITABLE } from '../../data/units';
 import { enemyOf } from '../../data/factions';
 import type { Game } from '../game';
-import type { AIGroup, AIState, BuildingType, Difficulty, Faction, Unit, UnitType } from '../types';
+import type { AIGroup, AIState, BuildingType, Difficulty, Faction, Role, Unit, UnitType } from '../types';
 
 interface Params {
   think: number;
@@ -28,8 +28,8 @@ const PARAMS: Record<Difficulty, Params> = {
 };
 
 const COMPOSITION: Record<Faction, Partial<Record<UnitType, number>>> = {
-  bolso: { infantry: 0.32, tank: 0.33, artillery: 0.12, heli: 0.1, plane: 0.07, support: 0.06 },
-  lula: { infantry: 0.55, tank: 0.14, artillery: 0.14, heli: 0.06, plane: 0.05, support: 0.06 },
+  bolso: { infantry: 0.3, tank: 0.33, artillery: 0.12, heli: 0.1, plane: 0.07, support: 0.05, recon: 0.03 },
+  lula: { infantry: 0.52, tank: 0.14, artillery: 0.14, heli: 0.06, plane: 0.05, support: 0.06, recon: 0.03 },
 };
 
 const power = (u: Unit) => UNIT_DEFS[u.type].power * (u.hp / u.maxHp);
@@ -43,19 +43,23 @@ export function thinkAI(g: Game, f: Faction): void {
   const owned = g.statesOf(f);
   if (!owned.length || g.w.winner) return;
 
-  const myUnits = g.unitsOf(f);
+  // a IA só comanda as unidades das funções que lhe foram atribuídas (bots / cobertura de desconectados)
+  const can = (r: Role) => !ai.roles || ai.roles.includes(r);
+  const allUnits = g.unitsOf(f);
+  const myUnits = allUnits.filter((u) => can(u.ctrl));
   const byId = new Map(myUnits.map((u) => [u.id, u]));
   for (const u of myUnits) if (u.group > 0 && !ai.groups.some((gr) => gr.id === u.group)) u.group = 0;
 
   // ---------------- inteligência
   const enemy = enemyOf(f);
-  const enemyUnits = g.unitsOf(enemy);
-  const myPower = myUnits.reduce((s, u) => s + power(u), 0);
+  // sem trapaça: com névoa, só conhece o inimigo que consegue ver
+  const enemyUnits = g.visibleUnitsOf(enemy, f);
+  const myPower = allUnits.reduce((s, u) => s + power(u), 0);
   const enemyPower = enemyUnits.reduce((s, u) => s + power(u), 0);
   const threats = owned
     .map((si) => {
       const c = g.capital(si);
-      const t = g.powerNear(c.x, c.y, 270, enemy) + (g.w.time - g.w.states[si].lastAttackT < 5 ? 1 : 0);
+      const t = g.powerNear(c.x, c.y, 270, enemy, f) + (g.w.time - g.w.states[si].lastAttackT < 5 ? 1 : 0);
       const pri = g.map.states[si].info.imp + (si === fr.hq ? 12 : 0) + t;
       return { si, t, pri };
     })
@@ -105,7 +109,7 @@ export function thinkAI(g: Game, f: Faction): void {
     }
   }
 
-  const freeCombat = () => myUnits.filter((u) => u.group === 0 && u.type !== 'plane' && u.type !== 'support' && u.hp > 0);
+  const freeCombat = () => myUnits.filter((u) => u.group === 0 && !u.routed && u.type !== 'plane' && u.type !== 'support' && u.type !== 'recon' && u.hp > 0);
 
   // ---------------- defesa
   for (const th of threats) {
@@ -145,7 +149,8 @@ export function thinkAI(g: Game, f: Faction): void {
 
   // ---------------- ofensiva: novos grupos
   const attackGroups = ai.groups.filter((x) => x.task === 'attack');
-  const maxGroups = ai.strategy === 'defensiva' ? Math.min(1, p.maxGroups) : p.maxGroups;
+  const prolonged = g.w.time > 1200 && ai.strategy !== 'defensiva';
+  const maxGroups = ai.strategy === 'defensiva' ? Math.min(1, p.maxGroups) : p.maxGroups + (prolonged ? 1 : 0);
   if (attackGroups.length < maxGroups) {
     const free = freeCombat();
     const freePower = free.reduce((s, u) => s + power(u), 0);
@@ -156,7 +161,7 @@ export function thinkAI(g: Game, f: Faction): void {
       .map((s) => scoreTarget(g, f, ai, s, lostRecent, free))
       .sort((a, b) => b.score - a.score);
     for (const cand of cands.slice(0, 3)) {
-      const need = cand.defense * p.attackRatio + 1.5;
+      const need = cand.defense * p.attackRatio * (prolonged ? 0.9 : 1) + 1.5;
       if (available < need || free.length < 3) continue;
       // na defensiva só ataca alvos claramente fracos
       if (ai.strategy === 'defensiva' && cand.defense > available * 0.5) continue;
@@ -181,17 +186,26 @@ export function thinkAI(g: Game, f: Faction): void {
     }
   }
 
-  // ---------------- aviação e apoio
+  // ---------------- aviação, reconhecimento e apoio
   managePlanes(g, f, ai, myUnits, threats.map((t) => t.si));
-  manageSupport(g, f, ai, myUnits, byId);
+  manageSupport(g, f, ai, myUnits, byId, threats.map((t) => t.si));
+  manageRecon(g, f, ai, myUnits);
 
-  // ---------------- economia
-  balanceResources(g, f);
-  planBuildings(g, f, ai, p, owned, threats.map((t) => t.si));
-  produce(g, f, ai, p, owned, myUnits);
+  // ---------------- economia (função de logística)
+  if (can('logistica')) {
+    balanceResources(g, f);
+    planBuildings(g, f, ai, p, owned, threats.map((t) => t.si));
+    produce(g, f, ai, p, owned, allUnits);
+  }
+  // reservas: contra-ataque imediato em estados importantes sob ataque
+  if (can('logistica') || can('comandante')) {
+    for (const th of threats.slice(0, 2)) {
+      if (th.t > 2 && (th.si === fr.hq || g.map.states[th.si].info.imp >= 4)) g.callReserves(f, th.si);
+    }
+  }
 
   // ---------------- habilidades dos comandantes
-  useAbilities(g, f, ai, p, threats, byId);
+  if (can('comandante')) useAbilities(g, f, ai, p, threats, byId);
 }
 
 function frontierStates(g: Game, f: Faction): number[] {
@@ -226,6 +240,12 @@ function scoreTarget(g: Game, f: Faction, ai: AIState, s: number, lostRecent: nu
   if (st.owner === 'neutral' && ai.strategy === 'expansao') value += 5;
   if (st.owner === enemy && (ai.strategy === 'ofensiva' || ai.strategy === 'contra-ataque')) value += 4;
   if (info.uf === 'DF') value += 4;
+  // objetivo definido pelo comandante da equipe
+  if (g.w.teamObjective?.[f] === s) value += 10;
+  // reconectar estados isolados (proteção das linhas de suprimento)
+  if (g.map.states[s].adj.some((n) => g.w.states[n].owner === f && !g.w.states[n].connected)) value += 6;
+  // ataque oportunista contra guarnições enfraquecidas
+  if (st.gHp < st.gMax * 0.4) value += 4;
   // estados que o inimigo usa como base de ataque contra nós
   if (st.owner === enemy && g.w.time - st.lastCombatT < 20) value += 2;
   // recursos que faltam para a facção
@@ -233,8 +253,8 @@ function scoreTarget(g: Game, f: Faction, ai: AIState, s: number, lostRecent: nu
   if (fr.income.fuel < 2.5) value += info.fuel;
   if (fr.income.steel < 2.5) value += info.steel;
   // defesa local + metade das forças inimigas móveis da região (reforços prováveis)
-  const local = g.hostilePowerNear(c.x, c.y, 280, f);
-  const regional = st.owner === 'neutral' ? 0 : g.powerNear(c.x, c.y, 650, st.owner) - g.powerNear(c.x, c.y, 280, st.owner);
+  const local = g.hostilePowerNear(c.x, c.y, 280, f, f);
+  const regional = st.owner === 'neutral' ? 0 : g.powerNear(c.x, c.y, 650, st.owner, f) - g.powerNear(c.x, c.y, 280, st.owner, f);
   const defense = g.garrisonPower(s) + local + Math.max(0, regional) * 0.5;
   let cx = 0, cy = 0;
   for (const u of free) { cx += u.x; cy += u.y; }
@@ -266,7 +286,7 @@ function manageAttackGroup(
   const units = gr.units.map((id) => byId.get(id)!).filter(Boolean);
   const pw = units.reduce((s, u) => s + power(u), 0);
   const c = g.capital(gr.target);
-  const defense = g.garrisonPower(gr.target) + g.hostilePowerNear(c.x, c.y, 280, f);
+  const defense = g.garrisonPower(gr.target) + g.hostilePowerNear(c.x, c.y, 280, f, f);
   gr.lastPower = pw;
 
   if (gr.phase === 'gather') {
@@ -328,7 +348,7 @@ function managePlanes(g: Game, f: Faction, _ai: AIState, myUnits: Unit[], threat
   for (const si of threatened) {
     const c = g.capital(si);
     let target: Unit | null = null, bd = Infinity;
-    for (const e of g.unitsOf(enemy)) {
+    for (const e of g.visibleUnitsOf(enemy, f)) {
       const d = dist(e.x, e.y, c.x, c.y);
       if (d < 300 && d < bd) { bd = d; target = e; }
     }
@@ -346,11 +366,18 @@ function managePlanes(g: Game, f: Faction, _ai: AIState, myUnits: Unit[], threat
   }
 }
 
-function manageSupport(g: Game, f: Faction, ai: AIState, myUnits: Unit[], byId: Map<number, Unit>): void {
+function manageSupport(g: Game, f: Faction, ai: AIState, myUnits: Unit[], byId: Map<number, Unit>, threatened: number[]): void {
   const supports = myUnits.filter((u) => u.type === 'support');
   const groups = ai.groups.filter((x) => x.units.length >= 3);
   supports.forEach((sp, i) => {
-    if (!groups.length) return;
+    if (!groups.length) {
+      // sem ofensiva: apoio vai reparar os defensores do estado ameaçado (fora da linha de tiro)
+      const si = threatened[i % Math.max(1, threatened.length)];
+      if (si === undefined) return;
+      const c = g.capital(si);
+      if (dist(sp.x, sp.y, c.x, c.y) > 90) g.commandMove(f, [sp.id], c.x + 25, c.y + 25, false);
+      return;
+    }
     const gr = groups[i % groups.length];
     let cx = 0, cy = 0, n = 0;
     for (const id of gr.units) { const u = byId.get(id); if (u) { cx += u.x; cy += u.y; n++; } }
@@ -519,4 +546,17 @@ function useAbilities(
     const queued = g.statesOf(f).reduce((s, i) => s + g.w.states[i].queue.length, 0);
     if (queued >= 3 && fr.res.supplies > 150) use('industria');
   }
+}
+
+/** Batedores: acompanham as ofensivas e lançam sensores sobre o alvo (com névoa ativa). */
+function manageRecon(g: Game, f: Faction, ai: AIState, myUnits: Unit[]): void {
+  const scouts = myUnits.filter((u) => u.type === 'recon');
+  if (!scouts.length) return;
+  const gr = ai.groups.find((x) => x.task === 'attack');
+  scouts.forEach((sc, i) => {
+    const target = gr ? g.capital(gr.target) : g.capital(ai.focus >= 0 ? ai.focus : g.w.factions[f].hq);
+    const tx = target.x - 120 + (i % 3) * 60, ty = target.y + 140;
+    if (g.w.settings.fog && sc.rearmT <= 0 && dist(sc.x, sc.y, target.x, target.y) < 380) g.reconSensor(f, [sc.id]);
+    else if (sc.order.kind === 'idle' && dist(sc.x, sc.y, tx, ty) > 80) g.commandMove(f, [sc.id], tx, ty, false);
+  });
 }

@@ -3,16 +3,22 @@
 
 export type Faction = 'lula' | 'bolso';
 export type Owner = Faction | 'neutral';
-export type UnitType = 'infantry' | 'tank' | 'artillery' | 'heli' | 'plane' | 'support' | 'militia';
+export type UnitType = 'infantry' | 'tank' | 'artillery' | 'heli' | 'plane' | 'support' | 'recon' | 'militia';
 export type ArmorClass = 'light' | 'armor' | 'air' | 'structure';
 export type BuildingType = 'barracks' | 'factory' | 'airbase' | 'depot' | 'fort';
 export type ResKey = 'money' | 'fuel' | 'steel' | 'supplies';
 export type Res = Record<ResKey, number>;
 export type Difficulty = 'facil' | 'normal' | 'dificil' | 'insano';
-export type GameMode = 'campanha' | 'rapida' | 'local' | 'sandbox';
+export type GameMode = 'campanha' | 'rapida' | 'local' | 'sandbox' | 'online';
 export type AbilityId = 'blitz' | 'coordenado' | 'blindados' | 'industria' | 'massa' | 'ferrea';
 export type Distribution = 'eleitoral' | 'nortesul' | 'aleatoria' | 'neutra';
 export type ControlKind = 'human' | 'ai' | 'none';
+/** Funções militares (multiplayer por equipes). */
+export type Role = 'comandante' | 'infantaria' | 'blindados' | 'aereo' | 'logistica';
+/** Formações de grupo. */
+export type Formation = 'livre' | 'linha' | 'coluna' | 'dispersa' | 'escolta' | 'cerco' | 'defesa';
+export type VictoryRule = 'padrao' | 'total' | 'sede';
+export type TerrainType = 0 | 1 | 2 | 3 | 4 | 5;
 
 export interface Vec {
   x: number;
@@ -65,6 +71,20 @@ export interface Unit {
   lastFireT: number;
   group: number;
   moving: boolean;
+  /** função militar que controla a unidade (multiplayer) */
+  ctrl: Role;
+  /** experiência acumulada (veterania) */
+  xp: number;
+  /** moral 0..100 */
+  morale: number;
+  /** formação da última ordem */
+  form: Formation;
+  /** unidade escoltada (formação escolta) */
+  escort: number;
+  /** recuando por moral baixa */
+  routed: boolean;
+  /** tempo parado (entrincheiramento) */
+  stillT: number;
 }
 
 export interface Shell {
@@ -114,6 +134,8 @@ export interface StateRT {
   lastCombatT: number;
   alertT: number;
   capturedT: number;
+  /** recarga da convocação de reservas */
+  reserveT: number;
 }
 
 export interface Ability {
@@ -182,6 +204,23 @@ export interface MatchSettings {
   seed: number;
   /** IA do oponente ligada (sandbox pode desligar) */
   enemyAI: boolean;
+  /** névoa de guerra */
+  fog?: boolean;
+  /** habilidades especiais dos comandantes */
+  abilities?: boolean;
+  /** duração máxima em minutos (0 = sem limite) */
+  maxDuration?: number;
+  /** segundos de preparação inicial (sem combate nem captura) */
+  prepTime?: number;
+  victory?: VictoryRule;
+  /** limite de efetivo por equipe */
+  unitCap?: number;
+  /** limite de estruturas por equipe (0 = sem limite) */
+  structureCap?: number;
+  /** eventos fictícios aleatórios */
+  events?: boolean;
+  /** moral das tropas */
+  morale?: boolean;
 }
 
 export interface AIGroup {
@@ -204,6 +243,8 @@ export interface AIState {
   lost: { s: number; t: number }[];
   lastAbilityT: number;
   focus: number;
+  /** funções controladas por esta IA (multiplayer); ausente = todas */
+  roles?: Role[] | null;
 }
 
 export interface TurnState {
@@ -230,7 +271,32 @@ export interface World {
   log: LogEntry[];
   tick: number;
   /** próximos instantes das rotinas periódicas (salvos para manter o determinismo) */
-  timers: { eco: number; supply: number; victory: number; objectives: number };
+  timers: { eco: number; supply: number; victory: number; objectives: number; event: number };
+  /** objetivo de equipe definido pelo comandante (índice do estado ou -1) */
+  teamObjective: Record<Faction, number>;
+  /** áreas reveladas temporariamente por reconhecimento */
+  reveals: Reveal[];
+  /** eventos fictícios ativos */
+  gevents: ActiveEvent[];
+  /** empate por tempo */
+  draw?: boolean;
+}
+
+export interface Reveal {
+  f: Faction;
+  x: number;
+  y: number;
+  r: number;
+  until: number;
+}
+
+export interface ActiveEvent {
+  id: string;
+  until: number;
+  /** estado-alvo (eventos regionais) ou -1 */
+  s: number;
+  /** região afetada ('' = país todo) */
+  region: string;
 }
 
 /** Eventos transitórios produzidos pela simulação (efeitos visuais, sons, alertas). */
@@ -245,7 +311,10 @@ export type SimEvent =
   | { k: 'built'; s: number; b: BuildingType; f: Owner }
   | { k: 'ability'; f: Faction; id: AbilityId; x: number; y: number }
   | { k: 'objective'; f: Faction; id: string }
-  | { k: 'gameover'; winner: Faction; reason: string }
+  | { k: 'gameover'; winner: Faction; reason: string; draw?: boolean }
   | { k: 'garrisonDown'; s: number }
   | { k: 'turn'; phase: 'plan' | 'exec'; active: Faction; n: number }
-  | { k: 'hqLost'; f: Faction; s: number; newHq: number };
+  | { k: 'hqLost'; f: Faction; s: number; newHq: number }
+  | { k: 'promote'; id: number; rank: number; f: Owner }
+  | { k: 'gevent'; id: string; start: boolean }
+  | { k: 'reveal'; f: Faction; x: number; y: number; r: number };

@@ -4,11 +4,12 @@ import { UNIT_DEFS } from '../data/units';
 import { FACTIONS, enemyOf } from '../data/factions';
 import { getMap, type MapData } from './map';
 import { rand } from './rng';
+import { MORALE, roleForUnit } from './rules';
 import type {
   AIState, BuildingType, ControlKind, Faction, FactionRT, MatchSettings, Owner, Res, StateRT, Unit, UnitType, World,
 } from './types';
 
-export const WORLD_VERSION = 3;
+export const WORLD_VERSION = 4;
 
 export const START_RES: Record<MatchSettings['startRes'], Res> = {
   baixos: { money: 400, fuel: 150, steel: 150, supplies: 220 },
@@ -38,6 +39,15 @@ export function defaultSettings(partial: Partial<MatchSettings> = {}): MatchSett
     incomeMul: 1,
     seed: (Math.random() * 2 ** 31) | 0,
     enemyAI: true,
+    fog: false,
+    abilities: true,
+    maxDuration: 0,
+    prepTime: 0,
+    victory: 'padrao',
+    unitCap: 150,
+    structureCap: 0,
+    events: true,
+    morale: true,
     ...partial,
   };
 }
@@ -145,6 +155,13 @@ export function makeUnit(w: World, type: UnitType, f: Owner, x: number, y: numbe
     lastFireT: -99,
     group: 0,
     moving: false,
+    ctrl: roleForUnit(type),
+    xp: 0,
+    morale: type === 'militia' ? 70 : MORALE.start,
+    form: 'livre',
+    escort: 0,
+    routed: false,
+    stillT: 0,
   };
   return u;
 }
@@ -186,7 +203,10 @@ export function createWorld(settings: MatchSettings): World {
     turn: settings.mode === 'local' ? { phase: 'plan', active: 'lula', t: 0, n: 1 } : null,
     log: [],
     tick: 0,
-    timers: { eco: 0, supply: 0, victory: 0, objectives: 0 },
+    timers: { eco: 0, supply: 0, victory: 0, objectives: 0, event: 120 },
+    teamObjective: { lula: -1, bolso: -1 },
+    reveals: [],
+    gevents: [],
   };
 
   // distribuição territorial
@@ -230,12 +250,13 @@ export function createWorld(settings: MatchSettings): World {
       lastCombatT: -99,
       alertT: -99,
       capturedT: -99,
+      reserveT: 0,
     };
     w.states.push(s);
   }
 
   const control = (f: Faction): ControlKind => {
-    if (settings.mode === 'local') return 'human';
+    if (settings.mode === 'local' || settings.mode === 'online') return 'human';
     if (f === settings.player) return 'human';
     return settings.enemyAI ? 'ai' : 'none';
   };
@@ -301,5 +322,33 @@ export function createWorld(settings: MatchSettings): World {
   }
 
   w.log.push({ t: 0, text: 'A guerra pelo Brasil começou. Conquiste os 26 estados e o Distrito Federal!', kind: 'info' });
+  return w;
+}
+
+/**
+ * Migra saves antigos (v3 = versão 1.0 do jogo) para o formato atual,
+ * preenchendo os campos novos com valores neutros.
+ */
+export function migrateWorld(w: World): World {
+  if (w.version === 3) {
+    for (const u of w.units) {
+      const anyU = u as Partial<Unit> & Unit;
+      anyU.ctrl = anyU.ctrl ?? roleForUnit(u.type);
+      anyU.xp = anyU.xp ?? 0;
+      anyU.morale = anyU.morale ?? MORALE.start;
+      anyU.form = anyU.form ?? 'livre';
+      anyU.escort = anyU.escort ?? 0;
+      anyU.routed = anyU.routed ?? false;
+      anyU.stillT = anyU.stillT ?? 0;
+    }
+    for (const s of w.states) s.reserveT = s.reserveT ?? 0;
+    w.timers.event = w.timers.event ?? w.time + 120;
+    w.teamObjective = w.teamObjective ?? { lula: -1, bolso: -1 };
+    w.reveals = w.reveals ?? [];
+    w.gevents = w.gevents ?? [];
+    // jogos da 1.0 não tinham eventos nem moral: mantém a experiência original
+    w.settings = { events: false, morale: false, fog: false, abilities: true, maxDuration: 0, prepTime: 0, victory: 'padrao', unitCap: 150, structureCap: 0, ...w.settings };
+    w.version = 4;
+  }
   return w;
 }

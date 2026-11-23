@@ -32,6 +32,8 @@ export interface UnitDef {
   healRadius: number;
   /** consumo contínuo de combustível (por segundo) */
   fuelUse: number;
+  /** alcance de visão para a névoa de guerra */
+  vision: number;
 }
 
 const R = (money: number, fuel: number, steel: number, supplies: number): Res => ({ money, fuel, steel, supplies });
@@ -46,7 +48,7 @@ export const UNIT_DEFS: Record<UnitType, UnitDef> = {
     vs: { light: 1.0, armor: 0.45, air: 0.3, structure: 0.55 },
     splash: 0, sight: 95, air: false, canCapture: true,
     cost: R(55, 0, 0, 20), buildTime: 6, pop: 1, requires: 'barracks', power: 1.1,
-    ammo: 0, fuel: 0, heal: 0, healRadius: 0, fuelUse: 0,
+    ammo: 0, fuel: 0, heal: 0, healRadius: 0, fuelUse: 0, vision: 160,
   },
   tank: {
     type: 'tank',
@@ -57,7 +59,7 @@ export const UNIT_DEFS: Record<UnitType, UnitDef> = {
     vs: { light: 1.0, armor: 1.2, air: 0, structure: 1.1 },
     splash: 0, sight: 105, air: false, canCapture: true,
     cost: R(200, 45, 65, 10), buildTime: 13, pop: 2, requires: 'factory', power: 3.0,
-    ammo: 0, fuel: 0, heal: 0, healRadius: 0, fuelUse: 0.04,
+    ammo: 0, fuel: 0, heal: 0, healRadius: 0, fuelUse: 0.04, vision: 170,
   },
   artillery: {
     type: 'artillery',
@@ -68,7 +70,7 @@ export const UNIT_DEFS: Record<UnitType, UnitDef> = {
     vs: { light: 1.2, armor: 0.8, air: 0, structure: 1.6 },
     splash: 32, sight: 195, air: false, canCapture: false,
     cost: R(160, 10, 55, 20), buildTime: 12, pop: 2, requires: 'factory', power: 2.4,
-    ammo: 0, fuel: 0, heal: 0, healRadius: 0, fuelUse: 0,
+    ammo: 0, fuel: 0, heal: 0, healRadius: 0, fuelUse: 0, vision: 200,
   },
   heli: {
     type: 'heli',
@@ -79,7 +81,7 @@ export const UNIT_DEFS: Record<UnitType, UnitDef> = {
     vs: { light: 1.2, armor: 1.4, air: 0.6, structure: 0.6 },
     splash: 0, sight: 125, air: true, canCapture: false,
     cost: R(230, 55, 45, 10), buildTime: 15, pop: 2, requires: 'airbase', power: 2.9,
-    ammo: 0, fuel: 0, heal: 0, healRadius: 0, fuelUse: 0.05,
+    ammo: 0, fuel: 0, heal: 0, healRadius: 0, fuelUse: 0.05, vision: 230,
   },
   plane: {
     type: 'plane',
@@ -90,7 +92,7 @@ export const UNIT_DEFS: Record<UnitType, UnitDef> = {
     vs: { light: 1.0, armor: 1.3, air: 1.5, structure: 1.4 },
     splash: 0, sight: 170, air: true, canCapture: false,
     cost: R(300, 65, 75, 10), buildTime: 18, pop: 3, requires: 'airbase', power: 3.2,
-    ammo: 4, fuel: 48, heal: 0, healRadius: 0, fuelUse: 0,
+    ammo: 4, fuel: 48, heal: 0, healRadius: 0, fuelUse: 0, vision: 260,
   },
   support: {
     type: 'support',
@@ -101,7 +103,18 @@ export const UNIT_DEFS: Record<UnitType, UnitDef> = {
     vs: { light: 0, armor: 0, air: 0, structure: 0 },
     splash: 0, sight: 80, air: false, canCapture: false,
     cost: R(100, 15, 15, 30), buildTime: 9, pop: 1, requires: 'barracks', power: 0.4,
-    ammo: 0, fuel: 0, heal: 6, healRadius: 85, fuelUse: 0,
+    ammo: 0, fuel: 0, heal: 6, healRadius: 85, fuelUse: 0, vision: 140,
+  },
+  recon: {
+    type: 'recon',
+    name: 'Batedor',
+    plural: 'Batedores',
+    desc: 'Jipe de reconhecimento: rápido, enxerga muito longe e lança sensores que revelam a área por 30 s. Fraco em combate.',
+    hp: 80, speed: 48, damage: 5, range: 30, minRange: 0, cooldown: 0.9, armor: 'light',
+    vs: { light: 0.8, armor: 0.1, air: 0.2, structure: 0.2 },
+    splash: 0, sight: 120, air: false, canCapture: false,
+    cost: R(70, 15, 10, 10), buildTime: 6, pop: 1, requires: 'barracks', power: 0.5,
+    ammo: 0, fuel: 0, heal: 0, healRadius: 0, fuelUse: 0.01, vision: 320,
   },
   militia: {
     type: 'militia',
@@ -112,11 +125,11 @@ export const UNIT_DEFS: Record<UnitType, UnitDef> = {
     vs: { light: 1.0, armor: 0.25, air: 0.25, structure: 0.4 },
     splash: 0, sight: 90, air: false, canCapture: false,
     cost: R(0, 0, 0, 0), buildTime: 0, pop: 0, requires: null, power: 0.8,
-    ammo: 0, fuel: 0, heal: 0, healRadius: 0, fuelUse: 0,
+    ammo: 0, fuel: 0, heal: 0, healRadius: 0, fuelUse: 0, vision: 140,
   },
 };
 
-export const RECRUITABLE: UnitType[] = ['infantry', 'tank', 'artillery', 'heli', 'plane', 'support'];
+export const RECRUITABLE: UnitType[] = ['infantry', 'tank', 'artillery', 'heli', 'plane', 'support', 'recon'];
 
 /** Guarnição (base militar na capital de cada estado). */
 export const GARRISON = {

@@ -200,6 +200,73 @@ for (const c of countries.features) {
   }
 }
 
+
+// ---------- Terreno real (Natural Earth): mata, serras, pantanal e rios ----------
+// Códigos: 0 planície, 1 mata, 2 serra, 3 rio, 4 pantanal (5 = cidade, calculado em tempo de execução)
+const CELL = 16;
+const COLS = Math.ceil(WIDTH / CELL), ROWS = Math.ceil(HEIGHT / CELL);
+const terrain = new Uint8Array(COLS * ROWS);
+const terr = JSON.parse(readFileSync(resolve(root, 'data/raw/terreno-natural-earth.geojson'), 'utf8'));
+const fillPoly = (ring, code, only = null) => {
+  let minY = Infinity, maxY = -Infinity;
+  for (const [, y] of ring) { minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
+  for (let row = Math.max(0, Math.floor(minY / CELL)); row <= Math.min(ROWS - 1, Math.ceil(maxY / CELL)); row++) {
+    const y = row * CELL + CELL / 2;
+    const xs = [];
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i], [xj, yj] = ring[j];
+      if (yi > y !== yj > y) xs.push(((xj - xi) * (y - yi)) / (yj - yi) + xi);
+    }
+    xs.sort((a, b) => a - b);
+    for (let k = 0; k + 1 < xs.length; k += 2) {
+      for (let c = Math.max(0, Math.ceil((xs[k] - CELL / 2) / CELL)); c <= Math.min(COLS - 1, Math.floor((xs[k + 1] - CELL / 2) / CELL)); c++) {
+        const idx = row * COLS + c;
+        if (only === null || only.includes(terrain[idx])) terrain[idx] = code;
+      }
+    }
+  }
+};
+const terrainShapes = { mata: [], serra: [], pantanal: [], rios: [] };
+const projRing = (ring) => ring.map(([lon, lat]) => project(lon, lat));
+// ordem de prioridade: mata < pantanal < serra < rio
+for (const kind of ['mata', 'pantanal', 'serra']) {
+  for (const f of terr.features.filter((x) => x.properties.kind === kind)) {
+    for (const poly of f.geometry.coordinates) {
+      const ring = projRing(poly[0]);
+      fillPoly(ring, kind === 'mata' ? 1 : kind === 'serra' ? 2 : 4);
+      terrainShapes[kind].push(ring.filter((_, i) => i % 2 === 0).flatMap(([x, y]) => [r1(x), r1(y)]));
+    }
+  }
+}
+for (const f of terr.features.filter((x) => x.properties.kind === 'rio')) {
+  for (const line of f.geometry.coordinates) {
+    const pts = projRing(line);
+    const simp = [];
+    let last = null;
+    for (const p of pts) if (!last || Math.hypot(p[0] - last[0], p[1] - last[1]) > 5) { simp.push(p); last = p; }
+    if (pts.length) simp.push(pts[pts.length - 1]);
+    terrainShapes.rios.push({ name: f.properties.name, line: simp.flatMap(([x, y]) => [r1(x), r1(y)]) });
+    // marca células cortadas pelo rio
+    for (let i = 1; i < pts.length; i++) {
+      const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
+      const steps = Math.ceil(Math.hypot(bx - ax, by - ay) / 4);
+      for (let k = 0; k <= steps; k++) {
+        const x = ax + ((bx - ax) * k) / steps, y = ay + ((by - ay) * k) / steps;
+        const c = Math.floor(x / CELL), rr = Math.floor(y / CELL);
+        if (c >= 0 && rr >= 0 && c < COLS && rr < ROWS) terrain[rr * COLS + c] = 3;
+      }
+    }
+  }
+}
+// RLE compacto: [código, repetições, ...]
+const terrainRle = [];
+for (let i = 0; i < terrain.length; ) {
+  let j = i;
+  while (j < terrain.length && terrain[j] === terrain[i]) j++;
+  terrainRle.push(terrain[i], j - i);
+  i = j;
+}
+
 const out = {
   source: 'Malha estadual IBGE (via click_that_hood/brazil-states.geojson) + Natural Earth (world-atlas)',
   width: WIDTH,
@@ -209,6 +276,8 @@ const out = {
   borders,
   outline,
   neighbors,
+  terrain: { cell: CELL, cols: COLS, rows: ROWS, rle: terrainRle },
+  terrainShapes,
 };
 const target = resolve(root, 'shared/data/brazil-map.json');
 writeFileSync(target, JSON.stringify(out));
