@@ -88,6 +88,15 @@ export class AudioEngine {
     if (this.track) this.startScheduler();
   }
 
+  /** Aba em segundo plano: suspende o áudio para poupar CPU e bateria. */
+  suspend(): void {
+    if (this.ctx && this.ctx.state === 'running') void this.ctx.suspend();
+  }
+
+  resume(): void {
+    if (this.ctx && this.ctx.state === 'suspended') void this.ctx.resume();
+  }
+
   applyVolumes(): void {
     if (!this.ctx) return;
     this.master.gain.value = this.muted ? 0 : 0.9;

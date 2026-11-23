@@ -49,7 +49,9 @@ const server = http.createServer((req, res) => {
   fs.readFile(file, (err, data) => {
     if (err) {
       if (rel === '/index.html') { res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('Servidor do Guerra pelo Brasil no ar. Gere o cliente com "npm run build" para servir o jogo por aqui.'); return; }
-      res.writeHead(404); res.end('Não encontrado'); return;
+      res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end('<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Página não encontrada — Guerra pelo Brasil</title><body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0b100e;color:#ece6cf;font-family:system-ui,sans-serif;text-align:center"><div><h1 style="letter-spacing:.06em">Página não encontrada</h1><p>Este endereço não existe no Guerra pelo Brasil.</p><p><a href="/" style="color:#ffd77a">Voltar ao jogo</a></p></div></body></html>');
+      return;
     }
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] ?? 'application/octet-stream', 'Cache-Control': rel === '/index.html' ? 'no-cache' : 'public, max-age=3600' });
     res.end(req.method === 'HEAD' ? undefined : data);
@@ -68,6 +70,9 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 hub.start();
+if (process.env.NODE_ENV === 'production' && CONFIG.allowedOrigins.includes('*')) {
+  log.warn('ALLOWED_ORIGINS="*": qualquer site pode abrir conexões com este servidor. Em produção, defina os domínios do jogo.');
+}
 server.listen(CONFIG.port, CONFIG.host, () => {
   log.info('servidor no ar', { port: CONFIG.port, host: CONFIG.host, staticDir: CONFIG.staticDir, dataDir: CONFIG.dataDir, origins: CONFIG.allowedOrigins.join(',') });
 });

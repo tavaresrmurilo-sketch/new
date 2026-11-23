@@ -50,6 +50,7 @@ export class HUD {
     this.root = el(`<div class="hud">
       <div class="hud-top">
         <div class="fac" data-fac></div>
+        <div class="res-strip">
         <div class="res money" title="Dinheiro"><span class="ic">${ICON.money}</span><span class="v" data-r="money"></span><span class="d" data-d="money"></span></div>
         <div class="res fuel" title="Combustível — tanques e helicópteros consomem continuamente; aviões ao rearmar"><span class="ic">${ICON.fuel}</span><span class="v" data-r="fuel"></span><span class="d" data-d="fuel"></span></div>
         <div class="res steel" title="Aço"><span class="ic">${ICON.steel}</span><span class="v" data-r="steel"></span><span class="d" data-d="steel"></span></div>
@@ -58,15 +59,22 @@ export class HUD {
         <div class="res troops" title="Tropas em campo e na fila / limite"><span class="ic">${ICON.troops}</span><span class="v" data-pop></span></div>
         <div class="res states" title="Estados dominados"><span class="ic">${ICON.map}</span><span class="v" data-states></span></div>
         <div class="res clock" title="Tempo de guerra"><span class="ic">${ICON.clock}</span><span class="v" data-time></span></div>
-        <div class="spacer"></div>
+        </div>
+        <span class="saved-tag" data-saved></span>
         <div class="speed" data-speed>
           <button class="btn" data-spd="pause" title="Pausar (Espaço)">${ICON.pause}</button>
           <button class="btn" data-spd="0.5">0,5×</button><button class="btn" data-spd="1">1×</button>
           <button class="btn" data-spd="2">2×</button><button class="btn" data-spd="3">3×</button>
+          <button class="btn mob-only" data-spd="cycle" title="Velocidade">1×</button>
         </div>
-        <button class="btn icon" data-act="trade" title="Mercado de recursos">${ICON.trade}</button>
-        <button class="btn icon" data-act="report" title="Relatório de batalha">${ICON.report}</button>
+        <button class="btn icon desk-only" data-act="trade" title="Mercado de recursos">${ICON.trade}</button>
+        <button class="btn icon desk-only" data-act="report" title="Relatório de batalha">${ICON.report}</button>
         <button class="btn icon" data-act="pause" title="Menu (Esc)">${ICON.menu}</button>
+      </div>
+      <div class="fabs">
+        <button class="fab" data-act="drawer-left" aria-label="Painel de comando">${ICON.star}<span>Comando</span></button>
+        <button class="fab" data-act="drawer-right" aria-label="Objetivos, relatório e equipe">${ICON.report}<span>Info</span></button>
+        <button class="fab" data-act="toggle-map" aria-label="Minimapa">${ICON.map}<span>Mapa</span></button>
       </div>
       <div class="hud-left">
         <div class="panel"><div class="ph">${ICON.star} Comando</div>
@@ -90,7 +98,8 @@ export class HUD {
           <button class="btn" data-act="hold" title="Manter posição (H)">${ICON.hold} Manter</button>
           <button class="btn" data-act="rtb" title="Aviões voltam à base (R)">${ICON.plane} Base</button>
           <button class="btn" data-act="hq" title="Ir para a sede (G)">${ICON.home} Sede</button>
-          <button class="btn" data-act="desel" title="Limpar seleção (Esc)">${ICON.close} Limpar</button>
+          <button class="btn" data-act="desel" title="Cancelar ordem em andamento e limpar seleção (Esc)">${ICON.close} Cancelar</button>
+          <button class="btn" data-act="buildmenu" title="Construir e recrutar no estado sob a câmera (ou na sede)">${ICON.industry} Construir</button>
           <button class="btn" data-act="zin" title="Aproximar">＋ Zoom</button>
           <button class="btn" data-act="zout" title="Afastar">－ Zoom</button>
           <button class="btn hidden" data-act="swap" title="Sandbox: controlar o outro lado" style="grid-column: span 2">${ICON.trade} Trocar lado</button>
@@ -134,6 +143,14 @@ export class HUD {
     this.tick();
     this.timer = window.setInterval(() => this.tick(), 200);
     if (this.sim.w.turn && this.sim.w.turn.phase === 'plan') this.showHandoff(this.sim.w.turn.active);
+    if (document.body.classList.contains('touch') && document.body.classList.contains('portrait')) {
+      // depois da apresentação/tutorial, para não sobrepor as caixas iniciais
+      window.setTimeout(() => {
+        if (this.root.isConnected && document.body.classList.contains('portrait') && !this.root.querySelector('.coach')) {
+          this.toast('Dica: gire o aparelho para a horizontal para ver mais do mapa.', 'info');
+        }
+      }, 1500);
+    }
   }
 
   private onlineKeys = (e: KeyboardEvent): void => {
@@ -161,7 +178,11 @@ export class HUD {
       const t = e.target as HTMLElement;
       const spd = t.closest<HTMLElement>('[data-spd]')?.dataset.spd;
       if (spd) {
-        if (spd === 'pause') this.scene.userPaused = !this.scene.userPaused;
+        if (spd === 'cycle') {
+          const order = [0.5, 1, 2, 3];
+          this.scene.speed = order[(order.indexOf(this.scene.speed) + 1) % order.length];
+          this.scene.userPaused = false;
+        } else if (spd === 'pause') this.scene.userPaused = !this.scene.userPaused;
         else { this.scene.speed = +spd; this.scene.userPaused = false; }
         this.renderMode();
         return;
@@ -174,6 +195,11 @@ export class HUD {
       if (act) this.action(act, t.closest<HTMLElement>('[data-act]')!);
     });
     // painel de seleção: pointerdown evita perder cliques quando o painel é atualizado
+    this.root.querySelector('[data-sel]')!.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('h3') && document.body.classList.contains('compact')) {
+        (e.currentTarget as HTMLElement).classList.toggle('collapsed');
+      }
+    });
     this.root.querySelector('[data-sel]')!.addEventListener('pointerdown', (e) => {
       const t = (e.target as HTMLElement).closest<HTMLElement>('[data-sa]');
       if (!t || (t as HTMLButtonElement).disabled) return;
@@ -213,7 +239,32 @@ export class HUD {
       case 'hold': sc.issueStop(true); break;
       case 'rtb': sc.issueRTB(); break;
       case 'hq': { const c = this.sim.capital(this.sim.w.factions[this.me].hq); sc.centerOn(c.x, c.y); break; }
-      case 'desel': sc.clearSelection(); break;
+      case 'desel':
+        if (sc.mode.kind !== 'none') sc.setMode({ kind: 'none' });
+        sc.touchBox = false;
+        this.root.querySelector('[data-act="box"]')?.classList.remove('active');
+        sc.clearSelection();
+        break;
+      case 'buildmenu': {
+        const cam = sc.cameras.main;
+        const st = this.sim.map.stateAtPrecise(cam.midPoint.x, cam.midPoint.y);
+        const si = st >= 0 && this.sim.w.states[st].owner === this.me ? st : this.sim.w.factions[this.me].hq;
+        sc.selectState(si);
+        sc.focusSelection();
+        this.root.querySelector('[data-sel]')?.classList.remove('collapsed');
+        break;
+      }
+      case 'drawer-left':
+        this.root.classList.toggle('left-open');
+        this.root.classList.remove('right-open');
+        break;
+      case 'drawer-right':
+        this.root.classList.toggle('right-open');
+        this.root.classList.remove('left-open');
+        break;
+      case 'toggle-map':
+        this.root.classList.toggle('map-open');
+        break;
       case 'zin': sc.zoomBy(1.25); break;
       case 'zout': sc.zoomBy(0.8); break;
       case 'swap': this.swapSide(); break;
@@ -229,7 +280,10 @@ export class HUD {
     }
     switch (a) {
       case 'recruit':
-        if (sc.send({ k: 'recruit', s: sc.selState, unit: arg as UnitType })) audio.play('recruit');
+        if (sc.send({ k: 'recruit', s: sc.selState, unit: arg as UnitType })) {
+          audio.play('recruit');
+          this.toast(`${UNIT_DEFS[arg as UnitType].name}: em produção em ${this.sim.stateName(sc.selState)}.`, 'good');
+        }
         break;
       case 'build':
         if (sc.send({ k: 'build', s: sc.selState, b: arg as BuildingType })) audio.play('build');
@@ -310,6 +364,16 @@ export class HUD {
     }
   }
 
+  /** Sinal discreto de salvamento concluído na barra superior. */
+  flashSaved(ok: boolean): void {
+    const tag = this.root.querySelector<HTMLElement>('[data-saved]');
+    if (!tag) return;
+    tag.textContent = ok ? '✓ salvo' : '⚠ falha ao salvar';
+    tag.classList.toggle('bad', !ok);
+    tag.classList.add('show');
+    window.setTimeout(() => tag.classList.remove('show'), 2200);
+  }
+
   /** Notificação com botão de ação (ex.: aprovar troca de função). */
   toastAction(msg: string, label: string, fn: () => void): void {
     const t = el(`<div class="toast warn">${esc(msg)} <button class="btn small primary">${esc(label)}</button></div>`);
@@ -343,13 +407,19 @@ export class HUD {
     this.renderMode();
   }
 
+  refreshMode(): void {
+    this.renderMode();
+  }
+
   private renderMode(): void {
     if (!this.scene) return;
     const sc = this.scene, w = this.sim.w;
     this.root.querySelectorAll<HTMLElement>('[data-spd]').forEach((b) => {
       const v = b.dataset.spd!;
-      b.classList.toggle('active', v === 'pause' ? sc.userPaused : !sc.userPaused && +v === sc.speed);
+      b.classList.toggle('active', v === 'pause' ? sc.userPaused : v !== 'cycle' && !sc.userPaused && +v === sc.speed);
     });
+    const cyc = this.root.querySelector<HTMLElement>('[data-spd="cycle"]');
+    if (cyc) cyc.textContent = `${String(sc.speed).replace('.', ',')}×`;
     const ml = this.root.querySelector<HTMLElement>('[data-modeline]')!;
     const m = sc.mode;
     ml.classList.toggle('hidden', m.kind === 'none');
@@ -375,7 +445,7 @@ export class HUD {
   }
 
   private tick(): void {
-    if (!this.scene || !this.scene.sys.isActive()) return;
+    if (!this.scene || !this.scene.sys.isActive() || document.hidden) return;
     const sim = this.sim, w = sim.w, me = this.me;
     const fr = w.factions[me];
     for (const k of RES_KEYS) {
@@ -717,6 +787,40 @@ export class HUD {
   }
 
   // ================================================================== modais
+  /** Tutorial curto (5 passos) mostrado na primeira partida offline. */
+  tutorial(force = false): void {
+    const KEY = 'gpb.v1.tutorial';
+    try { if (!force && localStorage.getItem(KEY)) return; } catch { /* sem armazenamento */ }
+    const touch = document.body.classList.contains('touch');
+    const steps = touch ? [
+      ['Selecionar', 'Toque numa tropa sua para selecioná-la. "Tela" seleciona todas as visíveis; "Área" permite arrastar uma caixa de seleção.'],
+      ['Dar ordens', 'Com tropas selecionadas, toque no destino. Toque numa capital inimiga ou neutra para atacá-la. "Cancelar" desfaz.'],
+      ['Câmera', 'Arraste com um dedo para mover o mapa e use a pinça (dois dedos) para o zoom.'],
+      ['Produzir', 'Toque num estado seu ou em "Construir" para erguer quartéis e fábricas e recrutar tropas.'],
+      ['Conquistar', 'Destrua a guarnição (barra sobre a capital) e mantenha infantaria ou tanques na capital até o anel se completar.'],
+    ] : [
+      ['Selecionar', 'Clique numa tropa sua ou arraste uma caixa com o botão esquerdo. E seleciona tudo na tela.'],
+      ['Dar ordens', 'Clique com o botão direito no destino. Numa capital inimiga ou neutra, as tropas atacam. Q = ataque-movimento, X = parar.'],
+      ['Câmera', 'WASD/setas ou arraste com o botão direito para mover; roda do mouse para o zoom.'],
+      ['Produzir', 'Clique num estado seu para construir quartéis e fábricas e recrutar tropas.'],
+      ['Conquistar', 'Destrua a guarnição (barra sobre a capital) e mantenha infantaria ou tanques na capital até o anel se completar.'],
+    ];
+    let i = 0;
+    const box = el(`<div class="coach interactive" role="dialog" aria-label="Tutorial"></div>`);
+    const draw = () => {
+      box.innerHTML = `<div class="coach-h">Tutorial ${i + 1}/${steps.length} — <b>${esc(steps[i][0])}</b></div><div>${esc(steps[i][1])}</div>
+        <div class="row"><button class="btn small" data-skip>Pular</button><button class="btn small primary" data-next>${i === steps.length - 1 ? 'Concluir' : 'Próximo'}</button></div>`;
+    };
+    const finish = () => { box.remove(); try { localStorage.setItem(KEY, '1'); } catch { /* ignore */ } };
+    box.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      if (t.closest('[data-skip]')) finish();
+      if (t.closest('[data-next]')) { i++; if (i >= steps.length) finish(); else draw(); }
+    });
+    draw();
+    this.root.appendChild(box);
+  }
+
   intro(): void {
     const w = this.sim.w;
     const me = this.me;
@@ -732,7 +836,7 @@ export class HUD {
     this.renderMode();
     const { back } = modal(this.app.ui, isCamp ? 'Briefing da campanha' : 'Ordens iniciais', body, `<button class="btn" data-help>Como jogar</button><button class="btn primary" data-close>Ao combate!</button>`);
     back.querySelector('[data-help]')!.addEventListener('click', () => modal(this.app.ui, 'Como jogar', howToPlayHTML(), `<button class="btn primary" data-close>Entendi</button>`));
-    const obs = new MutationObserver(() => { if (!back.isConnected) { obs.disconnect(); this.scene.userPaused = false; this.renderMode(); } });
+    const obs = new MutationObserver(() => { if (!back.isConnected) { obs.disconnect(); this.scene.userPaused = false; this.renderMode(); this.tutorial(); } });
     obs.observe(this.app.ui, { childList: true });
   }
 
@@ -742,7 +846,7 @@ export class HUD {
     const wasPaused = this.scene.userPaused;
     if (!this.online) this.scene.userPaused = true;
     this.renderMode();
-    const body = `<div style="display:flex;flex-direction:column;gap:8px">
+    const body = `<div class="pause-list">
       <button class="btn primary" data-close>${ICON.play} Continuar</button>
       ${this.online ? '<p class="note">Partida online: o tempo não para e o servidor guarda o progresso.</p>' : `<button class="btn" data-p="save">${ICON.save} Salvar partida</button>`}
       <button class="btn" data-p="report">${ICON.report} Relatório de batalha</button>
@@ -768,6 +872,7 @@ export class HUD {
       }
       if (p === 'menu') {
         if (this.online && !confirm('Sair da partida online? Sua função passa para a IA da equipe.')) return;
+        if (!this.online && !this.sim.w.winner && !confirm(this.sim.w.settings.mode === 'sandbox' ? 'Sair do sandbox? O progresso do sandbox não é salvo.' : 'Sair para o menu? A partida será salva e poderá ser continuada.')) return;
         if (!this.online && this.sim.w.settings.mode !== 'sandbox' && !this.sim.w.winner) this.app.save(true);
         close();
         this.app.toMenu();

@@ -47,16 +47,59 @@ export class App {
   private iconCache = new Map<string, string>();
   private splashShown = false;
   readonly online: Online;
+  private autoPaused = false;
+
+  /** Classes de layout conforme a tela: compact (celular/tablet), narrow (retrato estreito), touch, orientação. */
+  updateDeviceClass(): void {
+    const w = window.innerWidth, h = window.innerHeight;
+    const coarse = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+    const b = document.body.classList;
+    b.toggle('touch', coarse);
+    b.toggle('compact', coarse || w < 1000 || h < 600);
+    b.toggle('narrow', w < 600);
+    b.toggle('portrait', h > w);
+    b.toggle('landscape', w >= h);
+    this.syncCanvasSize();
+  }
+
+  /** Garante que o Phaser use o tamanho real da tela após girar o aparelho
+   *  (alguns navegadores avisam a rotação antes de atualizar o layout). */
+  private syncCanvasSize(): void {
+    const fit = () => {
+      const g = this.phaser, box = document.getElementById('game');
+      if (!g || !box || !box.clientWidth || !box.clientHeight) return;
+      if (g.scale.width !== box.clientWidth || g.scale.height !== box.clientHeight) g.scale.resize(box.clientWidth, box.clientHeight);
+    };
+    requestAnimationFrame(fit);
+    window.setTimeout(fit, 200);
+    window.setTimeout(fit, 600);
+  }
   /** código de convite recebido pela URL (?sala=BR-XXXXX) */
   private inviteCode = new URLSearchParams(location.search).get('sala')?.toUpperCase() ?? '';
 
   constructor() {
     this.ui = document.getElementById('ui')!;
     this.online = new Online(this);
+    this.updateDeviceClass();
+    window.addEventListener('resize', () => this.updateDeviceClass());
+    window.visualViewport?.addEventListener('resize', () => this.updateDeviceClass());
+    window.addEventListener('orientationchange', () => window.setTimeout(() => this.updateDeviceClass(), 250));
+    // aba em segundo plano: silencia o áudio e pausa partidas offline (online o servidor continua)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        audio.suspend();
+        const sc = this.sim ? this.scene() : null;
+        if (sc && !sc.userPaused && !this.sim?.w.winner) { sc.userPaused = true; this.autoPaused = true; }
+      } else {
+        audio.resume();
+        if (this.autoPaused) { this.autoPaused = false; this.hud?.toast('Jogo pausado enquanto você estava fora. Toque em ▶/pausa para continuar.'); this.hud?.refreshMode(); }
+      }
+    });
     audio.setVolumes(this.settings.music, this.settings.sfx);
     document.body.classList.toggle('hc', !!this.settings.highContrast);
     const unlock = () => { audio.unlock(); };
     window.addEventListener('pointerdown', unlock, { capture: true });
+    window.addEventListener('touchend', unlock, { capture: true });
     window.addEventListener('keydown', unlock, { capture: true });
     // sons de interface em todos os botões
     this.ui.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('button')) audio.play('click'); });
@@ -66,7 +109,10 @@ export class App {
     });
   }
 
-  boot(): void {
+  /** chamado quando o menu principal aparece pela primeira vez */
+  onReady: (() => void) | null = null;
+
+  boot(onEngine?: () => void): void {
     // limite de quadros: qualidade baixa = 30 fps; ?fps=N força um valor (PCs fracos e testes automatizados)
     const fpsParam = Number(new URLSearchParams(location.search).get('fps'));
     const fpsLimit = fpsParam > 0 ? Math.min(60, fpsParam) : effectiveQuality(this.settings) === 'baixo' ? 30 : 0;
@@ -83,7 +129,12 @@ export class App {
       scene: [MenuScene, GameScene],
       banner: false,
     });
-    this.phaser.events.once(Phaser.Core.Events.READY, () => this.showMainMenu());
+    this.phaser.events.once(Phaser.Core.Events.READY, () => {
+      onEngine?.();
+      this.showMainMenu();
+      this.onReady?.();
+      this.onReady = null;
+    });
   }
 
   // ================================================================== utilidades
@@ -475,6 +526,7 @@ export class App {
       states: sim.statesOf(w.settings.player).length, label,
     });
     if (!silent) this.hud?.toast(ok ? 'Partida salva.' : 'Falha ao salvar (armazenamento cheio ou bloqueado).', ok ? 'good' : 'error');
+    this.hud?.flashSaved(ok);
     return ok;
   }
 

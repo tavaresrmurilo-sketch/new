@@ -442,12 +442,12 @@ export class Online {
       <div class="lobby-f">
         ${me && !me.spectator ? `<div class="note">Sua função: ${me.role ? esc(ROLE_INFO[me.role].name) : 'escolha uma (funções livres são agrupadas automaticamente)'}</div>` : ''}
         <div class="spacer"></div>
-        ${link ? `<span class="note">Link: ${esc(link)}</span>` : '<span class="note">Compartilhe o código da sala.</span>'}
+        ${link ? `<span class="note desk-only">Link: ${esc(link)}</span>` : '<span class="note">Compartilhe o código da sala.</span>'}
         ${isHost ? `<button class="btn" data-lb="balance">Equilibrar equipes</button>` : ''}
         ${me && !isHost && !me.spectator ? `<button class="btn ${me.ready ? 'active' : 'primary'}" data-lb="ready">${me.ready ? '✓ Pronto (cancelar)' : 'Estou pronto'}</button>` : ''}
         ${isHost ? `<button class="btn primary" data-lb="start" ${r.canStart ? '' : 'disabled'} title="${esc(r.startBlockers.join(' '))}">${ICON.play} Iniciar guerra</button>` : ''}
-      </div>
-      ${isHost && !r.canStart ? `<div class="lobby-block">${r.startBlockers.map((b) => `<div>• ${esc(b)}</div>`).join('')}</div>` : ''}`;
+        ${isHost && !r.canStart ? `<div class="lobby-block">${r.startBlockers.map((b) => `<div>• ${esc(b)}</div>`).join('')}</div>` : ''}
+      </div>`;
     this.renderChat();
     if (typing !== null) {
       const inp = this.lobbyEl.querySelector<HTMLInputElement>('[data-lchat]')!;

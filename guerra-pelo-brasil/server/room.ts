@@ -470,9 +470,15 @@ export class Room {
     for (const p of this.players.values()) if (!p.bot && !p.left && p.connected && this.canSee(p, m)) this.host.send(p.id, { t: 'chat', msg: m });
   }
 
+  private lastChat = new Map<string, { text: string; t: number }>();
+
   handleChat(p: RPlayer, scope: unknown, text: unknown): string | null {
     const t = sanitizeText(text, LIMITS.chat);
     if (!t) return 'Mensagem vazia.';
+    // anti-spam: mesma mensagem repetida em sequência é bloqueada
+    const prev = this.lastChat.get(p.id);
+    if (prev && prev.text === t && Date.now() - prev.t < 8000) return 'Mensagem repetida: aguarde antes de enviar de novo.';
+    this.lastChat.set(p.id, { text: t, t: Date.now() });
     const sc = scope === 'team' && p.team && !p.spectator ? 'team' : 'all';
     if (sc === 'all' && p.spectator && this.state === 'playing') {
       // espectadores não podem vazar informações para os jogadores durante a partida

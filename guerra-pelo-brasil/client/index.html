@@ -2,13 +2,49 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="description" content="Guerra pelo Brasil — Conquista Total: estratégia militar em tempo real (sátira política fictícia)." />
     <meta name="theme-color" content="#0b100e" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Guerra pelo Brasil" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Guerra pelo Brasil — Conquista Total" />
+    <meta property="og:description" content="Estratégia militar em tempo real no mapa real do Brasil. Sátira política fictícia, com multiplayer online até 5v5." />
+    <meta name="robots" content="index,follow" />
     <title>Guerra pelo Brasil — Conquista Total</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='16' height='32' fill='%23d32f2f'/%3E%3Crect x='16' width='16' height='32' fill='%231e6fd9'/%3E%3Cpath d='M16 4l3 8h8l-6 5 2 8-7-5-7 5 2-8-6-5h8z' fill='%23ffd54a'/%3E%3C/svg%3E" />
   </head>
   <body>
+    <div id="boot" role="progressbar" aria-label="Carregando o jogo" aria-valuemin="0" aria-valuemax="100" aria-valuenow="15">
+      <div class="boot-box">
+        <div class="boot-title">GUERRA PELO BRASIL</div>
+        <div class="boot-sub">CONQUISTA TOTAL</div>
+        <div class="boot-bar"><i id="boot-fill"></i></div>
+        <div id="boot-text">Carregando o jogo…</div>
+      </div>
+    </div>
+    <style>
+      #boot { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: #0b100e; color: #ece6cf; font-family: Bahnschrift, 'Arial Narrow', Arial, sans-serif; transition: opacity .4s; }
+      #boot.done { opacity: 0; pointer-events: none; }
+      .boot-box { width: min(420px, 86vw); text-align: center; }
+      .boot-title { font-size: clamp(26px, 7vw, 40px); font-weight: 800; letter-spacing: .04em; }
+      .boot-sub { color: #e3b84a; letter-spacing: .4em; font-size: 13px; margin: 4px 0 18px; }
+      .boot-bar { height: 8px; background: #1a2018; border: 1px solid #3a4636; border-radius: 4px; overflow: hidden; }
+      #boot-fill { display: block; height: 100%; width: 15%; background: linear-gradient(90deg, #b58a24, #ffd77a); transition: width .25s; }
+      #boot-text { margin-top: 10px; font-size: 13px; color: #a3a38c; }
+    </style>
+    <script>
+      window.__boot = function (p, t) {
+        var f = document.getElementById('boot-fill'), x = document.getElementById('boot-text'), b = document.getElementById('boot');
+        if (!b) return;
+        if (f) f.style.width = p + '%';
+        if (x && t) x.textContent = t;
+        b.setAttribute('aria-valuenow', String(p));
+        if (p >= 100) { b.classList.add('done'); setTimeout(function () { b.remove(); }, 450); }
+      };
+    </script>
     <div id="game"></div>
     <div id="ui"></div>
     <noscript>Ative o JavaScript para jogar.</noscript>

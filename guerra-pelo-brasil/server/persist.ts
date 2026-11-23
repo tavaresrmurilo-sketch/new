@@ -11,7 +11,13 @@ const replaysDir = () => path.join(CONFIG.dataDir, 'replays');
 const historyFile = () => path.join(CONFIG.dataDir, 'history.json');
 
 export function ensureDirs(): void {
-  for (const d of [CONFIG.dataDir, roomsDir(), replaysDir()]) fs.mkdirSync(d, { recursive: true });
+  try {
+    for (const d of [CONFIG.dataDir, roomsDir(), replaysDir()]) fs.mkdirSync(d, { recursive: true });
+    fs.accessSync(CONFIG.dataDir, fs.constants.W_OK);
+  } catch (e) {
+    // o jogo continua funcionando; só perde a recuperação de salas após reinício
+    log.error('DATA_DIR sem permissão de escrita: partidas não serão persistidas', { dataDir: CONFIG.dataDir, err: String(e) });
+  }
 }
 
 function atomicWrite(file: string, data: string): void {

@@ -369,7 +369,8 @@ export class GameScene extends Phaser.Scene {
       }
       const d = this.drag;
       if (!d || !p.isDown) return;
-      if (Math.hypot(p.x - d.sx, p.y - d.sy) > 7) d.moved = true;
+      // dedo precisa de tolerância maior: um arrasto curto não deve virar ordem/seleção
+      if (Math.hypot(p.x - d.sx, p.y - d.sy) > (p.wasTouch ? 14 : 7)) d.moved = true;
       if (!d.moved) return;
       const panning = d.button === 1 || d.button === 2 || (p.wasTouch && !this.touchBox);
       if (panning) {
@@ -484,6 +485,8 @@ export class GameScene extends Phaser.Scene {
 
   private leftClick(x: number, y: number, touch: boolean): void {
     const m = this.mode;
+    // retorno visual imediato de cada toque
+    if (touch) this.pulse(x, y, 0xffffff, 12 / this.cameras.main.zoom, 0.3);
     if (m.kind === 'ability') {
       this.send({ k: 'ability', id: m.id, x, y });
       this.setMode({ kind: 'none' });
@@ -609,6 +612,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   pulse(x: number, y: number, color: number, r: number, total = 0.45): void {
+    if (this.pulses.length > 60) this.pulses.shift();
     this.pulses.push({ x, y, r: r * 0.3, max: r, life: total, total, color });
   }
 
@@ -1114,6 +1118,7 @@ export class GameScene extends Phaser.Scene {
           if (!this.seen(e.x1, e.y1) && !this.seen(e.x2, e.y2)) break;
           const col = e.f === 'neutral' ? 0xf0e6b0 : e.f === 'lula' ? 0xffb199 : 0xa8d0ff;
           const heavy = e.ut === 'tank' || e.ut === 'plane' || e.ut === 'heli';
+          if (this.tracers.length > 300) this.tracers.splice(0, this.tracers.length - 300);
           this.tracers.push({ x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, life: heavy ? 0.16 : 0.09, max: heavy ? 0.16 : 0.09, color: heavy ? 0xfff3c4 : col, width: heavy ? 2.6 : 1.4 });
           if (particles) this.sparks.explode(heavy ? 5 : 2, e.x2, e.y2);
           if (heavy && particles) this.dust.explode(2, e.x2, e.y2);
@@ -1139,6 +1144,7 @@ export class GameScene extends Phaser.Scene {
             else {
               const img = this.add.image(e.x, e.y, 'wreck').setDepth(5.2).setRotation(Math.random() * 6).setScale(this.unitScale() * 2);
               this.wrecks.push({ img, t: 25 });
+              if (this.wrecks.length > 80) this.wrecks.shift()!.img.destroy();
               if (particles) this.smoke.explode(6, e.x, e.y);
             }
           }
