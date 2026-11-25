@@ -1,0 +1,12 @@
+[project]
+name = "jarvis-engine"
+version = "1.0.0"
+description = "J.A.R.V.I.S. agent engine: FastAPI + WebSocket, tool registry, voice and memory."
+requires-python = ">=3.10"
+readme = "../README.md"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["ignore::DeprecationWarning"]

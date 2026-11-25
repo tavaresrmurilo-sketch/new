@@ -1,0 +1,109 @@
+/* ==========================================================================
+   J.A.R.V.I.S. design tokens. Every colour, space, radius, type size,
+   shadow, duration and easing used by the UI comes from here.
+   ========================================================================== */
+:root {
+  /* colour ---------------------------------------------------------------- */
+  --c-background: #03070b;
+  --c-surface: #07111a;
+  --c-surface-2: #0b1824;
+  --c-glass: rgba(8, 22, 34, 0.62);
+  --c-glass-strong: rgba(6, 16, 26, 0.9);
+  --c-primary: #62e6ff;
+  --c-primary-soft: rgba(98, 230, 255, 0.16);
+  --c-primary-faint: rgba(98, 230, 255, 0.07);
+  --c-text: #e8f8ff;
+  --c-muted: #7e97aa;
+  --c-dim: #4a6072;
+  --c-border: rgba(98, 230, 255, 0.14);
+  --c-border-strong: rgba(98, 230, 255, 0.32);
+  --c-glow: rgba(98, 230, 255, 0.45);
+  --c-success: #6af2c6;
+  --c-warning: #ffb84d;
+  --c-danger: #ff5d73;
+  --c-warning-soft: rgba(255, 184, 77, 0.14);
+  --c-danger-soft: rgba(255, 93, 115, 0.14);
+  --c-success-soft: rgba(106, 242, 198, 0.12);
+  --c-focus: #9ff0ff;
+
+  /* spacing (4px grid) ------------------------------------------------------ */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+
+  /* radius: hierarchy, not one value everywhere ------------------------------ */
+  --r-hair: 2px;
+  --r-control: 6px;
+  --r-sheet: 14px;
+  --r-pill: 999px;
+
+  /* typography: one family, the width axis carries hierarchy ---------------- */
+  --font: "Saira Variable", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --w-expanded: 125%;
+  --w-wide: 112%;
+  --w-normal: 100%;
+  --w-condensed: 72%;
+  --fs-xs: 11px;
+  --fs-sm: 12.5px;
+  --fs-md: 14px;
+  --fs-lg: 17px;
+  --fs-xl: 22px;
+  --fs-2xl: 30px;
+  --fs-3xl: 44px;
+  --lh-tight: 1.15;
+  --lh-body: 1.5;
+  --track-label: 0.22em;
+  --track-mark: 0.42em;
+
+  /* shadow / glow ----------------------------------------------------------- */
+  --shadow-sheet: 0 24px 80px rgba(0, 0, 0, 0.55);
+  --glow-text: 0 0 18px rgba(98, 230, 255, 0.35);
+  --glow-line: 0 0 10px rgba(98, 230, 255, 0.35);
+
+  /* motion ------------------------------------------------------------------ */
+  --d-instant: 90ms;
+  --d-fast: 160ms;
+  --d-base: 240ms;
+  --d-slow: 420ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-press: cubic-bezier(0.3, 0, 0.2, 1);
+
+  /* layout ------------------------------------------------------------------ */
+  --rail-w: 320px;
+  --topbar-h: 56px;
+  --dock-h: 52px;
+  --hud-intensity: 0.8;
+}
+
+@media (max-width: 1600px) {
+  :root { --rail-w: 296px; }
+}
+@media (max-width: 1400px) {
+  :root { --rail-w: 268px; --fs-3xl: 38px; }
+}
+@media (max-height: 800px) {
+  :root { --topbar-h: 48px; --dock-h: 46px; --fs-3xl: 34px; }
+}
+
+/* large displays (2560x1440 and up): scale the whole type/space system */
+@media (min-width: 2200px) and (min-height: 1250px) {
+  :root {
+    --rail-w: 420px;
+    --topbar-h: 68px;
+    --dock-h: 62px;
+    --fs-xs: 13px;
+    --fs-sm: 15px;
+    --fs-md: 17px;
+    --fs-lg: 21px;
+    --fs-xl: 27px;
+    --fs-2xl: 36px;
+    --fs-3xl: 54px;
+  }
+}

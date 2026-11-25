@@ -1,0 +1,4 @@
+# Local voice stack (recommended). Models are downloaded on demand, never automatically in bulk.
+faster-whisper>=1.1   # speech-to-text (includes the Silero VAD onnx model)
+piper-tts>=1.3        # neural text-to-speech
+openwakeword>=0.6     # optional low-power "hey jarvis" wake word engine

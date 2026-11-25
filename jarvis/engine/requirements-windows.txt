@@ -1,0 +1,4 @@
+# Windows integration
+pycaw>=20240210       # master/app volume via Core Audio
+comtypes>=1.4
+pywinauto>=0.6.8      # optional UI Automation (computer control, experimental)

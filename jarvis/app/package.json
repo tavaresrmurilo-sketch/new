@@ -1,0 +1,111 @@
+{
+  "name": "jarvis-desktop",
+  "productName": "J.A.R.V.I.S.",
+  "version": "1.0.0",
+  "private": true,
+  "description": "J.A.R.V.I.S. — assistente operacional desktop",
+  "main": "dist-electron/main.cjs",
+  "author": "Jarvis",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build:renderer": "vite build",
+    "build:electron": "node scripts/build-electron.mjs",
+    "build": "npm run typecheck && npm run build:renderer && npm run build:electron",
+    "start": "electron .",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.electron.json --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "audit:buttons": "node scripts/audit-buttons.mjs",
+    "dist:win": "electron-builder --win --x64",
+    "dist:dir": "electron-builder --dir"
+  },
+  "dependencies": {
+    "@fontsource-variable/saira": "^5.3.0",
+    "motion": "^13.4.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2",
+    "jsdom": "^30.1.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
+  },
+  "build": {
+    "appId": "com.jarvis.desktop",
+    "productName": "J.A.R.V.I.S.",
+    "artifactName": "Jarvis-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "assets",
+        "to": "assets",
+        "filter": [
+          "*.png",
+          "*.ico"
+        ]
+      },
+      {
+        "from": "../engine/dist/jarvis-engine",
+        "to": "engine/jarvis-engine",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "signAndEditExecutable": true
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Jarvis",
+      "runAfterFinish": true
+    },
+    "linux": {
+      "target": [
+        "dir"
+      ],
+      "icon": "assets/icon.png",
+      "category": "Utility"
+    },
+    "publish": null
+  }
+}
